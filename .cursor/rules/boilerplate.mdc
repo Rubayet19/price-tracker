@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # ShipFast TypeScript SaaS Boilerplate - Cursor Rules
 
 ## Project Overview
@@ -168,4 +172,4 @@ Use Conventional Commits format:
 - Don't use inline styles, prefer TailwindCSS classes
 - Don't create components without proper TypeScript interfaces
 - Don't forget to connect to MongoDB in API routes
-- Don't skip webhook signature verification for Stripe 
+- Don't skip webhook signature verification for Stripe
