@@ -1,9 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
 import { Popover, Transition } from "@headlessui/react";
 import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 import apiClient from "@/libs/api";
 
 // A button to show user some account actions
@@ -47,7 +47,7 @@ const ButtonAccount = () => {
 				<>
 					<Popover.Button className="btn">
 						{session?.user?.image ? (
-							<img
+							<Image
 								src={session?.user?.image}
 								alt={session?.user?.name || "Account"}
 								className="w-6 h-6 rounded-full shrink-0"

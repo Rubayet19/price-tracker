@@ -6,7 +6,7 @@ const nextConfig = {
       // NextJS <Image> component needs to whitelist domains for src={}
       {
         protocol: "https",
-        hostname: "lh3.googleusercontent.com",
+        hostname: "**.googleusercontent.com",
       },
       {
         protocol: "https",

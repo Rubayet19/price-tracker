@@ -9,6 +9,7 @@ const CTA = () => {
         alt="Background"
         className="object-cover w-full"
         fill
+        sizes="100vw"
       />
       <div className="relative hero-overlay bg-neutral bg-opacity-70"></div>
       <div className="relative hero-content text-center text-neutral-content p-8">
