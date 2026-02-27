@@ -19,6 +19,7 @@ const config = {
     plans: [
       {
         // REQUIRED — we use this to find the plan in the webhook (for instance if you want to update the user's credits based on the plan)
+        tier: "starter",
         priceId:
           process.env.NODE_ENV === "development"
             ? "price_1Niyy5AxyNprDp7iZIqEyD2h"
@@ -41,6 +42,7 @@ const config = {
         ],
       },
       {
+        tier: "pro",
         priceId:
           process.env.NODE_ENV === "development"
             ? "price_1O5KtcAxyNprDp7iftKnrrpw"
@@ -63,6 +65,27 @@ const config = {
       },
     ],
   },
+  entitlements: {
+    trialDays: 7,
+    trialPlanTier: "starter",
+    paidFallbackPlanTier: "starter",
+    plans: {
+      starter: {
+        competitorLimit: 3,
+        insightSeverityGate: "high_only",
+        canReceiveWeeklyDigest: true,
+      },
+      pro: {
+        competitorLimit: 10,
+        insightSeverityGate: "high_and_medium",
+        canReceiveWeeklyDigest: true,
+      },
+    },
+    severityGates: {
+      high_only: ["high"],
+      high_and_medium: ["high", "medium"],
+    },
+  },
   aws: {
     // If you use AWS S3/Cloudfront, put values in here
     bucket: "bucket-name",
@@ -71,11 +94,13 @@ const config = {
   },
   resend: {
     // REQUIRED — Email 'From' field to be used when sending magic login links
-    fromNoReply: `Price Tracker <noreply@price-tracker.app>`,
+    fromNoReply:
+      `Price Tracker <onboarding@resend.dev>`,
     // REQUIRED — Email 'From' field to be used when sending other emails, like abandoned carts, updates etc..
-    fromAdmin: `Price Tracker Team <support@price-tracker.app>`,
+    fromAdmin:
+      `Price Tracker Team <onboarding@resend.dev>`,
     // Email shown to customer if they need support. Leave empty if not needed => if empty, set up Crisp above, otherwise you won't be able to offer customer support."
-    supportEmail: "support@price-tracker.app",
+    supportEmail: "support@resend.dev",
   },
   colors: {
     // REQUIRED — The DaisyUI theme to use (added to the main layout.js). Leave blank for default (light & dark mode). If you use any theme other than light/dark, you need to add it in config.tailwind.js in daisyui.themes.

@@ -6,7 +6,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 ## Locked Decisions
 - Deploy on Vercel Hobby.
 - Plans: Starter is `$19/month` with up to `3` competitors.
-- Plans: Pro is `$50/month` with up to `10` competitors.
+- Plans: Pro is `$49/month` with up to `10` competitors.
 - Trial: user explicitly clicks `Start trial`.
 - Trial: lasts `7 days`, no card required.
 - Trial: uses Starter limits/features.
@@ -94,10 +94,17 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Low-confidence extraction should not produce verified diffs/insights.
 - Bot-blocked targets should be clearly flagged and backoff scheduled.
 
+## Current Implementation Status
+- Completed: trial and entitlements backend (trial start endpoint, entitlement resolution, trial state refresh).
+- Completed: domain models and persistence for Company, Snapshot, Diff, Insight, audit, cron lock, rate limit, and processed Stripe events.
+- Completed: crawl/discovery/diff/insight backend pipeline with lease-based batch claiming, hash gating, and severity-gated insight generation.
+- Completed: cron endpoints and schedules (`/api/cron/crawl` every 15 minutes, `/api/cron/digest` weekly) with `CRON_SECRET` protection.
+- Completed: Stripe webhook hardening with signature verification, known-plan price validation, email fallback, and idempotent event processing.
+- In progress: product UI wiring for setup and dashboard experiences.
+
 ## Current Priority Queue
-- Implement trial flow and entitlements helper.
-- Add models: Company, Snapshot, Diff, Insight.
-- Build setup and dashboard screens for onboarding + verified feed.
-- Implement lease-based batch crawler with static-first + fallback policy.
-- Implement canonicalization, diffing, and plan-gated insights.
-- Implement paying-only weekly digest and schedule both cron jobs.
+- Build authenticated setup UI and connect to `/api/self-pricing`, `/api/trial/start`, `/api/companies`, `/api/companies/[companyId]/discover-pricing`, and `/api/companies/[companyId]/primary-pricing`.
+- Build dashboard UI and connect to `/api/dashboard/overview`, `/api/dashboard/feed`, and `/api/dashboard/comparison`.
+- Surface trust cues and entitlement states in UI (verification state, confidence, crawl status, trial vs paid access, competitor cap feedback).
+- Add repeatable end-to-end coverage for onboarding, crawl loop, and feed pagination.
+- Remove duplicate Mongoose index declarations and run a final production hardening pass.

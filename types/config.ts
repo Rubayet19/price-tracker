@@ -1,3 +1,5 @@
+import type { EntitlementsConfig, PlanTier } from "./entitlements";
+
 export type Theme =
   | "light"
   | "dark"
@@ -33,6 +35,7 @@ export interface ConfigProps {
   stripe: {
     plans: {
       isFeatured?: boolean;
+      tier: PlanTier;
       priceId: string;
       name: string;
       description?: string;
@@ -43,6 +46,7 @@ export interface ConfigProps {
       }[];
     }[];
   };
+  entitlements: EntitlementsConfig;
   aws?: {
     bucket?: string;
     bucketUrl?: string;
