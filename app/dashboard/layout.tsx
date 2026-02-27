@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import config from "@/config";
 
 // This is a server-side component to ensure the user is logged in.

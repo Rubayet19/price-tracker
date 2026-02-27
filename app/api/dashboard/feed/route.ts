@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { type PipelineStage, Types } from "mongoose";
 import { z } from "zod";
 import connectMongo from "@/libs/mongoose";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import DiffModel, { type DiffSeverity, type DiffVerificationState } from "@/models/Diff";
 import type { InsightSeverityGate } from "@/models/Insight";
 

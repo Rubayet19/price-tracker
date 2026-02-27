@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectMongo from "@/libs/mongoose";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import { logAuditEvent } from "@/libs/audit";
 import { createAuditEventSafe } from "@/libs/audit-events";
 import { resolveEntitlements } from "@/libs/entitlements";

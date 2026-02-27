@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectMongo from "@/libs/mongoose";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import { isTrialActive, resolveEntitlements } from "@/libs/entitlements";
 import { refreshTrialStatusIfExpired } from "@/libs/trial";
 import User from "@/models/User";

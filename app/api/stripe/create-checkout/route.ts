@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import { createCheckout } from "@/libs/stripe";
 import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";

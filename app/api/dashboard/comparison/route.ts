@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { type Types } from "mongoose";
 import connectMongo from "@/libs/mongoose";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import Company, { type CompanyCrawlStatus } from "@/models/Company";
 import SelfPricingProfile from "@/models/SelfPricingProfile";
 import SnapshotModel from "@/models/Snapshot";

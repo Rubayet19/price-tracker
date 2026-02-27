@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import connectMongo from "@/libs/mongoose";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import { logAuditEvent } from "@/libs/audit";
 import { enforceWriteRateLimit } from "@/libs/rate-limit";
 import SelfPricingProfile from "@/models/SelfPricingProfile";

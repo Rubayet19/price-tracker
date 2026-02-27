@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import connectMongo from "@/libs/mongoose";
-import { auth } from "@/libs/next-auth";
+import { auth } from "@/libs/auth";
 import { canAddCompetitor, resolveEntitlements } from "@/libs/entitlements";
 import { logAuditEvent } from "@/libs/audit";
 import { createAuditEventSafe } from "@/libs/audit-events";

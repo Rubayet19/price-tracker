@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
+const distDir = process.env.NODE_ENV === "development" ? ".next-dev" : ".next";
+
 const nextConfig = {
+  distDir,
   reactStrictMode: true,
   images: {
     remotePatterns: [
@@ -21,18 +24,6 @@ const nextConfig = {
         hostname: "logos-world.net",
       },
     ],
-  },
-  webpack: (config, { webpack, isServer }) => {
-    // Ignore MongoDB's optional dependencies to prevent build warnings
-    if (isServer) {
-      config.plugins.push(
-        new webpack.IgnorePlugin({
-          resourceRegExp: /^(kerberos|@mongodb-js\/zstd|@aws-sdk\/credential-providers|gcp-metadata|snappy|socks|aws4|mongodb-client-encryption)$/,
-        })
-      );
-    }
-
-    return config;
   },
 };
 
