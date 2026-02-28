@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { loadDashboardComparison, loadDashboardFeed, loadDashboardOverview } from "@/components/dashboard/dashboard-api";
+import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
 import type {
   DashboardComparisonCompetitor,
   DashboardFeedRow,
@@ -142,6 +143,8 @@ export default function DashboardOverviewContent() {
           </Button>
         </div>
       ) : null}
+
+      <DashboardEntitlementBanner overview={overview} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="border-[#0f172a]/10 bg-white/95">

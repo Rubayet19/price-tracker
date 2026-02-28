@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { IconCreditCard, IconDotsVertical, IconLogout, IconUserCircle } from "@tabler/icons-react";
 import { signOut, useSession } from "next-auth/react";
-import apiClient from "@/libs/api";
 import {
   Avatar,
   AvatarFallback,
@@ -50,17 +50,6 @@ export function NavUser() {
     void signOut({ callbackUrl: "/" });
   };
 
-  const handleBilling = async (): Promise<void> => {
-    try {
-      const { url } = (await apiClient.post("/stripe/create-portal", {
-        returnUrl: window.location.href,
-      })) as { url: string };
-      window.location.href = url;
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -105,13 +94,17 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Account
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">
+                  <IconUserCircle />
+                  Settings
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void handleBilling()}>
-                <IconCreditCard />
-                Billing
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">
+                  <IconCreditCard />
+                  Billing & Plan
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

@@ -34,6 +34,7 @@ export async function GET(): Promise<NextResponse> {
 
     const user = await User.findById(String(userId)).select({
       hasAccess: 1,
+      customerId: 1,
       priceId: 1,
       trialStatus: 1,
       trialStartedAt: 1,
@@ -113,6 +114,10 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json({
       entitlements,
+      billing: {
+        priceId: user.priceId ?? null,
+        hasCustomerId: typeof user.customerId === "string" && user.customerId.length > 0,
+      },
       trial: {
         status: user.trialStatus,
         startedAt: user.trialStartedAt,

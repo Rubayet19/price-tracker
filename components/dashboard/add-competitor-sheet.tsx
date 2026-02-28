@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Lock, Plus } from "lucide-react";
 import toast from "react-hot-toast";
+import { loadDashboardOverview } from "@/components/dashboard/dashboard-api";
+import { canAddCompetitorFromOverview, getDashboardAccessNotice } from "@/libs/dashboard-entitlement-state";
+import type { DashboardOverviewResponse } from "@/types/dashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,8 +36,45 @@ export default function AddCompetitorSheet() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [form, setForm] = useState<AddCompetitorForm>(INITIAL_FORM);
+  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
+  const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(true);
+
+  const loadOverview = useCallback(async (): Promise<void> => {
+    try {
+      const response = await loadDashboardOverview();
+      setOverview(response);
+    } catch {
+      setOverview(null);
+    } finally {
+      setIsLoadingOverview(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadOverview();
+  }, [loadOverview]);
+
+  useEffect(() => {
+    const onCompetitorAdded = (): void => {
+      void loadOverview();
+    };
+
+    window.addEventListener("competitor:added", onCompetitorAdded);
+
+    return () => {
+      window.removeEventListener("competitor:added", onCompetitorAdded);
+    };
+  }, [loadOverview]);
+
+  const accessNotice = useMemo(() => getDashboardAccessNotice(overview), [overview]);
+  const canAddCompetitor = canAddCompetitorFromOverview(overview);
 
   const onSubmit = async (): Promise<void> => {
+    if (!canAddCompetitor) {
+      setIsOpen(true);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -52,6 +93,9 @@ export default function AddCompetitorSheet() {
 
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
+        if (response.status === 403) {
+          await loadOverview();
+        }
         throw new Error(payload.error || "Failed to add competitor");
       }
 
@@ -67,67 +111,126 @@ export default function AddCompetitorSheet() {
     }
   };
 
+  const buttonLabel = (() => {
+    if (isLoadingOverview) {
+      return "Add Competitor";
+    }
+
+    if (!accessNotice) {
+      return "Add Competitor";
+    }
+
+    if (accessNotice.kind === "inactive") {
+      return "Upgrade to Continue";
+    }
+
+    if (accessNotice.kind === "upgrade") {
+      return "Upgrade for More";
+    }
+
+    return "Competitor Limit Reached";
+  })();
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button className="bg-[#0f172a] text-white hover:bg-[#1e293b]">
-          <Plus className="size-4" />
-          Add Competitor
+          {accessNotice ? <Lock className="size-4" /> : <Plus className="size-4" />}
+          {buttonLabel}
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Add competitor</SheetTitle>
-          <SheetDescription>
-            Add a competitor domain to start monitoring pricing changes.
-          </SheetDescription>
-        </SheetHeader>
+        {accessNotice ? (
+          <>
+            <SheetHeader>
+              <SheetTitle>{accessNotice.title}</SheetTitle>
+              <SheetDescription>{accessNotice.description}</SheetDescription>
+            </SheetHeader>
 
-        <div className="space-y-4 px-4">
-          <div className="space-y-2">
-            <Label htmlFor="competitor-name">Name</Label>
-            <Input
-              id="competitor-name"
-              value={form.name}
-              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Competitor name"
-            />
-          </div>
+            <div className="space-y-4 px-4">
+              <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748b]">Current workspace</p>
+                <p className="mt-3 text-sm text-[#475569]">
+                  {overview
+                    ? `${overview.companyCounts.competitor} of ${overview.entitlements.competitorLimit} competitor slots in use`
+                    : "Refresh the dashboard state to confirm plan limits."}
+                </p>
+                {overview?.trial.endsAt ? (
+                  <p className="mt-2 text-sm text-[#475569]">
+                    Trial end: {new Date(overview.trial.endsAt).toLocaleDateString("en-US")}
+                  </p>
+                ) : null}
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="competitor-domain">Domain</Label>
-            <Input
-              id="competitor-domain"
-              value={form.domain}
-              onChange={(event) => setForm((current) => ({ ...current, domain: event.target.value }))}
-              placeholder="example.com"
-            />
-          </div>
+            <SheetFooter className="mt-4 border-t border-[#e2e8f0]">
+              <Button asChild variant="outline">
+                <Link href="/dashboard/competitors">Review competitors</Link>
+              </Button>
+              <Button asChild className="bg-[#0f172a] text-white hover:bg-[#1e293b]">
+                <Link href={accessNotice.ctaHref}>
+                  {accessNotice.ctaLabel}
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              </Button>
+            </SheetFooter>
+          </>
+        ) : (
+          <>
+            <SheetHeader>
+              <SheetTitle>Add competitor</SheetTitle>
+              <SheetDescription>
+                Add a competitor domain to start monitoring pricing changes.
+              </SheetDescription>
+            </SheetHeader>
 
-          <div className="space-y-2">
-            <Label htmlFor="competitor-homepage">Homepage URL (optional)</Label>
-            <Input
-              id="competitor-homepage"
-              value={form.homepageUrl}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, homepageUrl: event.target.value }))
-              }
-              placeholder="https://example.com/pricing"
-            />
-          </div>
-        </div>
+            <div className="space-y-4 px-4">
+              <div className="space-y-2">
+                <Label htmlFor="competitor-name">Name</Label>
+                <Input
+                  id="competitor-name"
+                  value={form.name}
+                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  placeholder="Competitor name"
+                />
+              </div>
 
-        <SheetFooter className="mt-4 border-t border-[#e2e8f0]">
-          <Button
-            onClick={() => {
-              void onSubmit();
-            }}
-            disabled={isSubmitting || !form.name.trim() || (!form.domain.trim() && !form.homepageUrl.trim())}
-            className="bg-[#0f766e] text-white hover:bg-[#115e59]"
-          >
-            {isSubmitting ? "Adding..." : "Add competitor"}
-          </Button>
-        </SheetFooter>
+              <div className="space-y-2">
+                <Label htmlFor="competitor-domain">Domain</Label>
+                <Input
+                  id="competitor-domain"
+                  value={form.domain}
+                  onChange={(event) => setForm((current) => ({ ...current, domain: event.target.value }))}
+                  placeholder="example.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="competitor-homepage">Homepage URL (optional)</Label>
+                <Input
+                  id="competitor-homepage"
+                  value={form.homepageUrl}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, homepageUrl: event.target.value }))
+                  }
+                  placeholder="https://example.com"
+                />
+              </div>
+            </div>
+
+            <SheetFooter className="mt-4 border-t border-[#e2e8f0]">
+              <Button
+                onClick={() => {
+                  void onSubmit();
+                }}
+                disabled={isSubmitting || !form.name.trim() || (!form.domain.trim() && !form.homepageUrl.trim())}
+                className="bg-[#0f766e] text-white hover:bg-[#115e59]"
+              >
+                {isSubmitting ? "Adding..." : "Add competitor"}
+              </Button>
+            </SheetFooter>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   );

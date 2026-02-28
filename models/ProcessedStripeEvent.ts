@@ -60,7 +60,6 @@ const processedStripeEventSchema = new mongoose.Schema<IProcessedStripeEvent>(
   }
 );
 
-processedStripeEventSchema.index({ eventId: 1 }, { unique: true });
 processedStripeEventSchema.index({ status: 1, lockExpiresAt: 1 });
 processedStripeEventSchema.plugin(toJSON);
 

@@ -43,7 +43,6 @@ const cronRunLockSchema = new mongoose.Schema<ICronRunLock>(
   }
 );
 
-cronRunLockSchema.index({ key: 1 }, { unique: true });
 cronRunLockSchema.index({ lockUntil: 1 });
 cronRunLockSchema.plugin(toJSON);
 

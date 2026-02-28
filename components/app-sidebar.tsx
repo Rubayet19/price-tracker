@@ -4,6 +4,8 @@ import type { ComponentProps } from "react";
 import Link from "next/link";
 import {
   IconAlertCircle,
+  IconCreditCard,
+  IconSettings,
   IconDashboard,
   IconHelp,
   IconListDetails,
@@ -31,6 +33,11 @@ const data = {
       icon: IconDashboard,
     },
     {
+      title: "Setup",
+      url: "/dashboard/setup",
+      icon: IconSettings,
+    },
+    {
       title: "Competitors",
       url: "/dashboard/competitors",
       icon: IconListDetails,
@@ -44,6 +51,11 @@ const data = {
       title: "Trust Signals",
       url: "/dashboard/trust",
       icon: IconAlertCircle,
+    },
+    {
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: IconCreditCard,
     },
   ],
   navSecondary: [

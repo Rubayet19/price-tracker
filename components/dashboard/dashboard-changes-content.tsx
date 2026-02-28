@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { loadDashboardFeed } from "@/components/dashboard/dashboard-api";
+import { loadDashboardFeed, loadDashboardOverview } from "@/components/dashboard/dashboard-api";
+import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
 import { DataTable } from "@/components/data-table";
-import type { DashboardFeedRow, FeedFilters } from "@/types/dashboard";
+import type { DashboardFeedRow, DashboardOverviewResponse, FeedFilters } from "@/types/dashboard";
 import { Button } from "@/components/ui/button";
 
 const INITIAL_FILTERS: FeedFilters = {
@@ -15,6 +16,7 @@ const INITIAL_FILTERS: FeedFilters = {
 export default function DashboardChangesContent() {
   const [filters, setFilters] = useState<FeedFilters>(INITIAL_FILTERS);
   const [rows, setRows] = useState<DashboardFeedRow[]>([]);
+  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,11 @@ export default function DashboardChangesContent() {
     setError(null);
 
     try {
-      const response = await loadDashboardFeed(filters, { limit: 20 });
+      const [overviewResponse, response] = await Promise.all([
+        loadDashboardOverview(),
+        loadDashboardFeed(filters, { limit: 20 }),
+      ]);
+      setOverview(overviewResponse);
       setRows(response.rows);
       setHasMore(response.pageInfo.hasMore);
       setNextCursor(response.pageInfo.nextCursor);
@@ -91,6 +97,8 @@ export default function DashboardChangesContent() {
           </Button>
         </div>
       ) : null}
+
+      <DashboardEntitlementBanner overview={overview} />
 
       <DataTable
         rows={rows}

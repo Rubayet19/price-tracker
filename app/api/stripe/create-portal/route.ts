@@ -1,8 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import { auth } from "@/libs/auth";
 import connectMongo from "@/libs/mongoose";
 import { createCustomerPortal } from "@/libs/stripe";
 import User from "@/models/User";
+
+const portalRequestSchema = z.object({
+  returnUrl: z.string().url(),
+});
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -11,7 +16,17 @@ export async function POST(req: NextRequest) {
     try {
       await connectMongo();
 
-      const body = await req.json();
+      let body: unknown;
+      try {
+        body = await req.json();
+      } catch {
+        return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+      }
+
+      const parsed = portalRequestSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json({ error: "Valid returnUrl is required" }, { status: 400 });
+      }
 
       const { id } = session.user;
 
@@ -25,24 +40,22 @@ export async function POST(req: NextRequest) {
           },
           { status: 400 }
         );
-      } else if (!body.returnUrl) {
-        return NextResponse.json(
-          { error: "Return URL is required" },
-          { status: 400 }
-        );
       }
 
       const stripePortalUrl = await createCustomerPortal({
         customerId: user.customerId,
-        returnUrl: body.returnUrl,
+        returnUrl: parsed.data.returnUrl,
       });
 
       return NextResponse.json({
         url: stripePortalUrl,
       });
-    } catch (e) {
-      console.error(e);
-      return NextResponse.json({ error: e?.message }, { status: 500 });
+    } catch (error) {
+      console.error(error);
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Failed to create billing portal session" },
+        { status: 500 }
+      );
     }
   } else {
     // Not Signed in

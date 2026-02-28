@@ -311,7 +311,6 @@ export async function POST(req: NextRequest) {
     }
 
     let discoveredCandidates: IPricingUrlCandidate[] = [];
-    let discoveredPrimaryPricingUrl: string | null = null;
 
     if (parsed.data.type === "competitor" && !normalizedPricingUrl && normalizedHomepageUrl) {
       const discovery = await discoverPricingUrlsFromHomepage({
@@ -320,7 +319,6 @@ export async function POST(req: NextRequest) {
       });
 
       discoveredCandidates = discovery.candidates;
-      discoveredPrimaryPricingUrl = discovery.recommendedPrimaryUrl;
     }
 
     const userProvidedCandidates = normalizedPricingUrl
@@ -340,7 +338,7 @@ export async function POST(req: NextRequest) {
       type: parsed.data.type,
       domain: normalizedDomain,
       homepageUrl: normalizedHomepageUrl ?? undefined,
-      primaryPricingUrl: normalizedPricingUrl ?? discoveredPrimaryPricingUrl ?? undefined,
+      primaryPricingUrl: normalizedPricingUrl ?? undefined,
       ...(parsed.data.type === "competitor" ? { nextCrawlAt: now } : {}),
       pricingUrlCandidates,
     });

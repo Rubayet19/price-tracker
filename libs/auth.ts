@@ -5,8 +5,17 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
 
+const nextAuthUrl = process.env.NEXTAUTH_URL ?? "";
+const isLocalAuthHost =
+  nextAuthUrl.startsWith("http://localhost") || nextAuthUrl.startsWith("http://127.0.0.1");
+const isLocalTestHost = nextAuthUrl.startsWith("http://localtest.me");
+
 export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost:
+    process.env.AUTH_TRUST_HOST === "true" ||
+    isLocalAuthHost ||
+    isLocalTestHost,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_ID!,

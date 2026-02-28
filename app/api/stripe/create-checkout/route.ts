@@ -1,33 +1,37 @@
 import { NextResponse, NextRequest } from "next/server";
+import { z } from "zod";
 import { auth } from "@/libs/auth";
 import { createCheckout } from "@/libs/stripe";
 import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
+import config from "@/config";
+
+const checkoutRequestSchema = z.object({
+  priceId: z.string().trim().min(1),
+  successUrl: z.string().url(),
+  cancelUrl: z.string().url(),
+  mode: z.enum(["payment", "subscription"]),
+});
 
 // This function is used to create a Stripe Checkout Session (one-time payment or subscription)
 // It's called by the <ButtonCheckout /> component
 // By default, it doesn't force users to be authenticated. But if they are, it will prefill the Checkout data with their email and/or credit card
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  let body: unknown;
 
-  if (!body.priceId) {
-    return NextResponse.json(
-      { error: "Price ID is required" },
-      { status: 400 }
-    );
-  } else if (!body.successUrl || !body.cancelUrl) {
-    return NextResponse.json(
-      { error: "Success and cancel URLs are required" },
-      { status: 400 }
-    );
-  } else if (!body.mode) {
-    return NextResponse.json(
-      {
-        error:
-          "Mode is required (either 'payment' for one-time payments or 'subscription' for recurring subscription)",
-      },
-      { status: 400 }
-    );
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+  }
+
+  const parsed = checkoutRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid checkout payload" }, { status: 400 });
+  }
+
+  if (!config.stripe.plans.some((plan) => plan.priceId === parsed.data.priceId)) {
+    return NextResponse.json({ error: "Unknown Stripe priceId" }, { status: 400 });
   }
 
   try {
@@ -35,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     await connectMongo();
 
-    const { priceId, mode, successUrl, cancelUrl } = body;
+    const { priceId, mode, successUrl, cancelUrl } = parsed.data;
     
     let user = null;
     if (session?.user?.id) {
@@ -57,8 +61,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: stripeSessionURL });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: e?.message }, { status: 500 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to create checkout session" },
+      { status: 500 }
+    );
   }
 }

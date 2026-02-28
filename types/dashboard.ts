@@ -1,4 +1,5 @@
 import type { PlanTier } from "@/types/entitlements";
+import type { PricingUrlCandidate } from "@/types/companies";
 
 export type DashboardCrawlStatus = "idle" | "ok" | "blocked" | "manual_needed" | "error";
 export type DashboardDiffSeverity = "low" | "medium" | "high";
@@ -15,6 +16,10 @@ export interface DashboardEntitlements {
 
 export interface DashboardOverviewResponse {
   entitlements: DashboardEntitlements;
+  billing: {
+    priceId: string | null;
+    hasCustomerId: boolean;
+  };
   trial: {
     status: "not_started" | "active" | "expired" | "converted";
     startedAt: string | null;
@@ -76,7 +81,9 @@ export interface DashboardComparisonCompetitor {
   companyId: string;
   name: string;
   domain: string;
+  homepageUrl: string | null;
   primaryPricingUrl: string | null;
+  pricingUrlCandidates: PricingUrlCandidate[];
   trust: {
     blockedOrManualNeeded: boolean;
     lastCrawlStatus: DashboardCrawlStatus;

@@ -95,7 +95,6 @@ const selfPricingProfileSchema = new mongoose.Schema<ISelfPricingProfile>(
   }
 );
 
-selfPricingProfileSchema.index({ userId: 1 }, { unique: true });
 selfPricingProfileSchema.plugin(toJSON);
 
 const SelfPricingProfile =

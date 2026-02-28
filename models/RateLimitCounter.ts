@@ -40,7 +40,6 @@ const rateLimitCounterSchema = new mongoose.Schema<IRateLimitCounter>(
   }
 );
 
-rateLimitCounterSchema.index({ key: 1 }, { unique: true });
 rateLimitCounterSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 rateLimitCounterSchema.plugin(toJSON);
 

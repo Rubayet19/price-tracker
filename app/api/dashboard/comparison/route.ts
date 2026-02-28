@@ -5,13 +5,16 @@ import { auth } from "@/libs/auth";
 import Company, { type CompanyCrawlStatus } from "@/models/Company";
 import SelfPricingProfile from "@/models/SelfPricingProfile";
 import SnapshotModel from "@/models/Snapshot";
+import type { PricingUrlCandidate } from "@/types/companies";
 
 interface CompanyLean {
   _id: Types.ObjectId;
   name: string;
   domain: string;
   type: "self" | "competitor";
+  homepageUrl?: string;
   primaryPricingUrl?: string;
+  pricingUrlCandidates: PricingUrlCandidate[];
   lastCrawlStatus: CompanyCrawlStatus;
   lastCrawlAt?: Date;
   lastCrawlError?: string;
@@ -164,7 +167,9 @@ export async function GET(): Promise<NextResponse> {
         companyId: company._id.toString(),
         name: company.name,
         domain: company.domain,
+        homepageUrl: company.homepageUrl ?? null,
         primaryPricingUrl: company.primaryPricingUrl ?? null,
+        pricingUrlCandidates: company.pricingUrlCandidates ?? [],
         trust: {
           blockedOrManualNeeded,
           lastCrawlStatus: company.lastCrawlStatus,

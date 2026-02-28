@@ -100,11 +100,17 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Completed: crawl/discovery/diff/insight backend pipeline with lease-based batch claiming, hash gating, and severity-gated insight generation.
 - Completed: cron endpoints and schedules (`/api/cron/crawl` every 15 minutes, `/api/cron/digest` weekly) with `CRON_SECRET` protection.
 - Completed: Stripe webhook hardening with signature verification, known-plan price validation, email fallback, and idempotent event processing.
-- In progress: product UI wiring for setup and dashboard experiences.
+- Completed: authenticated setup UI for self pricing, explicit trial start, competitor add, pricing URL confirmation, and redirect-based setup gating under `/dashboard/setup`.
+- Completed: core dashboard UI wiring for overview, changes, competitors, trust, and settings pages backed by `/api/dashboard/overview`, `/api/dashboard/feed`, and `/api/dashboard/comparison`.
+- Completed: competitor management UX on `/dashboard/competitors`, including pricing source review, crawl-now/retry actions, and visible trust state messaging.
+- Completed: dashboard-wide entitlement/paywall states and in-app billing/settings surface under `/dashboard/settings`.
+- Completed: full dashboard setup gating so incomplete users are redirected back into `/dashboard/setup` until onboarding is finished.
+- Completed: repeatable end-to-end smoke coverage for setup and dashboard access paths.
+- Completed: local production build hardening for this repo, including Node runtime pinning, localhost/localtest Auth.js trust for development, duplicate Mongoose index cleanup, and stricter Stripe input validation.
+- Current state: MVP is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
 
 ## Current Priority Queue
-- Build authenticated setup UI and connect to `/api/self-pricing`, `/api/trial/start`, `/api/companies`, `/api/companies/[companyId]/discover-pricing`, and `/api/companies/[companyId]/primary-pricing`.
-- Build dashboard UI and connect to `/api/dashboard/overview`, `/api/dashboard/feed`, and `/api/dashboard/comparison`.
-- Surface trust cues and entitlement states in UI (verification state, confidence, crawl status, trial vs paid access, competitor cap feedback).
-- Add repeatable end-to-end coverage for onboarding, crawl loop, and feed pagination.
-- Remove duplicate Mongoose index declarations and run a final production hardening pass.
+- Validate production environment values before deployment (`NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `MONGODB_URI`, OAuth credentials).
+- Run a final manual QA pass on the main product flows: sign-in, setup, add competitor, billing/settings, crawl retry, and dashboard empty/error states.
+- Confirm Stripe live-mode configuration matches `config.ts` plan mapping and that billing portal is enabled in the Stripe dashboard.
+- Decide whether to keep or remove planning docs under `docs/` before the first release commit.
