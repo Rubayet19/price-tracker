@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowUpRight, Lock, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { loadDashboardOverview } from "@/components/dashboard/dashboard-api";
+import { createCompany } from "@/components/dashboard/setup/setup-api";
 import { canAddCompetitorFromOverview, getDashboardAccessNotice } from "@/libs/dashboard-entitlement-state";
 import type { DashboardOverviewResponse } from "@/types/dashboard";
 import { Button } from "@/components/ui/button";
@@ -22,17 +24,16 @@ import {
 
 interface AddCompetitorForm {
   name: string;
-  domain: string;
   homepageUrl: string;
 }
 
 const INITIAL_FORM: AddCompetitorForm = {
   name: "",
-  domain: "",
   homepageUrl: "",
 };
 
 export default function AddCompetitorSheet() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [form, setForm] = useState<AddCompetitorForm>(INITIAL_FORM);
@@ -78,34 +79,22 @@ export default function AddCompetitorSheet() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/companies", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: form.name,
-          type: "competitor",
-          domain: form.domain || undefined,
-          homepageUrl: form.homepageUrl || undefined,
-        }),
+      const company = await createCompany({
+        name: form.name.trim(),
+        type: "competitor",
+        homepageUrl: form.homepageUrl.trim(),
       });
-
-      const payload = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        if (response.status === 403) {
-          await loadOverview();
-        }
-        throw new Error(payload.error || "Failed to add competitor");
-      }
 
       toast.success("Competitor added");
       setForm(INITIAL_FORM);
       setIsOpen(false);
       window.dispatchEvent(new Event("competitor:added"));
+      router.push(`/dashboard/setup/competitors/${company.id}/pricing`);
+      router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to add competitor";
       toast.error(message);
+      await loadOverview();
     } finally {
       setIsSubmitting(false);
     }
@@ -177,12 +166,12 @@ export default function AddCompetitorSheet() {
           </>
         ) : (
           <>
-            <SheetHeader>
-              <SheetTitle>Add competitor</SheetTitle>
-              <SheetDescription>
-                Add a competitor domain to start monitoring pricing changes.
-              </SheetDescription>
-            </SheetHeader>
+              <SheetHeader>
+                <SheetTitle>Add competitor</SheetTitle>
+                <SheetDescription>
+                  Add a competitor homepage to discover the pricing page and start daily monitoring.
+                </SheetDescription>
+              </SheetHeader>
 
             <div className="space-y-4 px-4">
               <div className="space-y-2">
@@ -196,17 +185,7 @@ export default function AddCompetitorSheet() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="competitor-domain">Domain</Label>
-                <Input
-                  id="competitor-domain"
-                  value={form.domain}
-                  onChange={(event) => setForm((current) => ({ ...current, domain: event.target.value }))}
-                  placeholder="example.com"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="competitor-homepage">Homepage URL (optional)</Label>
+                <Label htmlFor="competitor-homepage">Homepage URL</Label>
                 <Input
                   id="competitor-homepage"
                   value={form.homepageUrl}
@@ -214,7 +193,12 @@ export default function AddCompetitorSheet() {
                     setForm((current) => ({ ...current, homepageUrl: event.target.value }))
                   }
                   placeholder="https://example.com"
+                  inputMode="url"
                 />
+                <p className="text-sm text-[#64748b]">
+                  Use the homepage only. Price Tracker derives the domain automatically, discovers
+                  likely pricing pages, and checks the saved source daily.
+                </p>
               </div>
             </div>
 
@@ -223,10 +207,10 @@ export default function AddCompetitorSheet() {
                 onClick={() => {
                   void onSubmit();
                 }}
-                disabled={isSubmitting || !form.name.trim() || (!form.domain.trim() && !form.homepageUrl.trim())}
+                disabled={isSubmitting || !form.name.trim() || !form.homepageUrl.trim()}
                 className="bg-[#0f766e] text-white hover:bg-[#115e59]"
               >
-                {isSubmitting ? "Adding..." : "Add competitor"}
+                {isSubmitting ? "Adding..." : "Add competitor and continue"}
               </Button>
             </SheetFooter>
           </>

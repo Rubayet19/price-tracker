@@ -1,6 +1,7 @@
 "use client";
 
 import type { PricingUrlCandidate } from "@/types/companies";
+import type { DashboardCrawlStatus } from "@/types/dashboard";
 import type { ResolvedEntitlements } from "@/types/entitlements";
 import type { SelfPricingProfileData } from "@/types/self-pricing";
 
@@ -44,6 +45,21 @@ export interface PrimaryPricingApiResponse {
   domain: string;
   primaryPricingUrl: string | null;
   pricingUrlCandidates: PricingUrlCandidate[];
+}
+
+export interface CrawlCompanyApiResponse {
+  companyId: string;
+  completed: boolean;
+  result: {
+    companyId: string;
+    status: DashboardCrawlStatus;
+    changed: boolean;
+    snapshotCreated: boolean;
+    diffCreated: boolean;
+    insightCreated: boolean;
+    skippedByHash: boolean;
+    reason?: string;
+  };
 }
 
 const toErrorMessage = async (response: Response, fallbackMessage: string): Promise<string> => {
@@ -160,4 +176,14 @@ export const updatePrimaryPricingUrl = async (
   }
 
   return (await response.json()) as PrimaryPricingApiResponse;
+};
+
+export const crawlCompanyNow = async (companyId: string): Promise<CrawlCompanyApiResponse> => {
+  const response = await fetch(`/api/companies/${companyId}/crawl-now`, createJsonOptions("POST"));
+
+  if (!response.ok) {
+    throw new Error(await toErrorMessage(response, "Failed to run the first crawl"));
+  }
+
+  return (await response.json()) as CrawlCompanyApiResponse;
 };

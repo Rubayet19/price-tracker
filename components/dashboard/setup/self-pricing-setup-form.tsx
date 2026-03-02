@@ -4,32 +4,29 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { createCompany, saveSelfPricingProfile } from "@/components/dashboard/setup/setup-api";
+import {
+  createCompany,
+  discoverPricingUrls,
+  saveSelfPricingProfile,
+} from "@/components/dashboard/setup/setup-api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { SetupSelfCompany } from "@/types/setup";
-import type { SelfPricingBillingPeriod, SelfPricingProfileData } from "@/types/self-pricing";
+import type { SelfPricingProfileData } from "@/types/self-pricing";
 
 interface SelfPricingSetupFormProps {
   existingProfile: SelfPricingProfileData | null;
   existingSelfCompany: SetupSelfCompany | null;
+  mode?: "setup" | "settings";
 }
 
 interface PlanDraft {
   name: string;
-  price: string;
-  priceAnchor: string;
-  highlights: string;
+  monthlyPrice: string;
+  annualPrice: string;
 }
 
 const toPlanDrafts = (profile: SelfPricingProfileData | null): PlanDraft[] => {
@@ -37,37 +34,32 @@ const toPlanDrafts = (profile: SelfPricingProfileData | null): PlanDraft[] => {
     return [
       {
         name: "Starter",
-        price: "",
-        priceAnchor: "",
-        highlights: "",
+        monthlyPrice: "",
+        annualPrice: "",
       },
     ];
   }
 
   return profile.plans.map((plan) => ({
     name: plan.name,
-    price: String(plan.price),
-    priceAnchor: typeof plan.priceAnchor === "number" ? String(plan.priceAnchor) : "",
-    highlights: plan.highlights.join("\n"),
+    monthlyPrice: typeof plan.monthlyPrice === "number" ? String(plan.monthlyPrice) : "",
+    annualPrice: typeof plan.annualPrice === "number" ? String(plan.annualPrice) : "",
   }));
 };
 
 export default function SelfPricingSetupForm({
   existingProfile,
   existingSelfCompany,
+  mode = "setup",
 }: SelfPricingSetupFormProps) {
   const router = useRouter();
   const [companyName, setCompanyName] = useState<string>(existingSelfCompany?.name ?? "");
-  const [companyDomain, setCompanyDomain] = useState<string>(existingSelfCompany?.domain ?? "");
   const [homepageUrl, setHomepageUrl] = useState<string>(existingSelfCompany?.homepageUrl ?? "");
   const [primaryPricingUrl, setPrimaryPricingUrl] = useState<string>(
     existingSelfCompany?.primaryPricingUrl ?? ""
   );
   const [currency, setCurrency] = useState<string>(existingProfile?.currency ?? "USD");
-  const [billingPeriod, setBillingPeriod] = useState<SelfPricingBillingPeriod>(
-    existingProfile?.billingPeriod ?? "month"
-  );
-  const [notes, setNotes] = useState<string>(existingProfile?.notes ?? "");
+  const [positioningStatement, setPositioningStatement] = useState<string>(existingProfile?.notes ?? "");
   const [plans, setPlans] = useState<PlanDraft[]>(() => toPlanDrafts(existingProfile));
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,9 +79,8 @@ export default function SelfPricingSetupForm({
       ...current,
       {
         name: "",
-        price: "",
-        priceAnchor: "",
-        highlights: "",
+        monthlyPrice: "",
+        annualPrice: "",
       },
     ]);
   };
@@ -104,14 +95,10 @@ export default function SelfPricingSetupForm({
     const normalizedPlans = plans
       .map((plan) => ({
         name: plan.name.trim(),
-        price: plan.price.trim(),
-        priceAnchor: plan.priceAnchor.trim(),
-        highlights: plan.highlights
-          .split("\n")
-          .map((highlight) => highlight.trim())
-          .filter(Boolean),
+        monthlyPrice: plan.monthlyPrice.trim(),
+        annualPrice: plan.annualPrice.trim(),
       }))
-      .filter((plan) => plan.name || plan.price || plan.priceAnchor || plan.highlights.length > 0);
+      .filter((plan) => plan.name || plan.monthlyPrice || plan.annualPrice);
 
     if (normalizedPlans.length === 0) {
       setError("Add at least one pricing plan.");
@@ -121,29 +108,29 @@ export default function SelfPricingSetupForm({
     let parsedPlans: SelfPricingProfileData["plans"];
     try {
       parsedPlans = normalizedPlans.map((plan) => {
-        const price = Number(plan.price);
-        const priceAnchor = plan.priceAnchor ? Number(plan.priceAnchor) : undefined;
-
         if (!plan.name) {
           throw new Error("Each plan needs a name.");
         }
 
-        if (!Number.isFinite(price) || price < 0) {
-          throw new Error(`Plan "${plan.name}" needs a valid non-negative price.`);
+        const monthlyPrice = plan.monthlyPrice ? Number(plan.monthlyPrice) : null;
+        const annualPrice = plan.annualPrice ? Number(plan.annualPrice) : null;
+
+        if (monthlyPrice !== null && (!Number.isFinite(monthlyPrice) || monthlyPrice < 0)) {
+          throw new Error(`Plan "${plan.name}" has an invalid monthly price.`);
         }
 
-        if (
-          typeof priceAnchor !== "undefined" &&
-          (!Number.isFinite(priceAnchor) || priceAnchor < 0)
-        ) {
-          throw new Error(`Plan "${plan.name}" has an invalid anchor price.`);
+        if (annualPrice !== null && (!Number.isFinite(annualPrice) || annualPrice < 0)) {
+          throw new Error(`Plan "${plan.name}" has an invalid annual price.`);
+        }
+
+        if (monthlyPrice === null && annualPrice === null) {
+          throw new Error(`Plan "${plan.name}" needs a monthly or annual price.`);
         }
 
         return {
           name: plan.name,
-          price,
-          priceAnchor,
-          highlights: plan.highlights,
+          monthlyPrice,
+          annualPrice,
         };
       });
     } catch (validationError) {
@@ -161,8 +148,8 @@ export default function SelfPricingSetupForm({
         return;
       }
 
-      if (!companyDomain.trim()) {
-        setError("Add your product domain.");
+      if (!homepageUrl.trim()) {
+        setError("Add your homepage URL.");
         return;
       }
     }
@@ -172,24 +159,33 @@ export default function SelfPricingSetupForm({
     try {
       await saveSelfPricingProfile({
         currency: currency.trim().toUpperCase(),
-        billingPeriod,
         plans: parsedPlans,
-        notes: notes.trim() || undefined,
+        notes: positioningStatement.trim() || undefined,
       });
 
       if (!existingSelfCompany) {
-        await createCompany({
+        const selfCompany = await createCompany({
           name: companyName.trim(),
           type: "self",
-          domain: companyDomain.trim(),
-          homepageUrl: homepageUrl.trim() || undefined,
+          homepageUrl: homepageUrl.trim(),
           primaryPricingUrl: primaryPricingUrl.trim() || undefined,
         });
+
+        if (!primaryPricingUrl.trim()) {
+          const discovery = await discoverPricingUrls(selfCompany.id);
+          if (discovery.primaryPricingUrl ?? discovery.recommendedPrimaryUrl) {
+            toast.success("Pricing baseline saved. We also found your pricing page from the homepage.");
+          }
+        }
       }
 
-      toast.success("Pricing setup saved");
-      router.push("/dashboard/setup");
-      router.refresh();
+      toast.success(mode === "settings" ? "Pricing baseline updated" : "Pricing setup saved");
+      if (mode === "settings") {
+        router.refresh();
+      } else {
+        router.push("/dashboard/setup");
+        router.refresh();
+      }
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : "Failed to save setup details";
@@ -205,11 +201,12 @@ export default function SelfPricingSetupForm({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle className="text-2xl font-black tracking-tight text-[#0f172a]">
-              Enter your pricing context
+              {mode === "settings" ? "Edit your pricing baseline" : "Set your product baseline"}
             </CardTitle>
             <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-[#475569]">
-              This step seeds the comparison engine with your current offer. Keep it simple and
-              explicit so the dashboard can compare you against competitors cleanly.
+              {mode === "settings"
+                ? "Update the pricing baseline used for comparison against competitors."
+                : "Add your product, homepage, and plan pricing. If you leave the pricing URL blank, Price Tracker will try to find it from your homepage automatically."}
             </CardDescription>
           </div>
           <Badge variant="outline" className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]">
@@ -243,18 +240,6 @@ export default function SelfPricingSetupForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="self-company-domain">Primary domain</Label>
-              <Input
-                id="self-company-domain"
-                value={companyDomain}
-                onChange={(event) => setCompanyDomain(event.target.value)}
-                placeholder="example.com"
-                autoCapitalize="none"
-                autoCorrect="off"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="self-homepage-url">Homepage URL</Label>
               <Input
                 id="self-homepage-url"
@@ -263,10 +248,13 @@ export default function SelfPricingSetupForm({
                 placeholder="https://example.com"
                 inputMode="url"
               />
+              <p className="text-sm text-[#64748b]">
+                Use the homepage only. Price Tracker derives the domain automatically.
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="self-pricing-url">Pricing URL</Label>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="self-pricing-url">Pricing URL (optional)</Label>
               <Input
                 id="self-pricing-url"
                 value={primaryPricingUrl}
@@ -274,11 +262,14 @@ export default function SelfPricingSetupForm({
                 placeholder="https://example.com/pricing"
                 inputMode="url"
               />
+              <p className="text-sm text-[#64748b]">
+                Leave this blank if you want Price Tracker to try finding the pricing page from your homepage.
+              </p>
             </div>
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-[180px_220px_minmax(0,1fr)]">
+        <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
           <div className="space-y-2">
             <Label htmlFor="self-currency">Currency</Label>
             <Input
@@ -291,33 +282,23 @@ export default function SelfPricingSetupForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="self-billing-period">Billing period</Label>
-            <Select
-              value={billingPeriod}
-              onValueChange={(value) => setBillingPeriod(value as SelfPricingBillingPeriod)}
-            >
-              <SelectTrigger id="self-billing-period" className="w-full bg-white">
-                <SelectValue placeholder="Select a billing period" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Monthly</SelectItem>
-                <SelectItem value="year">Yearly</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="self-notes">Notes</Label>
+            <Label htmlFor="self-notes">Positioning statement (optional)</Label>
             <textarea
               id="self-notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Anything a competitor comparison should know about packaging or pricing."
-              rows={3}
+              value={positioningStatement}
+              onChange={(event) => setPositioningStatement(event.target.value)}
+              placeholder="AI-first competitor pricing intelligence for lean SaaS teams."
+              rows={4}
               className="flex min-h-[96px] w-full rounded-md border border-[#d5dbe3] bg-white px-3 py-2 text-sm text-[#0f172a] shadow-xs outline-none ring-0 transition focus:border-[#0f766e] focus:ring-2 focus:ring-[#0f766e]/20"
             />
+            <p className="text-sm text-[#64748b]">
+              Keep it to one sentence. This gives the comparison layer context about how you position your product.
+            </p>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4 text-sm leading-6 text-[#475569]">
+          Add explicit monthly and annual prices where they exist. Leave a cadence blank if you do not offer it.
         </div>
 
         <div className="space-y-4">
@@ -331,7 +312,7 @@ export default function SelfPricingSetupForm({
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#64748b]">
                     Plan {index + 1}
                   </p>
-                  <p className="mt-1 text-sm text-[#475569]">Name, price, and optional highlights.</p>
+                  <p className="mt-1 text-sm text-[#475569]">Name plus optional monthly and annual price points.</p>
                 </div>
                 {plans.length > 1 ? (
                   <Button
@@ -347,7 +328,7 @@ export default function SelfPricingSetupForm({
                 ) : null}
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_140px_140px]">
+              <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_160px_160px]">
                 <div className="space-y-2">
                   <Label htmlFor={`plan-name-${index}`}>Plan name</Label>
                   <Input
@@ -359,38 +340,26 @@ export default function SelfPricingSetupForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`plan-price-${index}`}>Price</Label>
+                  <Label htmlFor={`plan-monthly-price-${index}`}>Monthly price</Label>
                   <Input
-                    id={`plan-price-${index}`}
-                    value={plan.price}
-                    onChange={(event) => updatePlan(index, { price: event.target.value })}
+                    id={`plan-monthly-price-${index}`}
+                    value={plan.monthlyPrice}
+                    onChange={(event) => updatePlan(index, { monthlyPrice: event.target.value })}
                     placeholder="19"
                     inputMode="decimal"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`plan-anchor-${index}`}>Anchor price</Label>
+                  <Label htmlFor={`plan-annual-price-${index}`}>Annual price</Label>
                   <Input
-                    id={`plan-anchor-${index}`}
-                    value={plan.priceAnchor}
-                    onChange={(event) => updatePlan(index, { priceAnchor: event.target.value })}
-                    placeholder="29"
+                    id={`plan-annual-price-${index}`}
+                    value={plan.annualPrice}
+                    onChange={(event) => updatePlan(index, { annualPrice: event.target.value })}
+                    placeholder="190"
                     inputMode="decimal"
                   />
                 </div>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <Label htmlFor={`plan-highlights-${index}`}>Highlights (one per line)</Label>
-                <textarea
-                  id={`plan-highlights-${index}`}
-                  value={plan.highlights}
-                  onChange={(event) => updatePlan(index, { highlights: event.target.value })}
-                  placeholder={"Track up to 3 competitors\nHigh-severity insights"}
-                  rows={4}
-                  className="flex min-h-[112px] w-full rounded-md border border-[#d5dbe3] bg-white px-3 py-2 text-sm text-[#0f172a] shadow-xs outline-none ring-0 transition focus:border-[#0f766e] focus:ring-2 focus:ring-[#0f766e]/20"
-                />
               </div>
             </article>
           ))}
@@ -410,7 +379,7 @@ export default function SelfPricingSetupForm({
             disabled={isSubmitting}
             className="bg-[#0f766e] text-white hover:bg-[#115e59]"
           >
-            {isSubmitting ? "Saving..." : "Save pricing and continue"}
+            {isSubmitting ? "Saving..." : mode === "settings" ? "Save pricing baseline" : "Save pricing and continue"}
           </Button>
         </div>
 

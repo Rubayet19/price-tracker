@@ -14,7 +14,12 @@ import { fetchAndExtractPricing } from "@/libs/crawler/extract";
 import { buildInsightFromDiff, type InsightEligibleUser } from "@/libs/crawler/insight";
 import {
   canonicalizePricingPayload,
+  classifyPricingModel,
+  getComparisonCadences,
+  type ComparisonCadence,
+  type NormalizedExtractedPlan,
   type NormalizedPricingPayload,
+  type PricingModel,
   type PricePeriod,
 } from "@/libs/crawler/normalize";
 import {
@@ -43,7 +48,14 @@ interface RawPricePointRecord {
   period: unknown;
 }
 
-interface CrawlCompanyResult {
+interface RawExtractedPlanRecord {
+  name: unknown;
+  currency: unknown;
+  monthlyPrice: unknown;
+  annualPrice: unknown;
+}
+
+export interface CrawlCompanyResult {
   companyId: string;
   status: CompanyCrawlStatus;
   changed: boolean;
@@ -73,6 +85,12 @@ export interface CrawlBatchResult {
 
 interface RunCrawlBatchOptions {
   limit?: number;
+  now?: Date;
+}
+
+interface RunCompanyCrawlOptions {
+  companyId: string;
+  userId: string;
   now?: Date;
 }
 
@@ -106,6 +124,9 @@ const toNormalizedPayload = (
   const customPricingHints = Array.isArray(payload.customPricingHints)
     ? payload.customPricingHints.filter((item): item is string => typeof item === "string")
     : [];
+  const oneTimePricingHints = Array.isArray(payload.oneTimePricingHints)
+    ? payload.oneTimePricingHints.filter((item): item is string => typeof item === "string")
+    : [];
 
   const rawPrices = Array.isArray(payload.priceMentions)
     ? (payload.priceMentions as RawPricePointRecord[])
@@ -129,13 +150,75 @@ const toNormalizedPayload = (
     })
     .filter((entry): entry is { amount: number; currency: string; period: PricePeriod } => !!entry);
 
+  const rawExtractedPlans = Array.isArray(payload.extractedPlans)
+    ? (payload.extractedPlans as RawExtractedPlanRecord[])
+    : [];
+
+  const extractedPlans = rawExtractedPlans
+    .map((entry): NormalizedExtractedPlan | null => {
+      const name = typeof entry.name === "string" ? entry.name.trim() : "";
+      const currency =
+        typeof entry.currency === "string" && entry.currency.trim().length > 0
+          ? entry.currency.trim().toUpperCase()
+          : null;
+      const monthlyPrice =
+        typeof entry.monthlyPrice === "number" && Number.isFinite(entry.monthlyPrice)
+          ? entry.monthlyPrice
+          : null;
+      const annualPrice =
+        typeof entry.annualPrice === "number" && Number.isFinite(entry.annualPrice)
+          ? entry.annualPrice
+          : null;
+
+      if (!name || (monthlyPrice === null && annualPrice === null)) {
+        return null;
+      }
+
+      return {
+        name,
+        currency,
+        monthlyPrice,
+        annualPrice,
+      };
+    })
+    .filter((entry): entry is NormalizedExtractedPlan => entry !== null);
+
+  const rawPricingModel = typeof payload.pricingModel === "string" ? payload.pricingModel : null;
+  const pricingModel =
+    rawPricingModel === "monthly_only" ||
+    rawPricingModel === "annual_only" ||
+    rawPricingModel === "mixed_recurring" ||
+    rawPricingModel === "one_time" ||
+    rawPricingModel === "custom_only" ||
+    rawPricingModel === "unknown"
+      ? (rawPricingModel as PricingModel)
+      : classifyPricingModel({
+          priceMentions,
+          extractedPlans,
+          customPricingHints,
+          oneTimePricingHints,
+        });
+
+  const rawComparisonCadences = Array.isArray(payload.comparisonCadences)
+    ? payload.comparisonCadences.filter(
+        (item): item is ComparisonCadence => item === "month" || item === "year"
+      )
+    : [];
+
   return canonicalizePricingPayload({
     sourceUrl,
     pageTitle,
     pageDescription,
     planNames,
     priceMentions,
+    extractedPlans,
     customPricingHints,
+    oneTimePricingHints,
+    pricingModel,
+    comparisonCadences:
+      rawComparisonCadences.length > 0
+        ? rawComparisonCadences
+        : getComparisonCadences({ priceMentions, extractedPlans }),
   });
 };
 
@@ -191,6 +274,36 @@ const claimCompanies = async (limit: number, now: Date): Promise<ClaimedCompany[
   }
 
   return claimed;
+};
+
+const claimSpecificCompany = async (
+  companyId: string,
+  userId: string,
+  now: Date
+): Promise<ClaimedCompany | null> => {
+  const leaseUntil = new Date(now.getTime() + CRAWL_LEASE_MS);
+
+  return Company.findOneAndUpdate(
+    {
+      _id: companyId,
+      userId,
+      type: "competitor",
+      $or: [
+        { crawlLeaseUntil: { $exists: false } },
+        { crawlLeaseUntil: null },
+        { crawlLeaseUntil: { $lte: now } },
+      ],
+    },
+    {
+      $set: {
+        crawlLeaseUntil: leaseUntil,
+        nextCrawlAt: now,
+      },
+    },
+    {
+      new: true,
+    }
+  ).exec();
 };
 
 const statusToNextDelayMs = (status: CompanyCrawlStatus): number => {
@@ -569,4 +682,47 @@ export const runCrawlBatch = async (options: RunCrawlBatchOptions = {}): Promise
     errored,
     items,
   };
+};
+
+export const runCompanyCrawl = async ({
+  companyId,
+  userId,
+  now,
+}: RunCompanyCrawlOptions): Promise<CrawlCompanyResult> => {
+  await connectMongo();
+
+  const startedAtDate = now ?? new Date();
+  const claimedCompany = await claimSpecificCompany(companyId, userId, startedAtDate);
+
+  if (claimedCompany) {
+    return processCompany(claimedCompany, new Date());
+  }
+
+  const existingCompany = await Company.findOne({
+    _id: companyId,
+    userId,
+  })
+    .select({
+      type: 1,
+      crawlLeaseUntil: 1,
+    })
+    .lean<Pick<ICompany, "type" | "crawlLeaseUntil">>()
+    .exec();
+
+  if (!existingCompany) {
+    throw new Error("Company not found");
+  }
+
+  if (existingCompany.type !== "competitor") {
+    throw new Error("crawl-now is only available for competitor companies");
+  }
+
+  if (
+    existingCompany.crawlLeaseUntil &&
+    existingCompany.crawlLeaseUntil.getTime() > startedAtDate.getTime()
+  ) {
+    throw new Error("A crawl is already in progress for this competitor");
+  }
+
+  throw new Error("Failed to claim company for crawling");
 };

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
-import connectMongo from "@/libs/mongoose";
 import { auth } from "@/libs/auth";
+import { runCompanyCrawl } from "@/libs/crawler/runner";
 import { enforceWriteRateLimit } from "@/libs/rate-limit";
-import Company from "@/models/Company";
 
 interface RouteContext {
   params: Promise<{
@@ -25,7 +24,6 @@ export async function POST(_request: Request, context: RouteContext): Promise<Ne
   }
 
   try {
-    await connectMongo();
     const rateLimit = await enforceWriteRateLimit({
       key: `write:crawl-now:${userId}:${companyId}`,
       maxRequests: 10,
@@ -47,46 +45,32 @@ export async function POST(_request: Request, context: RouteContext): Promise<Ne
       );
     }
 
-    const company = await Company.findOne({
-      _id: companyId,
+    const result = await runCompanyCrawl({
+      companyId,
       userId: String(userId),
     });
 
-    if (!company) {
-      return NextResponse.json({ error: "Company not found" }, { status: 404 });
-    }
-
-    if (company.type !== "competitor") {
-      return NextResponse.json(
-        { error: "crawl-now is only available for competitor companies" },
-        { status: 400 }
-      );
-    }
-
-    const now = new Date();
-    const leaseUntil = company.crawlLeaseUntil ?? null;
-    const hasLease = Boolean(leaseUntil);
-    const leaseIsActive = Boolean(leaseUntil && leaseUntil.getTime() > now.getTime());
-    const shouldClearLease = hasLease && !leaseIsActive;
-
-    company.nextCrawlAt = now;
-
-    if (shouldClearLease) {
-      company.crawlLeaseUntil = undefined;
-    }
-
-    await company.save();
-
     return NextResponse.json({
-      companyId: company.id,
-      scheduled: true,
-      nextCrawlAt: company.nextCrawlAt,
-      crawlLeaseUntil: company.crawlLeaseUntil ?? null,
-      leaseState: leaseIsActive ? "active" : hasLease ? "stale_or_expired" : "none",
-      leaseCleared: shouldClearLease,
+      companyId: result.companyId,
+      completed: true,
+      result,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to run crawl";
+
+    if (message === "Company not found") {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+
+    if (message === "crawl-now is only available for competitor companies") {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    if (message === "A crawl is already in progress for this competitor") {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+
     console.error(error);
-    return NextResponse.json({ error: "Failed to schedule crawl" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to run crawl" }, { status: 500 });
   }
 }

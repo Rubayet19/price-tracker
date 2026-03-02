@@ -5,6 +5,7 @@ export type LifecycleAuditEventType =
   | "trial_started"
   | "trial_start_blocked"
   | "company_created"
+  | "company_deleted"
   | "competitor_cap_hit"
   | "primary_pricing_url_changed"
   | "webhook_access_granted"
@@ -25,6 +26,7 @@ const EVENT_TO_STATUS: Record<LifecycleAuditEventType, "success" | "rejected"> =
   trial_started: "success",
   trial_start_blocked: "rejected",
   company_created: "success",
+  company_deleted: "success",
   competitor_cap_hit: "rejected",
   primary_pricing_url_changed: "success",
   webhook_access_granted: "success",
@@ -41,6 +43,7 @@ const EVENT_TO_ACTOR: Record<
   trial_started: "user",
   trial_start_blocked: "user",
   company_created: "user",
+  company_deleted: "user",
   competitor_cap_hit: "user",
   primary_pricing_url_changed: "user",
   webhook_access_granted: "stripe_webhook",
@@ -54,6 +57,7 @@ const EVENT_TO_RESOURCE: Record<LifecycleAuditEventType, "trial" | "company" | "
   trial_started: "trial",
   trial_start_blocked: "trial",
   company_created: "company",
+  company_deleted: "company",
   competitor_cap_hit: "company",
   primary_pricing_url_changed: "company",
   webhook_access_granted: "webhook",

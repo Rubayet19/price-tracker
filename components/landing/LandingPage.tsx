@@ -155,7 +155,7 @@ export default function LandingPage() {
           </div>
 
           <ButtonSignin
-            text="Start trial"
+            text="Sign in"
             extraStyle="btn-sm !rounded-full !border-[#0f766e] !bg-[#0f766e] !px-5 !text-white hover:!bg-[#115e59] focus-visible:!outline-none focus-visible:!ring-2 focus-visible:!ring-[#0f766e] focus-visible:!ring-offset-2"
           />
         </nav>
@@ -192,7 +192,7 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <ButtonSignin
-                text="Start free 7-day trial"
+                text="Sign in to start trial"
                 extraStyle="!rounded-full !border-[#0f766e] !bg-[#0f766e] !px-6 !text-white hover:!bg-[#115e59]"
               />
               <Link
@@ -438,7 +438,7 @@ export default function LandingPage() {
 
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <ButtonSignin
-                text="Start trial now"
+                text="Sign in to start trial"
                 extraStyle="!rounded-full !border-0 !bg-[#14b8a6] !px-6 !text-[#0f172a] hover:!bg-[#2dd4bf]"
               />
               <Link

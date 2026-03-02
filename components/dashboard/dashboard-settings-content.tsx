@@ -9,6 +9,9 @@ import {
   loadDashboardOverview,
 } from "@/components/dashboard/dashboard-api";
 import type { DashboardOverviewResponse } from "@/types/dashboard";
+import type { SetupSelfCompany } from "@/types/setup";
+import type { SelfPricingProfileData } from "@/types/self-pricing";
+import SelfPricingSetupForm from "@/components/dashboard/setup/self-pricing-setup-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +33,15 @@ const formatDate = (value: string | null): string => {
   });
 };
 
-export default function DashboardSettingsContent() {
+interface DashboardSettingsContentProps {
+  selfPricingProfile: SelfPricingProfileData | null;
+  selfCompany: SetupSelfCompany | null;
+}
+
+export default function DashboardSettingsContent({
+  selfPricingProfile,
+  selfCompany,
+}: DashboardSettingsContentProps) {
   const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -278,6 +289,12 @@ export default function DashboardSettingsContent() {
           </CardContent>
         </Card>
       </div>
+
+      <SelfPricingSetupForm
+        existingProfile={selfPricingProfile}
+        existingSelfCompany={selfCompany}
+        mode="settings"
+      />
     </section>
   );
 }

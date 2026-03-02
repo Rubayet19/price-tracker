@@ -1,11 +1,28 @@
 import { createHash } from "node:crypto";
 
 export type PricePeriod = "day" | "week" | "month" | "year" | "one_time" | "unknown";
+export type ComparisonCadence = "month" | "year";
+export type PricingModel =
+  | "monthly_only"
+  | "annual_only"
+  | "mixed_recurring"
+  | "one_time"
+  | "custom_only"
+  | "unknown";
 
 export interface NormalizedPricePoint {
   amount: number;
   currency: string;
   period: PricePeriod;
+}
+
+export interface NormalizedExtractedPlan {
+  name: string;
+  currency: string | null;
+  monthlyPrice: number | null;
+  annualPrice: number | null;
+  /** When true, annualPrice is a per-month figure shown on an annual billing toggle. */
+  annualPriceIsPerMonth?: boolean;
 }
 
 export interface NormalizedPricingPayload {
@@ -14,7 +31,11 @@ export interface NormalizedPricingPayload {
   pageDescription: string | null;
   planNames: string[];
   priceMentions: NormalizedPricePoint[];
+  extractedPlans?: NormalizedExtractedPlan[];
   customPricingHints: string[];
+  oneTimePricingHints?: string[];
+  pricingModel?: PricingModel;
+  comparisonCadences?: ComparisonCadence[];
 }
 
 const normalizeWhitespace = (value: string): string => {
@@ -54,11 +75,30 @@ const stripTagContent = (html: string, tagName: string): string => {
   return html.replace(pattern, " ");
 };
 
+const stripStrikethroughContent = (html: string): string => {
+  let result = stripTagContent(html, "del");
+  result = stripTagContent(result, "strike");
+  // Use word boundary for <s> to avoid matching <script>, <span>, <section>, etc.
+  result = result.replace(/<s\b[^>]*>[\s\S]*?<\/s>/gi, " ");
+  // Remove elements with class containing 'line-through' or 'strikethrough'
+  result = result.replace(
+    /<(\w+)\b[^>]*\bclass\s*=\s*["'][^"']*\b(?:line-through|strikethrough)\b[^"']*["'][^>]*>[\s\S]*?<\/\1\s*>/gi,
+    " "
+  );
+  // Remove elements with inline style text-decoration line-through
+  result = result.replace(
+    /<(\w+)\b[^>]*\bstyle\s*=\s*["'][^"']*text-decoration(?:-line)?\s*:\s*[^"']*line-through[^"']*["'][^>]*>[\s\S]*?<\/\1\s*>/gi,
+    " "
+  );
+  return result;
+};
+
 export const stripHtmlToText = (html: string): string => {
   const withoutScripts = stripTagContent(html, "script");
   const withoutStyles = stripTagContent(withoutScripts, "style");
   const withoutNoscript = stripTagContent(withoutStyles, "noscript");
-  const withoutComments = withoutNoscript.replace(/<!--[\s\S]*?-->/g, " ");
+  const withoutStrikethrough = stripStrikethroughContent(withoutNoscript);
+  const withoutComments = withoutStrikethrough.replace(/<!--[\s\S]*?-->/g, "");
   const withoutTags = withoutComments.replace(/<[^>]+>/g, " ");
   const decodedBasicEntities = withoutTags
     .replace(/&nbsp;/gi, " ")
@@ -113,15 +153,161 @@ const uniquePrices = (prices: NormalizedPricePoint[]): NormalizedPricePoint[] =>
   });
 };
 
+const uniqueExtractedPlans = (plans: NormalizedExtractedPlan[] | undefined): NormalizedExtractedPlan[] => {
+  if (!plans || plans.length === 0) {
+    return [];
+  }
+
+  const planMap = new Map<string, NormalizedExtractedPlan>();
+
+  for (const plan of plans) {
+    const displayName = normalizeWhitespace(plan.name);
+    const normalizedName = displayName.toLowerCase();
+    if (!displayName) {
+      continue;
+    }
+
+    const existing = planMap.get(normalizedName);
+
+    if (!existing) {
+      planMap.set(normalizedName, {
+        name: displayName,
+        currency: plan.currency ? plan.currency.toUpperCase() : null,
+        monthlyPrice:
+          typeof plan.monthlyPrice === "number" && Number.isFinite(plan.monthlyPrice)
+            ? Number(plan.monthlyPrice.toFixed(2))
+            : null,
+        annualPrice:
+          typeof plan.annualPrice === "number" && Number.isFinite(plan.annualPrice)
+            ? Number(plan.annualPrice.toFixed(2))
+            : null,
+        annualPriceIsPerMonth: plan.annualPriceIsPerMonth ?? false,
+      });
+      continue;
+    }
+
+    if (!existing.currency && plan.currency) {
+      existing.currency = plan.currency.toUpperCase();
+    }
+
+    if (existing.monthlyPrice === null && typeof plan.monthlyPrice === "number") {
+      existing.monthlyPrice = Number(plan.monthlyPrice.toFixed(2));
+    }
+
+    if (existing.annualPrice === null && typeof plan.annualPrice === "number") {
+      existing.annualPrice = Number(plan.annualPrice.toFixed(2));
+      existing.annualPriceIsPerMonth = plan.annualPriceIsPerMonth ?? false;
+    }
+  }
+
+  return [...planMap.values()].sort((left, right) => left.name.localeCompare(right.name));
+};
+
+const uniqueComparisonCadences = (
+  cadences: ComparisonCadence[] | undefined
+): ComparisonCadence[] => {
+  if (!cadences || cadences.length === 0) {
+    return [];
+  }
+
+  return [...new Set(cadences)].sort((left, right) => left.localeCompare(right));
+};
+
+export const getComparisonCadences = (
+  payload: {
+    priceMentions: ReadonlyArray<NormalizedPricePoint>;
+    extractedPlans?: ReadonlyArray<NormalizedExtractedPlan>;
+  }
+): ComparisonCadence[] => {
+  const cadenceSet = new Set<ComparisonCadence>();
+
+  for (const plan of payload.extractedPlans ?? []) {
+    if (typeof plan.monthlyPrice === "number" && Number.isFinite(plan.monthlyPrice)) {
+      cadenceSet.add("month");
+    }
+
+    if (typeof plan.annualPrice === "number" && Number.isFinite(plan.annualPrice)) {
+      cadenceSet.add("year");
+    }
+  }
+
+  for (const price of payload.priceMentions) {
+    if (price.period === "month") {
+      cadenceSet.add("month");
+    }
+
+    if (price.period === "year") {
+      cadenceSet.add("year");
+    }
+  }
+
+  return uniqueComparisonCadences([...cadenceSet]);
+};
+
+export const classifyPricingModel = (
+  payload: {
+    priceMentions: ReadonlyArray<NormalizedPricePoint>;
+    extractedPlans?: ReadonlyArray<NormalizedExtractedPlan>;
+    customPricingHints: ReadonlyArray<string>;
+    oneTimePricingHints?: ReadonlyArray<string>;
+  }
+): PricingModel => {
+  const comparisonCadences = getComparisonCadences(payload);
+  const hasOneTimePricing =
+    (payload.oneTimePricingHints?.length ?? 0) > 0 ||
+    payload.priceMentions.some((price) => price.period === "one_time");
+
+  if (comparisonCadences.includes("month") && comparisonCadences.includes("year")) {
+    return "mixed_recurring";
+  }
+
+  if (comparisonCadences.includes("month")) {
+    return "monthly_only";
+  }
+
+  if (comparisonCadences.includes("year")) {
+    return "annual_only";
+  }
+
+  if (hasOneTimePricing) {
+    return "one_time";
+  }
+
+  if (payload.customPricingHints.length > 0) {
+    return "custom_only";
+  }
+
+  return "unknown";
+};
+
 export const canonicalizePricingPayload = (
   payload: NormalizedPricingPayload
 ): NormalizedPricingPayload => {
+  const priceMentions = uniquePrices(payload.priceMentions);
+  const extractedPlans = uniqueExtractedPlans(payload.extractedPlans);
+  const customPricingHints = uniqueStrings(payload.customPricingHints);
+  const oneTimePricingHints = uniqueStrings(payload.oneTimePricingHints ?? []);
+  const comparisonCadences = getComparisonCadences({
+    priceMentions,
+    extractedPlans,
+  });
+  const pricingModel = classifyPricingModel({
+    priceMentions,
+    extractedPlans,
+    customPricingHints,
+    oneTimePricingHints,
+  });
+
   return {
     sourceUrl: payload.sourceUrl,
     pageTitle: payload.pageTitle ? normalizeWhitespace(payload.pageTitle) : null,
     pageDescription: payload.pageDescription ? normalizeWhitespace(payload.pageDescription) : null,
     planNames: uniqueStrings(payload.planNames),
-    priceMentions: uniquePrices(payload.priceMentions),
-    customPricingHints: uniqueStrings(payload.customPricingHints),
+    priceMentions,
+    extractedPlans,
+    customPricingHints,
+    oneTimePricingHints,
+    pricingModel,
+    comparisonCadences,
   };
 };

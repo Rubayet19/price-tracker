@@ -3,9 +3,7 @@
 import type { ComponentProps } from "react";
 import Link from "next/link";
 import {
-  IconAlertCircle,
   IconCreditCard,
-  IconSettings,
   IconDashboard,
   IconHelp,
   IconListDetails,
@@ -33,11 +31,6 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Setup",
-      url: "/dashboard/setup",
-      icon: IconSettings,
-    },
-    {
       title: "Competitors",
       url: "/dashboard/competitors",
       icon: IconListDetails,
@@ -46,11 +39,6 @@ const data = {
       title: "Recent Changes",
       url: "/dashboard/changes",
       icon: IconNotes,
-    },
-    {
-      title: "Trust Signals",
-      url: "/dashboard/trust",
-      icon: IconAlertCircle,
     },
     {
       title: "Settings",

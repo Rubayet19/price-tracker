@@ -4,18 +4,242 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Smoke Competitor Pricing</title>
+    <style>
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        margin: 0;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
+      }
+
+      .hero {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .hero h1 {
+        font-size: 48px;
+        margin: 16px 0 12px;
+        line-height: 1.1;
+      }
+
+      .hero p {
+        color: #475569;
+        font-size: 20px;
+        max-width: 860px;
+        margin: 0 auto;
+      }
+
+      .promo-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #16a34a;
+        color: white;
+        padding: 10px 18px;
+        font-weight: 700;
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+
+      .toggle {
+        border: 1px solid #0f172a;
+        background: white;
+        border-radius: 999px;
+        width: 56px;
+        height: 32px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .toggle[aria-pressed="true"] {
+        background: #0f172a;
+        color: white;
+        border-color: #0f172a;
+      }
+
+      .toggle-copy {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 18px;
+      }
+
+      .toggle-copy em {
+        color: #16a34a;
+        font-style: normal;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 20px;
+        padding: 24px;
+      }
+
+      .price {
+        font-size: 40px;
+        font-weight: 800;
+        margin: 16px 0 4px;
+        color: #16a34a;
+      }
+
+      .meta {
+        color: #475569;
+      }
+
+      .old-price,
+      .secondary-old {
+        color: #94a3b8;
+        text-decoration: line-through;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #dcfce7;
+        color: #16a34a;
+        padding: 6px 10px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .card button {
+        width: 100%;
+        margin-top: 20px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: white;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+
+      .card ul {
+        margin: 24px 0 0;
+        padding-left: 20px;
+        color: #475569;
+      }
+    </style>
   </head>
   <body>
     <main>
-      <h1>Pricing</h1>
-      <section>
-        <h2>Starter</h2>
-        <p>$19 / month</p>
-      </section>
-      <section>
-        <h2>Growth</h2>
-        <p>$49 / month</p>
-      </section>
+      <header class="hero">
+        <span class="promo-pill">Save up to 60% on all plans</span>
+        <h1>Enterprise power, without the enterprise price tag</h1>
+        <p>Get 80% of the value of CI suites that run $20k+/year, at a fraction of the price.</p>
+      </header>
+
+      <div class="toolbar" aria-label="Billing cadence">
+        <div class="toggle-copy">
+          <span>Monthly</span>
+          <button class="toggle" type="button" role="tab" aria-pressed="false" data-cadence="yearly"></button>
+          <label for="billing-toggle">Yearly <em>(2 months free)</em></label>
+          <input id="billing-toggle" hidden type="checkbox" />
+        </div>
+      </div>
+
+      <div class="cards">
+        <section class="card">
+          <h2>Starter</h2>
+          <p>For small teams who want to stop manual stalking.</p>
+          <p><span class="old-price" data-old="starter">$41</span> <span class="badge">Launch price</span></p>
+          <p class="price" data-plan="starter">$29</p>
+          <p class="meta" data-meta="starter">/month billed monthly</p>
+          <p class="meta" data-secondary="starter">Billed monthly at $29</p>
+          <button type="button">Start 14-day trial</button>
+          <ul>
+            <li>Up to 3 competitors</li>
+            <li>30-day history</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Pro</h2>
+          <p>For growing SMBs that need actionable insights.</p>
+          <p><span class="old-price" data-old="pro">$124</span> <span class="badge">Launch price</span></p>
+          <p class="price" data-plan="pro">$79</p>
+          <p class="meta" data-meta="pro">/month billed monthly</p>
+          <p class="meta" data-secondary="pro">Billed monthly at $79</p>
+          <button type="button">Start 14-day trial</button>
+          <ul>
+            <li>10 competitors</li>
+            <li>180-day history</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Business</h2>
+          <p>For agencies and larger teams that need to scale.</p>
+          <p><span class="old-price" data-old="business">$291</span> <span class="badge">Launch price</span></p>
+          <p class="price" data-plan="business">$179</p>
+          <p class="meta" data-meta="business">/month billed monthly</p>
+          <p class="meta" data-secondary="business">Billed monthly at $179</p>
+          <button type="button">Start 14-day trial</button>
+          <ul>
+            <li>25 competitors</li>
+            <li>2-year history</li>
+          </ul>
+        </section>
+      </div>
     </main>
+
+    <script>
+      const monthly = {
+        starter: { oldPrice: "$41", price: "$29", meta: "/month billed monthly", secondary: "Billed monthly at $29" },
+        pro: { oldPrice: "$124", price: "$79", meta: "/month billed monthly", secondary: "Billed monthly at $79" },
+        business: { oldPrice: "$291", price: "$179", meta: "/month billed monthly", secondary: "Billed monthly at $179" },
+      };
+
+      const yearly = {
+        starter: { oldPrice: "$41", price: "$19", meta: "/month billed annually", secondary: "Billed annually at $228 $490" },
+        pro: { oldPrice: "$124", price: "$69", meta: "/month billed annually", secondary: "Billed annually at $828 $1490" },
+        business: { oldPrice: "$291", price: "$149", meta: "/month billed annually", secondary: "Billed annually at $1788 $3490" },
+      };
+
+      const render = (cadence) => {
+        const state = cadence === "yearly" ? yearly : monthly;
+        document.getElementById("billing-toggle").checked = cadence === "yearly";
+        document.querySelector(".toggle").setAttribute("aria-pressed", String(cadence === "yearly"));
+
+        Object.entries(state).forEach(([plan, values]) => {
+          document.querySelector(`[data-plan="${plan}"]`).textContent = values.price;
+          document.querySelector(`[data-meta="${plan}"]`).textContent = values.meta;
+          document.querySelector(`[data-old="${plan}"]`).textContent = values.oldPrice;
+          document.querySelector(`[data-secondary="${plan}"]`).innerHTML = values.secondary.replace(
+            /\$(490|1490|3490)/g,
+            '<span class="secondary-old">$$$1</span>'
+          );
+        });
+      };
+
+      document.querySelector(".toggle").addEventListener("click", () => {
+        const input = document.getElementById("billing-toggle");
+        input.checked = !input.checked;
+        render(input.checked ? "yearly" : "monthly");
+      });
+
+      document.getElementById("billing-toggle").addEventListener("change", (event) => {
+        render(event.currentTarget.checked ? "yearly" : "monthly");
+      });
+    </script>
   </body>
 </html>

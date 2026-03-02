@@ -16,7 +16,6 @@ interface CompetitorSetupFormProps {
 export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetupFormProps) {
   const router = useRouter();
   const [name, setName] = useState<string>("");
-  const [domain, setDomain] = useState<string>("");
   const [homepageUrl, setHomepageUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,24 +28,23 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
       return;
     }
 
-    if (!domain.trim() && !homepageUrl.trim()) {
-      setError("Add a domain or homepage URL.");
+    if (!homepageUrl.trim()) {
+      setError("Add the competitor homepage URL.");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await createCompany({
+      const company = await createCompany({
         name: name.trim(),
         type: "competitor",
-        domain: domain.trim() || undefined,
-        homepageUrl: homepageUrl.trim() || undefined,
+        homepageUrl: homepageUrl.trim(),
       });
 
       toast.success("Competitor added");
       window.dispatchEvent(new Event("competitor:added"));
-      router.push("/dashboard/setup");
+      router.push(`/dashboard/setup/competitors/${company.id}/pricing`);
       router.refresh();
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Failed to add competitor";
@@ -82,18 +80,6 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="setup-competitor-domain">Domain</Label>
-            <Input
-              id="setup-competitor-domain"
-              value={domain}
-              onChange={(event) => setDomain(event.target.value)}
-              placeholder="acme.com"
-              autoCapitalize="none"
-              autoCorrect="off"
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="setup-competitor-homepage">Homepage URL</Label>
             <Input
               id="setup-competitor-homepage"
@@ -101,13 +87,19 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
               onChange={(event) => setHomepageUrl(event.target.value)}
               placeholder="https://acme.com"
               inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
             />
+            <p className="text-sm text-[#64748b]">
+              Use the homepage only. Price Tracker derives the domain and discovers pricing pages from it.
+            </p>
           </div>
         </div>
 
         <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4 text-sm leading-6 text-[#475569]">
-          Your current access tier supports up to {competitorLimit} tracked competitors. Add the
-          highest-priority one now, then expand from the global “Add Competitor” button later.
+          Your current access tier supports up to {competitorLimit} tracked competitors. Monitoring
+          runs daily in the MVP, and the next step will ask you to confirm the exact pricing page
+          before tracking starts.
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -119,7 +111,7 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
             disabled={isSubmitting}
             className="bg-[#0f766e] text-white hover:bg-[#115e59]"
           >
-            {isSubmitting ? "Adding..." : "Add competitor"}
+            {isSubmitting ? "Adding..." : "Add competitor and continue"}
           </Button>
         </div>
 

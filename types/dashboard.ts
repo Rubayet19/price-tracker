@@ -1,5 +1,6 @@
 import type { PlanTier } from "@/types/entitlements";
 import type { PricingUrlCandidate } from "@/types/companies";
+import type { SelfPricingProfileData } from "@/types/self-pricing";
 
 export type DashboardCrawlStatus = "idle" | "ok" | "blocked" | "manual_needed" | "error";
 export type DashboardDiffSeverity = "low" | "medium" | "high";
@@ -60,12 +61,6 @@ export interface DashboardFeedRow {
     severityGate: "high_only" | "high_and_medium";
     recommendation: Record<string, unknown>;
   } | null;
-  trustCues: {
-    detectedAt: string;
-    verificationState: DashboardVerificationState;
-    companyLastCrawlAt: string | null;
-    latestConfidence: number | null;
-  };
 }
 
 export interface DashboardFeedResponse {
@@ -96,6 +91,14 @@ export interface DashboardComparisonCompetitor {
     capturedAt: string;
     confidence: number;
     isVerified: boolean;
+    pricingModel:
+      | "monthly_only"
+      | "annual_only"
+      | "mixed_recurring"
+      | "one_time"
+      | "custom_only"
+      | "unknown";
+    comparisonCadences: Array<"month" | "year">;
     pricePoints: Array<{
       amount: number;
       currency: string;
@@ -108,13 +111,18 @@ export interface DashboardComparisonCompetitor {
       minAmount: number;
       maxAmount: number;
     }>;
+    extractedPlans: Array<{
+      name: string;
+      currency: string | null;
+      monthlyPrice: number | null;
+      annualPrice: number | null;
+      annualPriceIsPerMonth?: boolean;
+    }>;
   } | null;
 }
 
 export interface DashboardComparisonResponse {
-  selfPricingProfile: {
-    name?: string;
-  } | null;
+  selfPricingProfile: SelfPricingProfileData | null;
   competitors: DashboardComparisonCompetitor[];
 }
 

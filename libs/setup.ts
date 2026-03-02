@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import config from "@/config";
 import connectMongo from "@/libs/mongoose";
 import { isTrialActive, resolveEntitlements } from "@/libs/entitlements";
+import { normalizeSelfPricingProfile } from "@/libs/self-pricing";
 import { refreshTrialStatusIfExpired } from "@/libs/trial";
 import Company from "@/models/Company";
 import SelfPricingProfile from "@/models/SelfPricingProfile";
@@ -28,14 +29,14 @@ interface CompanyLean {
 
 interface SelfPricingProfileLean {
   currency: string;
-  billingPeriod: "month" | "year" | "custom";
   plans: Array<{
     name: string;
-    price: number;
-    priceAnchor?: number;
-    highlights?: string[];
+    monthlyPrice?: number | null;
+    annualPrice?: number | null;
+    price?: number;
   }>;
   notes?: string;
+  billingPeriod?: "month" | "year";
 }
 
 const getSetupStepHref = (step: SetupStepTarget["step"], companyId?: string): string => {
@@ -102,7 +103,8 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
     hasUserSelectedPrimaryPricing: hasUserSelectedPrimaryPricing(company),
   }));
 
-  const hasSelfPricing = Boolean(selfPricingProfile && selfPricingProfile.plans.length > 0);
+  const normalizedSelfPricingProfile = normalizeSelfPricingProfile(selfPricingProfile);
+  const hasSelfPricing = Boolean(normalizedSelfPricingProfile && normalizedSelfPricingProfile.plans.length > 0);
   const hasSelfCompany = Boolean(selfCompanyRecord);
   const hasCompetitors = competitors.length > 0;
   const competitorMissingPricing = competitors.find(
@@ -157,19 +159,7 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
         user.trialStatus === "not_started" && !user.trialStartedAt && !user.trialEndsAt && !user.hasAccess,
       needsTrialAccess: !entitlements.hasAccess,
     },
-    selfPricingProfile: selfPricingProfile
-      ? {
-          currency: selfPricingProfile.currency,
-          billingPeriod: selfPricingProfile.billingPeriod,
-          plans: selfPricingProfile.plans.map((plan) => ({
-            name: plan.name,
-            price: plan.price,
-            priceAnchor: plan.priceAnchor,
-            highlights: plan.highlights ?? [],
-          })),
-          notes: selfPricingProfile.notes ?? null,
-        }
-      : null,
+    selfPricingProfile: normalizedSelfPricingProfile,
     selfCompany: selfCompanyRecord
       ? {
           companyId: String(selfCompanyRecord._id),

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { loadDashboardComparison, loadDashboardFeed, loadDashboardOverview } from "@/components/dashboard/dashboard-api";
+import DashboardComparisonSection from "@/components/dashboard/dashboard-comparison-section";
 import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
 import type {
   DashboardComparisonCompetitor,
@@ -13,6 +14,7 @@ import type {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { SelfPricingProfileData } from "@/types/self-pricing";
 
 const INITIAL_FILTERS: FeedFilters = {
   severity: "all",
@@ -59,6 +61,7 @@ const isActiveTracking = (competitor: DashboardComparisonCompetitor): boolean =>
 export default function DashboardOverviewContent() {
   const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
   const [competitors, setCompetitors] = useState<DashboardComparisonCompetitor[]>([]);
+  const [selfPricingProfile, setSelfPricingProfile] = useState<SelfPricingProfileData | null>(null);
   const [recentRows, setRecentRows] = useState<DashboardFeedRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +79,7 @@ export default function DashboardOverviewContent() {
 
       setOverview(overviewResponse);
       setCompetitors(comparisonResponse.competitors);
+      setSelfPricingProfile(comparisonResponse.selfPricingProfile);
       setRecentRows(feedResponse.rows.slice(0, 6));
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : "Failed to load dashboard";
@@ -179,6 +183,11 @@ export default function DashboardOverviewContent() {
           <CardContent className="pt-0 text-sm text-[#64748b]">Blocked/manual-needed/error</CardContent>
         </Card>
       </div>
+
+      <DashboardComparisonSection
+        competitors={competitors}
+        selfPricingProfile={selfPricingProfile}
+      />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card id="tracked-competitors" className="border-[#0f172a]/10 bg-white/95">

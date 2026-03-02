@@ -25,14 +25,15 @@ export default async function SelfPricingSetupPage() {
 
   return (
     <SetupFrame
-      title="Set up your pricing baseline"
-      description="Enter your own pricing manually first. That gives the dashboard a clean point of comparison before any competitor monitoring starts."
+      title="Set up your product baseline"
+      description="Add your product, homepage, and monthly or annual plans first. That gives the dashboard a clean baseline before competitor monitoring starts."
       currentStep="self_pricing"
       status={status}
     >
       <SelfPricingSetupForm
         existingProfile={status.selfPricingProfile}
         existingSelfCompany={status.selfCompany}
+        mode="setup"
       />
     </SetupFrame>
   );

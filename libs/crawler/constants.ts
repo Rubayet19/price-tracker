@@ -38,6 +38,21 @@ export const MANUAL_NEEDED_BACKOFF_MS = parseIntFromEnv(
 
 export const FETCH_TIMEOUT_MS = parseIntFromEnv(process.env.CRAWL_FETCH_TIMEOUT_MS, 15_000);
 export const MAX_HTML_LENGTH = parseIntFromEnv(process.env.CRAWL_MAX_HTML_LENGTH, 1_000_000);
+export const PLAYWRIGHT_EXTRACTION_TIMEOUT_MS = parseIntFromEnv(
+  process.env.CRAWL_PLAYWRIGHT_TIMEOUT_MS,
+  20_000
+);
+export const PLAYWRIGHT_TOGGLE_SETTLE_MS = parseIntFromEnv(
+  process.env.CRAWL_PLAYWRIGHT_TOGGLE_SETTLE_MS,
+  800
+);
+export const PLAYWRIGHT_FALLBACK_CONFIDENCE_THRESHOLD = Number.parseFloat(
+  process.env.CRAWL_PLAYWRIGHT_FALLBACK_CONFIDENCE_THRESHOLD ?? "0.82"
+);
+export const MAX_REASONABLE_PRICE_AMOUNT = parseIntFromEnv(
+  process.env.CRAWL_MAX_REASONABLE_PRICE_AMOUNT,
+  10_000
+);
 
 export const VERIFIED_CONFIDENCE_THRESHOLD = 0.75;
 export const PRICING_URL_DISCOVERY_MIN_CONFIDENCE = 0.35;
@@ -83,4 +98,15 @@ export const CUSTOM_PRICING_SIGNALS = [
   "enterprise pricing",
   "request a quote",
   "book a demo",
+] as const;
+
+export const ONE_TIME_PRICING_SIGNALS = [
+  "one-time payment",
+  "one time payment",
+  "pay once",
+  "one-time fee",
+  "lifetime access",
+  "yours forever",
+  "buy once",
+  "single payment",
 ] as const;

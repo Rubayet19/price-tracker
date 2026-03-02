@@ -79,13 +79,33 @@ const getPriority = (competitor: DashboardComparisonCompetitor): number => {
 };
 
 const summarizeSnapshot = (competitor: DashboardComparisonCompetitor): string | null => {
-  const buckets = competitor.latestSnapshot?.pricePointBuckets ?? [];
-  if (buckets.length === 0) {
+  const snapshot = competitor.latestSnapshot;
+  if (!snapshot) {
     return null;
   }
 
-  const firstBucket = buckets[0];
-  return `${firstBucket.currency}/${firstBucket.period} • ${firstBucket.count} point${firstBucket.count === 1 ? "" : "s"} • ${firstBucket.minAmount}-${firstBucket.maxAmount}`;
+  if (snapshot.pricingModel === "one_time") {
+    return "One-time pricing detected; recurring comparison is unavailable.";
+  }
+
+  if (snapshot.pricingModel === "custom_only") {
+    return "Custom pricing only; direct comparison is unavailable.";
+  }
+
+  if (snapshot.extractedPlans.length > 0) {
+    const cadenceCount = snapshot.comparisonCadences.length;
+    return `${snapshot.extractedPlans.length} named plan${snapshot.extractedPlans.length === 1 ? "" : "s"} extracted${cadenceCount > 0 ? ` across ${cadenceCount} billing cadence${cadenceCount === 1 ? "" : "s"}` : ""}.`;
+  }
+
+  if (snapshot.comparisonCadences.length > 0) {
+    return "Pricing detected, but plan extraction needs review.";
+  }
+
+  if (snapshot.pricePoints.length > 0) {
+    return "Pricing detected, but billing cadence is unclear.";
+  }
+
+  return null;
 };
 
 export default function DashboardCompetitorsContent() {
@@ -135,11 +155,15 @@ export default function DashboardCompetitorsContent() {
     setActiveCompanyId(companyId);
 
     try {
-      await runCompetitorCrawl(companyId);
+      const response = await runCompetitorCrawl(companyId);
       await loadCompetitors();
-      toast.success("Crawl scheduled");
+      toast.success(
+        response.result.status === "ok"
+          ? "Crawl completed"
+          : `Crawl finished with status: ${response.result.status.replaceAll("_", " ")}`
+      );
     } catch (crawlError) {
-      const message = crawlError instanceof Error ? crawlError.message : "Failed to schedule crawl";
+      const message = crawlError instanceof Error ? crawlError.message : "Failed to run crawl";
       toast.error(message);
     } finally {
       setActiveCompanyId(null);

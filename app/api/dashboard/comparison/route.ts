@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { type Types } from "mongoose";
 import connectMongo from "@/libs/mongoose";
 import { auth } from "@/libs/auth";
+import {
+  classifyPricingModel,
+  getComparisonCadences,
+  type PricePeriod,
+  type PricingModel,
+} from "@/libs/crawler/normalize";
+import { normalizeSelfPricingProfile } from "@/libs/self-pricing";
 import Company, { type CompanyCrawlStatus } from "@/models/Company";
 import SelfPricingProfile from "@/models/SelfPricingProfile";
 import SnapshotModel from "@/models/Snapshot";
@@ -33,7 +40,7 @@ interface SnapshotLean {
 interface PricePoint {
   amount: number;
   currency: string;
-  period: string;
+  period: PricePeriod;
 }
 
 interface PricePointBucket {
@@ -42,6 +49,23 @@ interface PricePointBucket {
   count: number;
   minAmount: number;
   maxAmount: number;
+}
+
+interface ExtractedPlan {
+  name: string;
+  currency: string | null;
+  monthlyPrice: number | null;
+  annualPrice: number | null;
+  annualPriceIsPerMonth?: boolean;
+}
+
+const isPricePeriod = (value: string): value is PricePeriod => {
+  return ["day", "week", "month", "year", "one_time", "unknown"].includes(value);
+};
+
+interface ComparisonClassification {
+  pricingModel: PricingModel;
+  comparisonCadences: Array<"month" | "year">;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -77,10 +101,15 @@ const toPricePoints = (payload: Record<string, unknown>): PricePoint[] => {
       continue;
     }
 
+    const normalizedPeriod = period.trim().toLowerCase();
+    if (!isPricePeriod(normalizedPeriod)) {
+      continue;
+    }
+
     pricePoints.push({
       amount,
       currency: currency.trim().toUpperCase(),
-      period: period.trim().toLowerCase(),
+      period: normalizedPeriod,
     });
   }
 
@@ -119,6 +148,94 @@ const toPricePointBuckets = (pricePoints: ReadonlyArray<PricePoint>): PricePoint
   });
 };
 
+const toExtractedPlans = (payload: Record<string, unknown>): ExtractedPlan[] => {
+  const rawExtractedPlans = payload.extractedPlans;
+  if (!Array.isArray(rawExtractedPlans)) {
+    return [];
+  }
+
+  return rawExtractedPlans
+    .map((entry) => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      const name = typeof entry.name === "string" ? entry.name.trim() : "";
+      const currency =
+        typeof entry.currency === "string" && entry.currency.trim().length > 0
+          ? entry.currency.trim().toUpperCase()
+          : null;
+      const monthlyPrice =
+        typeof entry.monthlyPrice === "number" && Number.isFinite(entry.monthlyPrice)
+          ? entry.monthlyPrice
+          : null;
+      const annualPrice =
+        typeof entry.annualPrice === "number" && Number.isFinite(entry.annualPrice)
+          ? entry.annualPrice
+          : null;
+
+      if (!name || (monthlyPrice === null && annualPrice === null)) {
+        return null;
+      }
+
+      return {
+        name,
+        currency,
+        monthlyPrice,
+        annualPrice,
+        annualPriceIsPerMonth: entry.annualPriceIsPerMonth === true,
+      };
+    })
+    .filter((plan): plan is ExtractedPlan => plan !== null)
+    .sort((left, right) => left.name.localeCompare(right.name));
+};
+
+const toComparisonClassification = (
+  payload: Record<string, unknown>,
+  pricePoints: ReadonlyArray<PricePoint>,
+  extractedPlans: ReadonlyArray<ExtractedPlan>
+): ComparisonClassification => {
+  const customPricingHints = Array.isArray(payload.customPricingHints)
+    ? payload.customPricingHints.filter((entry): entry is string => typeof entry === "string")
+    : [];
+  const oneTimePricingHints = Array.isArray(payload.oneTimePricingHints)
+    ? payload.oneTimePricingHints.filter((entry): entry is string => typeof entry === "string")
+    : [];
+
+  const rawPricingModel = typeof payload.pricingModel === "string" ? payload.pricingModel : null;
+  const pricingModel =
+    rawPricingModel === "monthly_only" ||
+    rawPricingModel === "annual_only" ||
+    rawPricingModel === "mixed_recurring" ||
+    rawPricingModel === "one_time" ||
+    rawPricingModel === "custom_only" ||
+    rawPricingModel === "unknown"
+      ? rawPricingModel
+      : classifyPricingModel({
+          priceMentions: pricePoints,
+          extractedPlans,
+          customPricingHints,
+          oneTimePricingHints,
+        });
+
+  const rawComparisonCadences = Array.isArray(payload.comparisonCadences)
+    ? payload.comparisonCadences.filter(
+        (entry): entry is "month" | "year" => entry === "month" || entry === "year"
+      )
+    : [];
+
+  return {
+    pricingModel,
+    comparisonCadences:
+      rawComparisonCadences.length > 0
+        ? rawComparisonCadences
+        : getComparisonCadences({
+            priceMentions: pricePoints,
+            extractedPlans,
+          }),
+  };
+};
+
 export async function GET(): Promise<NextResponse> {
   const session = await auth();
   const userId = session?.user?.id;
@@ -131,7 +248,7 @@ export async function GET(): Promise<NextResponse> {
     await connectMongo();
 
     const [selfPricingProfile, competitorCompanies] = await Promise.all([
-      SelfPricingProfile.findOne({ userId: String(userId) }),
+      SelfPricingProfile.findOne({ userId: String(userId) }).lean<Record<string, unknown> | null>().exec(),
       Company.find({ userId: String(userId), type: "competitor" })
         .sort({ name: 1 })
         .lean<CompanyLean[]>()
@@ -160,6 +277,10 @@ export async function GET(): Promise<NextResponse> {
       const latestSnapshot = latestSnapshotByCompanyId.get(company._id.toString());
       const pricePoints = latestSnapshot ? toPricePoints(latestSnapshot.pricingPayload) : [];
       const pricePointBuckets = toPricePointBuckets(pricePoints);
+      const extractedPlans = latestSnapshot ? toExtractedPlans(latestSnapshot.pricingPayload) : [];
+      const comparisonClassification = latestSnapshot
+        ? toComparisonClassification(latestSnapshot.pricingPayload, pricePoints, extractedPlans)
+        : { pricingModel: "unknown" as const, comparisonCadences: [] };
       const blockedOrManualNeeded =
         company.lastCrawlStatus === "blocked" || company.lastCrawlStatus === "manual_needed";
 
@@ -183,15 +304,18 @@ export async function GET(): Promise<NextResponse> {
               capturedAt: latestSnapshot.capturedAt,
               confidence: latestSnapshot.confidence,
               isVerified: latestSnapshot.isVerified,
+              pricingModel: comparisonClassification.pricingModel,
+              comparisonCadences: comparisonClassification.comparisonCadences,
               pricePoints,
               pricePointBuckets,
+              extractedPlans,
             }
           : null,
       };
     });
 
     return NextResponse.json({
-      selfPricingProfile: selfPricingProfile ?? null,
+      selfPricingProfile: normalizeSelfPricingProfile(selfPricingProfile),
       competitors,
     });
   } catch (error) {

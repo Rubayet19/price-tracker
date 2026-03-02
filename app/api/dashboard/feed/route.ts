@@ -272,12 +272,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
               recommendation: row.latestInsight.recommendation,
             }
           : null,
-        trustCues: {
-          detectedAt: row.detectedAt,
-          verificationState: row.verificationState,
-          companyLastCrawlAt: row.company.lastCrawlAt ?? null,
-          latestConfidence: row.company.latestConfidence ?? null,
-        },
       })),
       pageInfo: {
         limit,

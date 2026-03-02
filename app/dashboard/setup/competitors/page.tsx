@@ -26,7 +26,7 @@ export default async function CompetitorsSetupPage() {
   return (
     <SetupFrame
       title="Add your first competitor"
-      description="Setup stays focused: add one competitor, confirm its pricing URL, then land in the dashboard with real data paths already defined."
+      description="Add a competitor homepage, then confirm the pricing page Price Tracker should check daily. Setup stays focused so the dashboard starts with a trusted source."
       currentStep="competitors"
       status={status}
     >

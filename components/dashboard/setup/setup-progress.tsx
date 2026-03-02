@@ -41,8 +41,8 @@ export default function SetupProgress({ currentStep, status }: SetupProgressProp
   const items: StepItem[] = [
     {
       key: "self_pricing",
-      title: "Your pricing",
-      description: "Enter your pricing and basic company details.",
+      title: "Your product",
+      description: "Add your homepage, optional pricing URL, positioning, and monthly/annual plans.",
       complete: status.hasSelfPricing && status.hasSelfCompany,
     },
     {

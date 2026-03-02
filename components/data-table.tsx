@@ -126,6 +126,65 @@ const toVerificationClass = (state: DashboardFeedRow["verificationState"]): stri
   return "border-[#64748b]/30 bg-[#f8fafc] text-[#475569]";
 };
 
+const toConfidenceLabel = (confidence: number | null): "High" | "Medium" | "Low" => {
+  if (typeof confidence !== "number") {
+    return "Low";
+  }
+
+  if (confidence >= 0.8) {
+    return "High";
+  }
+
+  if (confidence >= 0.5) {
+    return "Medium";
+  }
+
+  return "Low";
+};
+
+const toSourceStatusLabel = (status: DashboardFeedRow["company"]["lastCrawlStatus"]): "OK" | "Blocked" | "Parse failed" => {
+  if (status === "blocked") {
+    return "Blocked";
+  }
+
+  if (status === "error" || status === "manual_needed") {
+    return "Parse failed";
+  }
+
+  return "OK";
+};
+
+const toSourceStatusClass = (status: "OK" | "Blocked" | "Parse failed"): string => {
+  if (status === "Blocked") {
+    return "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]";
+  }
+
+  if (status === "Parse failed") {
+    return "border-[#ef4444]/35 bg-[#fef2f2] text-[#b91c1c]";
+  }
+
+  return "border-[#16a34a]/30 bg-[#f0fdf4] text-[#166534]";
+};
+
+const formatLastChecked = (value: string | null): string => {
+  if (!value) {
+    return "Not checked yet";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not checked yet";
+  }
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
 export function DataTable({
   rows,
   isLoading,
@@ -141,7 +200,9 @@ export function DataTable({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#0f172a]/10 px-4 py-3 lg:px-6">
           <div>
             <h2 className="text-lg font-black tracking-tight text-[#0f172a]">Verified changes feed</h2>
-            <p className="text-sm text-[#475569]">Filter by severity and verification state.</p>
+            <p className="text-sm text-[#475569]">
+              Filter by severity and verification state. Each row shows confidence, source status, and last check time.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select
@@ -189,7 +250,7 @@ export function DataTable({
               <TableHead>Change summary</TableHead>
               <TableHead>Severity</TableHead>
               <TableHead>Verification</TableHead>
-              <TableHead>Trust cues</TableHead>
+              <TableHead>Source health</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -206,49 +267,61 @@ export function DataTable({
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row) => (
-                <TableRow key={row.diffId} className="border-[#0f172a]/10">
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-[#0f172a]">{row.company.name}</span>
-                      <span className="text-xs text-[#64748b]">{row.company.domain}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-[420px] text-sm text-[#334155]">
-                    {summarizeDiff(row.normalizedDiff)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={toSeverityClass(row.severity)}>
-                      {row.severity.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={toVerificationClass(row.verificationState)}>
-                      {row.verificationState}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-[#334155]">
-                    <div className="flex flex-col gap-0.5">
-                      <span>Detected {formatRelativeTime(row.detectedAt)}</span>
-                      <span>
-                        Crawl: {row.company.lastCrawlStatus.replace("_", " ")}
-                        {typeof row.company.latestConfidence === "number"
-                          ? ` • ${Math.round(row.company.latestConfidence * 100)}% confidence`
-                          : ""}
-                      </span>
-                      <a
-                        href={`https://${row.company.domain}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-medium text-[#0f766e] hover:text-[#115e59]"
-                      >
-                        Open source page
-                        <ExternalLink className="size-3" />
-                      </a>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              rows.map((row) => {
+                const confidenceLabel = toConfidenceLabel(row.company.latestConfidence);
+                const sourceStatusLabel = toSourceStatusLabel(row.company.lastCrawlStatus);
+
+                return (
+                  <TableRow key={row.diffId} className="border-[#0f172a]/10">
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-[#0f172a]">{row.company.name}</span>
+                        <span className="text-xs text-[#64748b]">{row.company.domain}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-[420px] text-sm text-[#334155]">
+                      <div className="space-y-1">
+                        <p>{summarizeDiff(row.normalizedDiff)}</p>
+                        <p className="text-xs text-[#64748b]">Detected {formatRelativeTime(row.detectedAt)}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={toSeverityClass(row.severity)}>
+                        {row.severity.toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={toVerificationClass(row.verificationState)}>
+                        {row.verificationState}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-[#334155]">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline" className="border-[#0f766e]/25 bg-[#f0fdfa] text-[#115e59]">
+                            Confidence: {confidenceLabel}
+                          </Badge>
+                          <Badge variant="outline" className={toSourceStatusClass(sourceStatusLabel)}>
+                            Source: {sourceStatusLabel}
+                          </Badge>
+                        </div>
+                        <span className="text-xs text-[#64748b]">
+                          Last checked: {formatLastChecked(row.company.lastCrawlAt)}
+                        </span>
+                        <a
+                          href={`https://${row.company.domain}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-[#0f766e] hover:text-[#115e59]"
+                        >
+                          Open source page
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

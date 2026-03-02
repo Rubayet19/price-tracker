@@ -2,19 +2,15 @@ import mongoose from "mongoose";
 import type { Document, Model, Types } from "mongoose";
 import toJSON from "./plugins/toJSON";
 
-export type SelfPricingBillingPeriod = "month" | "year" | "custom";
-
 export interface ISelfPricingPlan {
   name: string;
-  price: number;
-  priceAnchor?: number;
-  highlights: string[];
+  monthlyPrice: number | null;
+  annualPrice: number | null;
 }
 
 export interface ISelfPricingProfile extends Document {
   userId: Types.ObjectId;
   currency: string;
-  billingPeriod: SelfPricingBillingPeriod;
   plans: ISelfPricingPlan[];
   notes?: string;
   createdAt: Date;
@@ -29,26 +25,17 @@ const selfPricingPlanSchema = new mongoose.Schema<ISelfPricingPlan>(
       trim: true,
       maxlength: 120,
     },
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 1_000_000,
-    },
-    priceAnchor: {
+    monthlyPrice: {
       type: Number,
       min: 0,
       max: 1_000_000,
+      default: null,
     },
-    highlights: {
-      type: [
-        {
-          type: String,
-          trim: true,
-          maxlength: 160,
-        },
-      ],
-      default: [],
+    annualPrice: {
+      type: Number,
+      min: 0,
+      max: 1_000_000,
+      default: null,
     },
   },
   {
@@ -72,12 +59,6 @@ const selfPricingProfileSchema = new mongoose.Schema<ISelfPricingProfile>(
       maxlength: 3,
       minlength: 3,
       match: /^[A-Z]{3}$/,
-    },
-    billingPeriod: {
-      type: String,
-      enum: ["month", "year", "custom"],
-      default: "month",
-      required: true,
     },
     plans: {
       type: [selfPricingPlanSchema],

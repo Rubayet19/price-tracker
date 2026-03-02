@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink, RefreshCw, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
+  deleteCompetitor,
   discoverCompetitorPricing,
   runCompetitorCrawl,
   updateCompetitorPrimaryPricing,
@@ -57,6 +58,8 @@ export default function CompetitorManagementSheet({
   const [error, setError] = useState<string | null>(null);
   const [isDiscovering, setIsDiscovering] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
   useEffect(() => {
     if (!competitor) {
@@ -69,6 +72,7 @@ export default function CompetitorManagementSheet({
       competitor.pricingUrlCandidates.find((candidate) => candidate.selectedByUser)?.url ?? null
     );
     setError(null);
+    setShowDeleteConfirm(false);
   }, [competitor]);
 
   const hasHomepageUrl = Boolean(competitor?.homepageUrl);
@@ -97,11 +101,17 @@ export default function CompetitorManagementSheet({
       );
 
       if (scheduleCrawl) {
-        await runCompetitorCrawl(competitor.companyId);
+        const crawlResponse = await runCompetitorCrawl(competitor.companyId);
+        toast.success(
+          crawlResponse.result.status === "ok"
+            ? "Pricing source saved and crawl completed"
+            : `Pricing source saved and crawl finished with status: ${crawlResponse.result.status.replaceAll("_", " ")}`
+        );
+      } else {
+        toast.success("Pricing source updated");
       }
 
       await onUpdated();
-      toast.success(scheduleCrawl ? "Pricing source saved and crawl scheduled" : "Pricing source updated");
       onOpenChange(false);
     } catch (saveError) {
       const message =
@@ -137,6 +147,29 @@ export default function CompetitorManagementSheet({
       setError(message);
     } finally {
       setIsDiscovering(false);
+    }
+  };
+
+  const handleDelete = async (): Promise<void> => {
+    if (!competitor) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      await deleteCompetitor(competitor.companyId);
+      await onUpdated();
+      toast.success("Competitor deleted");
+      onOpenChange(false);
+    } catch (deleteError) {
+      const message =
+        deleteError instanceof Error ? deleteError.message : "Failed to delete competitor";
+      setError(message);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -275,6 +308,57 @@ export default function CompetitorManagementSheet({
               {error}
             </p>
           ) : null}
+
+          <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-4">
+            <p className="text-sm font-semibold text-[#991b1b]">Remove competitor</p>
+            <p className="mt-1 text-sm text-[#7f1d1d]">
+              This deletes the competitor and its stored snapshots, diffs, and insights.
+            </p>
+            {showDeleteConfirm ? (
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-medium text-[#7f1d1d]">
+                  Delete {competitor.name}? This cannot be undone.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      void handleDelete();
+                    }}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="size-4" />
+                    {isDeleting ? "Deleting..." : "Confirm delete"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                    }}
+                    disabled={isDeleting}
+                    className="bg-white"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  setShowDeleteConfirm(true);
+                }}
+                disabled={isDeleting}
+                className="mt-4"
+              >
+                <Trash2 className="size-4" />
+                Delete competitor
+              </Button>
+            )}
+          </div>
         </div>
 
         <SheetFooter className="border-t border-[#e2e8f0]">
@@ -284,7 +368,7 @@ export default function CompetitorManagementSheet({
             onClick={() => {
               void savePricingSource(false);
             }}
-            disabled={isSaving}
+            disabled={isSaving || isDeleting}
           >
             {isSaving ? "Saving..." : "Save pricing source"}
           </Button>
@@ -293,7 +377,7 @@ export default function CompetitorManagementSheet({
             onClick={() => {
               void savePricingSource(true);
             }}
-            disabled={isSaving}
+            disabled={isSaving || isDeleting}
             className="bg-[#0f766e] text-white hover:bg-[#115e59]"
           >
             {isSaving ? "Saving..." : "Save and crawl now"}

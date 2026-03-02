@@ -3,23 +3,31 @@ import { z } from "zod";
 import connectMongo from "@/libs/mongoose";
 import { auth } from "@/libs/auth";
 import { logAuditEvent } from "@/libs/audit";
+import { normalizeSelfPricingProfile } from "@/libs/self-pricing";
 import { enforceWriteRateLimit } from "@/libs/rate-limit";
 import SelfPricingProfile from "@/models/SelfPricingProfile";
 
 const MAX_PLAN_PRICE = 1_000_000;
 const MAX_PLANS = 20;
-const MAX_HIGHLIGHTS_PER_PLAN = 10;
 
-const planSchema = z.object({
+const planSchema = z
+  .object({
   name: z.string().trim().min(1).max(120),
-  price: z.number().finite().min(0).max(MAX_PLAN_PRICE),
-  priceAnchor: z.number().finite().min(0).max(MAX_PLAN_PRICE).optional(),
-  highlights: z.array(z.string().trim().min(1).max(160)).max(MAX_HIGHLIGHTS_PER_PLAN).optional(),
-});
+    monthlyPrice: z.number().finite().min(0).max(MAX_PLAN_PRICE).nullable().optional(),
+    annualPrice: z.number().finite().min(0).max(MAX_PLAN_PRICE).nullable().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.monthlyPrice == null && value.annualPrice == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Each plan needs at least a monthly or annual price",
+        path: ["monthlyPrice"],
+      });
+    }
+  });
 
 const selfPricingProfileSchema = z.object({
   currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).default("USD"),
-  billingPeriod: z.enum(["month", "year", "custom"]).default("month"),
   plans: z.array(planSchema).min(1).max(MAX_PLANS),
   notes: z.string().trim().max(2000).optional(),
 });
@@ -36,7 +44,7 @@ export async function GET(): Promise<NextResponse> {
     await connectMongo();
 
     const profile = await SelfPricingProfile.findOne({ userId: String(userId) });
-    return NextResponse.json({ profile: profile ?? null });
+    return NextResponse.json({ profile: normalizeSelfPricingProfile(profile?.toObject() ?? null) });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to load self pricing profile" }, { status: 500 });
@@ -100,12 +108,10 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 
   const normalizedPayload = {
     currency: parsed.data.currency,
-    billingPeriod: parsed.data.billingPeriod,
     plans: parsed.data.plans.map((plan) => ({
       name: plan.name,
-      price: plan.price,
-      priceAnchor: plan.priceAnchor,
-      highlights: plan.highlights ?? [],
+      monthlyPrice: plan.monthlyPrice ?? null,
+      annualPrice: plan.annualPrice ?? null,
     })),
     notes: parsed.data.notes,
   };
@@ -131,12 +137,11 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       status: "success",
       metadata: {
         currency: normalizedPayload.currency,
-        billingPeriod: normalizedPayload.billingPeriod,
         planCount: normalizedPayload.plans.length,
       },
     });
 
-    return NextResponse.json({ profile });
+    return NextResponse.json({ profile: normalizeSelfPricingProfile(profile?.toObject() ?? null) });
   } catch (error) {
     console.error(error);
     await logAuditEvent({

@@ -1,4 +1,5 @@
 import type {
+  DashboardCrawlStatus,
   DashboardComparisonResponse,
   DashboardFeedResponse,
   DashboardOverviewResponse,
@@ -125,15 +126,32 @@ export const createCheckoutSession = async (payload: {
   return data.url;
 };
 
-export const runCompetitorCrawl = async (companyId: string): Promise<void> => {
+export interface RunCompetitorCrawlResponse {
+  companyId: string;
+  completed: boolean;
+  result: {
+    companyId: string;
+    status: DashboardCrawlStatus;
+    changed: boolean;
+    snapshotCreated: boolean;
+    diffCreated: boolean;
+    insightCreated: boolean;
+    skippedByHash: boolean;
+    reason?: string;
+  };
+}
+
+export const runCompetitorCrawl = async (companyId: string): Promise<RunCompetitorCrawlResponse> => {
   const response = await fetch(`/api/companies/${companyId}/crawl-now`, {
     method: "POST",
     cache: "no-store",
   });
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to schedule crawl"));
+    throw new Error(await toErrorMessage(response, "Failed to run crawl"));
   }
+
+  return (await response.json()) as RunCompetitorCrawlResponse;
 };
 
 export const retryCompetitorCrawl = async (companyId: string): Promise<void> => {
@@ -194,4 +212,15 @@ export const updateCompetitorPrimaryPricing = async (
     primaryPricingUrl: string | null;
     pricingUrlCandidates: PricingUrlCandidate[];
   };
+};
+
+export const deleteCompetitor = async (companyId: string): Promise<void> => {
+  const response = await fetch(`/api/companies/${companyId}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(await toErrorMessage(response, "Failed to delete competitor"));
+  }
 };
