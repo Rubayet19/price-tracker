@@ -265,7 +265,7 @@ const extractPricingCardsFromHtml = (html: string): NormalizedExtractedPlan[] =>
     if (headingText.split(/\s+/).length > 4) continue;
     if (!/[a-z]/i.test(headingText)) continue;
     if (/[.,:!?]/.test(headingText) || /\d/.test(headingText)) continue;
-    if (/pricing|compare|faq|features|trusted by|money-back|save up to|most popular|per month|billed|trial/i.test(headingText)) continue;
+    if (/pricing|compare|faq|features|trusted by|money-back|save up to|most popular|intro price|best value|limited time|per month|billed|trial/i.test(headingText)) continue;
 
     // Look for a price with period indicator within 500 chars after this heading
     const searchStart = headingMatch.index + headingMatch[0].length;
@@ -397,11 +397,13 @@ const hasImplausiblePriceSpread = (prices: NormalizedPricePoint[]): boolean => {
 const shouldUsePlaywrightFallback = ({
   prices,
   planNames,
+  extractedPlans,
   pricingText,
   confidence,
 }: {
   prices: NormalizedPricePoint[];
   planNames: string[];
+  extractedPlans: NormalizedExtractedPlan[];
   pricingText: string;
   confidence: number;
 }): boolean => {
@@ -410,6 +412,13 @@ const shouldUsePlaywrightFallback = ({
   }
 
   if (prices.length > 0 && planNames.length === 0) {
+    return true;
+  }
+
+  // Static found prices but couldn't pair any plan name with a price.
+  // This happens when plan names are in non-heading elements (e.g. styled <p> tags)
+  // that the static HTML parser misses. Playwright's DOM-based detection handles these.
+  if (prices.length > 0 && extractedPlans.length === 0) {
     return true;
   }
 
@@ -513,6 +522,32 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
 
   const fetched = await fetchStaticHtml(normalizedSourceUrl);
   if (fetched.ok === false) {
+    if (BLOCKED_HTTP_STATUSES.has(fetched.status)) {
+      console.log(`[crawl-debug] Static fetch blocked (${fetched.status}) for ${normalizedSourceUrl}, attempting Playwright fallback`);
+      try {
+        const playwrightResult = await extractPricingWithPlaywright(sourceUrl);
+        console.log(`[crawl-debug] Playwright result: prices=${playwrightResult?.pricingPayload.priceMentions.length ?? 0}, plans=${playwrightResult?.pricingPayload.planNames.length ?? 0}, confidence=${playwrightResult?.confidence ?? "null"}`);
+        if (
+          playwrightResult &&
+          playwrightResult.pricingPayload.priceMentions.length > 0
+        ) {
+          return {
+            status: "ok",
+            contentHash: playwrightResult.contentHash,
+            pricingPayload: playwrightResult.pricingPayload,
+            confidence: playwrightResult.confidence,
+            isVerified:
+              playwrightResult.isVerified &&
+              playwrightResult.pricingPayload.priceMentions.length > 0 &&
+              playwrightResult.pricingPayload.planNames.length > 0,
+            captureMethod: "playwright",
+          };
+        }
+      } catch (playwrightError) {
+        console.error(`[crawl-debug] Playwright fallback failed:`, playwrightError instanceof Error ? playwrightError.message : playwrightError);
+      }
+    }
+
     return classifyFetchFailure(fetched);
   }
 
@@ -530,15 +565,6 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
 
   const pricingText = stripHtmlToText(fetched.html);
   const blockedSignals = extractSignalMentions(pricingText, BLOCKED_TEXT_SIGNALS);
-  if (blockedSignals.length > 0) {
-    return {
-      status: "blocked",
-      error: `Bot protection detected: ${blockedSignals.join(", ")}`,
-      confidence: 0,
-      isVerified: false,
-      captureMethod: "static",
-    };
-  }
 
   const priceMentions = extractPriceMentions(pricingText);
   const pricingSignals = extractSignalMentions(pricingText, PRICING_TEXT_SIGNALS);
@@ -546,12 +572,49 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
   const oneTimePricingHints = extractSignalMentions(pricingText, ONE_TIME_PRICING_SIGNALS);
   const planNames = extractPlanNames(fetched.html);
 
-  if (
-    priceMentions.length === 0 &&
-    pricingSignals.length === 0 &&
-    customPricingHints.length === 0 &&
-    oneTimePricingHints.length === 0
-  ) {
+  const staticFoundNothing =
+    blockedSignals.length > 0 ||
+    (priceMentions.length === 0 &&
+      pricingSignals.length === 0 &&
+      customPricingHints.length === 0 &&
+      oneTimePricingHints.length === 0);
+
+  if (staticFoundNothing) {
+    // Static HTML is either a bot challenge page or a JS-rendered shell — try Playwright.
+    try {
+      console.log(`[crawl-debug] Static found nothing (blocked=${blockedSignals.length > 0}, signals=0), trying Playwright for ${normalizedSourceUrl}`);
+      const playwrightResult = await extractPricingWithPlaywright(sourceUrl);
+      console.log(`[crawl-debug] Playwright result: prices=${playwrightResult?.pricingPayload.priceMentions.length ?? 0}, plans=${playwrightResult?.pricingPayload.planNames.length ?? 0}`);
+      if (
+        playwrightResult &&
+        playwrightResult.pricingPayload.priceMentions.length > 0
+      ) {
+        return {
+          status: "ok",
+          contentHash: playwrightResult.contentHash,
+          pricingPayload: playwrightResult.pricingPayload,
+          confidence: playwrightResult.confidence,
+          isVerified:
+            playwrightResult.isVerified &&
+            playwrightResult.pricingPayload.priceMentions.length > 0 &&
+            playwrightResult.pricingPayload.planNames.length > 0,
+          captureMethod: "playwright",
+        };
+      }
+    } catch (playwrightError) {
+      console.error(`[crawl-debug] Playwright fallback failed:`, playwrightError instanceof Error ? playwrightError.message : playwrightError);
+    }
+
+    if (blockedSignals.length > 0) {
+      return {
+        status: "blocked",
+        error: `Bot protection detected: ${blockedSignals.join(", ")}`,
+        confidence: 0,
+        isVerified: false,
+        captureMethod: "static",
+      };
+    }
+
     return {
       status: "manual_needed",
       error: "Pricing signals not detected on the page",
@@ -593,6 +656,7 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
     shouldUsePlaywrightFallback({
       prices: staticPayload.priceMentions,
       planNames: staticPayload.planNames,
+      extractedPlans: staticPayload.extractedPlans ?? [],
       pricingText,
       confidence,
     })
@@ -616,8 +680,8 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
           playwrightResult.pricingPayload.priceMentions.length > 0 &&
           playwrightResult.pricingPayload.planNames.length > 0;
       }
-    } catch {
-      // Keep the static extraction result if Playwright is unavailable or the page fails to render.
+    } catch (playwrightError) {
+      console.error(`[crawl-debug] Playwright fallback failed for ${normalizedSourceUrl}:`, playwrightError instanceof Error ? playwrightError.message : playwrightError);
     }
   }
 

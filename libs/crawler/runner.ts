@@ -428,6 +428,7 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
     }
 
     const extraction = await fetchAndExtractPricing(sourceUrl);
+    console.log(`[crawl-result] company=${companyId}, status=${extraction.status}, confidence=${extraction.status === "ok" ? extraction.confidence : 0}, prices=${extraction.status === "ok" ? extraction.pricingPayload.priceMentions.length : 0}, plans=${extraction.status === "ok" ? extraction.pricingPayload.planNames.length : 0}, extractedPlans=${extraction.status === "ok" ? (extraction.pricingPayload.extractedPlans?.length ?? 0) : 0}, method=${extraction.captureMethod}`);
 
     if (extraction.status !== "ok") {
       finalStatus = extraction.status;
@@ -452,6 +453,7 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
       finalStatus = "ok";
       finalErrorMessage = null;
       skippedByHash = true;
+      console.log(`[crawl-result] SKIPPED by hash for company=${companyId}`);
 
       return {
         companyId: companyId.toString(),
@@ -482,6 +484,7 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
 
     snapshotCreated = true;
     changed = true;
+    console.log(`[crawl-result] SNAPSHOT CREATED id=${currentSnapshot._id}, company=${companyId}`);
 
     const previousPayload = toNormalizedPayload(previousSnapshot?.pricingPayload);
     if (previousSnapshot && previousPayload) {
@@ -501,9 +504,10 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
 
         diffCreated = true;
 
-        const insight = buildInsightFromDiff({
+        const insight = await buildInsightFromDiff({
           user,
           companyId,
+          companyName: company.name,
           diffId: diffRecord._id as Types.ObjectId,
           severity: diff.severity,
           verificationState: diff.verificationState,

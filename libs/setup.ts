@@ -114,8 +114,11 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
     (competitor) => competitor.hasUserSelectedPrimaryPricing
   );
 
+  const hasAtLeastOneCompletedCompetitor = competitors.some(
+    (competitor) => competitor.hasUserSelectedPrimaryPricing
+  );
   const hasHistoricallyCompletedSetup =
-    hasSelfPricing && hasSelfCompany && hasCompetitors && hasSelectedPrimaryPricing;
+    hasSelfPricing && hasSelfCompany && hasCompetitors && hasAtLeastOneCompletedCompetitor;
 
   let nextStep: SetupStepTarget;
   if (!hasSelfPricing || !hasSelfCompany) {
@@ -191,11 +194,14 @@ export const requireCompletedSetup = async (
   const status = await getSetupStatus(userId);
   const requireAccess = options?.requireAccess ?? true;
 
+  const hasAtLeastOneCompletedCompetitor = status.competitors.some(
+    (competitor) => competitor.hasUserSelectedPrimaryPricing
+  );
   const hasCompletedSetupWithoutAccess =
     status.hasSelfPricing &&
     status.hasSelfCompany &&
     status.hasCompetitors &&
-    status.hasSelectedPrimaryPricing;
+    hasAtLeastOneCompletedCompetitor;
 
   if (!hasCompletedSetupWithoutAccess || (requireAccess && !status.entitlements.hasAccess)) {
     redirect(status.nextStep.href);

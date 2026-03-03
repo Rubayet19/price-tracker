@@ -98,11 +98,11 @@ const summarizeSnapshot = (competitor: DashboardComparisonCompetitor): string | 
   }
 
   if (snapshot.comparisonCadences.length > 0) {
-    return "Pricing detected, but plan extraction needs review.";
+    return "Pricing detected, but plan names couldn't be extracted.";
   }
 
   if (snapshot.pricePoints.length > 0) {
-    return "Pricing detected, but billing cadence is unclear.";
+    return "Pricing detected, but billing cadence couldn't be determined.";
   }
 
   return null;

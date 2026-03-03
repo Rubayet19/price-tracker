@@ -224,3 +224,30 @@ export const deleteCompetitor = async (companyId: string): Promise<void> => {
     throw new Error(await toErrorMessage(response, "Failed to delete competitor"));
   }
 };
+
+export interface UpdateCompetitorDetailsResponse {
+  companyId: string;
+  name: string;
+  domain: string;
+  homepageUrl: string | null;
+  primaryPricingUrl: string | null;
+  domainChanged: boolean;
+}
+
+export const updateCompetitorDetails = async (
+  companyId: string,
+  data: { name?: string; homepageUrl?: string }
+): Promise<UpdateCompetitorDetailsResponse> => {
+  const response = await fetch(`/api/companies/${companyId}`, {
+    method: "PATCH",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(await toErrorMessage(response, "Failed to update competitor details"));
+  }
+
+  return (await response.json()) as UpdateCompetitorDetailsResponse;
+};

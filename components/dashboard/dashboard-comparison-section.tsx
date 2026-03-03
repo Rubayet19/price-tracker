@@ -90,11 +90,24 @@ const getConfidenceLabel = (value: number | null): string => {
   return "Low";
 };
 
+const getDefaultCadence = (competitors: DashboardComparisonCompetitor[]): ComparisonCadence => {
+  let hasMonthly = false;
+  let hasAnnual = false;
+
+  for (const competitor of competitors) {
+    const cadences = competitor.latestSnapshot?.comparisonCadences ?? [];
+    if (cadences.includes("month")) hasMonthly = true;
+    if (cadences.includes("year")) hasAnnual = true;
+  }
+
+  return hasMonthly ? "month" : hasAnnual ? "year" : "month";
+};
+
 export default function DashboardComparisonSection({
   competitors,
   selfPricingProfile,
 }: DashboardComparisonSectionProps) {
-  const [cadence, setCadence] = useState<ComparisonCadence>("month");
+  const [cadence, setCadence] = useState<ComparisonCadence>(() => getDefaultCadence(competitors));
 
   const selfPrices = useMemo(
     () => getSelfComparisonPrices(selfPricingProfile, cadence),

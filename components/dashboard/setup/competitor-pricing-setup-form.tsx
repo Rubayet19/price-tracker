@@ -118,7 +118,7 @@ export default function CompetitorPricingSetupForm({
         );
       }
 
-      router.push("/dashboard/competitors");
+      router.push("/dashboard");
       router.refresh();
     } catch (submitError) {
       const message =

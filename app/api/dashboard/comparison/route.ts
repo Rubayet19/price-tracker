@@ -273,6 +273,12 @@ export async function GET(): Promise<NextResponse> {
       }
     }
 
+    console.log(`[comparison-debug] Found ${competitorSnapshots.length} total snapshots for ${competitorCompanyIds.length} companies`);
+    for (const company of competitorCompanies) {
+      const snap = latestSnapshotByCompanyId.get(company._id.toString());
+      console.log(`[comparison-debug] company=${company._id} (${company.name}): snapshot=${snap ? snap._id : "NONE"}, lastCrawlStatus=${company.lastCrawlStatus}, lastCrawlAt=${company.lastCrawlAt ?? "null"}`);
+    }
+
     const competitors = competitorCompanies.map((company) => {
       const latestSnapshot = latestSnapshotByCompanyId.get(company._id.toString());
       const pricePoints = latestSnapshot ? toPricePoints(latestSnapshot.pricingPayload) : [];

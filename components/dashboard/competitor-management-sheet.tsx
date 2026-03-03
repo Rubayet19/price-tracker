@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { ExternalLink, RefreshCw, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ExternalLink, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   deleteCompetitor,
@@ -161,6 +162,7 @@ export default function CompetitorManagementSheet({
     try {
       await deleteCompetitor(competitor.companyId);
       await onUpdated();
+      window.dispatchEvent(new Event("competitor:deleted"));
       toast.success("Competitor deleted");
       onOpenChange(false);
     } catch (deleteError) {
@@ -194,6 +196,13 @@ export default function CompetitorManagementSheet({
                 <p className="font-semibold text-[#0f172a]">{competitor.name}</p>
                 <p className="text-sm text-[#64748b]">{competitor.domain}</p>
               </div>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/dashboard/competitors/${competitor.companyId}`}>
+                    <Pencil className="size-3.5" />
+                    Edit details
+                  </Link>
+                </Button>
               <Badge
                 variant="outline"
                 className={
@@ -205,6 +214,7 @@ export default function CompetitorManagementSheet({
               >
                 {competitor.trust.lastCrawlStatus.replaceAll("_", " ")}
               </Badge>
+              </div>
             </div>
             <p className="mt-3 text-sm text-[#475569]">
               Last checked: {formatDate(competitor.trust.lastCrawlAt)}

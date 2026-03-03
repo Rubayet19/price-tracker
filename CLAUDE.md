@@ -32,7 +32,7 @@ This is a competitor pricing intelligence SaaS built on Next.js 15 App Router, M
 **Directory conventions:**
 - `app/` — Next.js routes and API handlers
 - `components/` — UI components (organized by feature under `components/dashboard/`, `components/dashboard/setup/`, `components/landing/`)
-- `libs/` — Utilities and services (crawler pipeline, auth, entitlements, stripe, gpt, resend, etc.)
+- `libs/` — Utilities and services (crawler pipeline, auth, entitlements, stripe, llm, resend, etc.)
 - `models/` — Mongoose models
 - `types/` — Shared TypeScript types
 - `config.ts` — All plan tiers, pricing constants, Stripe price IDs, entitlements — **never hardcode these**
@@ -42,13 +42,36 @@ This is a competitor pricing intelligence SaaS built on Next.js 15 App Router, M
 The core backend loop lives in `libs/crawler/`:
 
 1. `runner.ts` — Lease-based batch claiming (`/api/cron/crawl`, runs every 15 min via `vercel.json`)
-2. `extract.ts` — Heuristic extraction → `playwright-extract.ts` fallback → LLM fallback
+2. `extract.ts` — Heuristic extraction → `playwright-extract.ts` fallback → `manual_needed` if both fail
 3. `normalize.ts` — Canonicalize pricing JSON before diffing
 4. `diff.ts` — Generate normalized diffs with severity (`low | medium | high`)
-5. `insight.ts` — AI recommendations gated by plan severity tier
+5. `insight.ts` — LLM-powered insights (gpt-4o-mini) with rules-v1 fallback, gated by plan severity tier
 6. `discovery.ts` — Homepage link scoring for finding pricing URLs
 
 Hash gating: if `contentHash` is unchanged, skip extraction and diff entirely.
+
+### Extraction Details
+
+**Static → Playwright fallback triggers when any of:**
+- Page has interactive cadence signals (both "monthly" and "yearly"/"annual" text)
+- Prices found but zero plan names from h-tags
+- Prices found but zero `extractedPlans` paired (plan names in non-heading elements like styled `<p>` tags)
+- Implausible price spread (max/min ratio ≥ 100 or max ≥ $5,000)
+- Confidence below threshold (default 0.82)
+
+**`toPeriod` card-text period detection (in order):**
+yearly → monthly → annual → daily (`per day`, `/day`) → one-time (`/lifetime`, `one-time payment`, etc.) → fallback to active cadence or "unknown"
+
+**`isLikelyPlanName` rejects:** strings with digits, punctuation, >28 chars, >4 words, currency codes (USD/EUR/GBP etc.), and marketing terms (pricing, faq, features, compare, per month, billed, trial, money-back, etc.)
+
+**`buildExtractedPlans` period inference (3 tiers):**
+1. Card-level: `toPeriod` from card text + active toggle cadence
+2. Sibling inference: if period is "unknown", infer from siblings with known periods
+3. Page-text fallback: if no siblings have known periods, scan full page body text for `/month`, `per month`, etc.
+
+Cards with "per day" text are skipped entirely (marketing conversions like "~$0.28 per day").
+
+**`classifyPricingModel`:** Returns `custom_only` only when custom hints exist AND no concrete prices exist in extractedPlans or priceMentions. Sites with both "contact sales" and real plan prices get classified by their recurring cadences, not as custom-only.
 
 ## Entitlements
 
@@ -66,7 +89,7 @@ Enforce entitlements server-side. Never rely on client-side checks for plan limi
 | `Company` | Self or competitor record with crawl scheduling fields (`nextCrawlAt`, `crawlLeaseUntil`, `lastCrawlStatus`, `contentHash`) |
 | `Snapshot` | Captured pricing payload with `captureMethod`, `confidence`, and `isVerified` |
 | `Diff` | Snapshot-to-snapshot diff with `severity` and `verificationState` (`verified | unverified`) |
-| `Insight` | AI recommendation from a diff, gated by severity |
+| `Insight` | LLM-powered recommendation (summary, move classification, strategic options, watch list) from a diff, gated by severity. Falls back to rules-v1 if LLM unavailable. |
 | `SelfPricingProfile` | User's manually entered own product pricing |
 
 ## Engineering Rules

@@ -15,6 +15,12 @@ if (shouldTrustAuthHost) {
 const nextConfig = {
   distDir,
   reactStrictMode: true,
+  serverExternalPackages: [
+    "playwright",
+    "playwright-core",
+    "playwright-extra",
+    "puppeteer-extra-plugin-stealth",
+  ],
   allowedDevOrigins: ["localtest.me"],
   images: {
     remotePatterns: [

@@ -44,6 +44,13 @@ export const getCompetitorComparisonUnavailableReason = (
     return `No ${cadence === "month" ? "monthly" : "annual"} prices were detected on the latest pricing source.`;
   }
 
+  if (
+    competitor.latestSnapshot.extractedPlans.length === 0 &&
+    competitor.latestSnapshot.pricePoints.length > 0
+  ) {
+    return "Prices were detected, but plan names couldn't be extracted. Re-crawl to retry.";
+  }
+
   return null;
 };
 
@@ -136,22 +143,7 @@ export const getCompetitorComparisonPrices = (
     return extractedPlans;
   }
 
-  const matchingBuckets =
-    competitor.latestSnapshot?.pricePointBuckets.filter((bucket) => bucket.period === cadence) ?? [];
-
-  return matchingBuckets
-    .map((bucket, index) => ({
-      label:
-        bucket.minAmount === bucket.maxAmount
-          ? `Detected price ${index + 1}`
-          : `Detected range ${index + 1}`,
-      minAmount: bucket.minAmount,
-      maxAmount: bucket.maxAmount,
-      currency: bucket.currency,
-      count: bucket.count,
-      source: "bucket" as const,
-    }))
-    .sort((left, right) => left.minAmount - right.minAmount);
+  return [];
 };
 
 const summarizeSinglePrice = (

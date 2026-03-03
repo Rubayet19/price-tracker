@@ -1,5 +1,4 @@
 import {
-  CRAWL_REQUEST_HEADERS,
   CUSTOM_PRICING_SIGNALS,
   ONE_TIME_PRICING_SIGNALS,
   PLAYWRIGHT_EXTRACTION_TIMEOUT_MS,
@@ -79,16 +78,26 @@ const detectCadenceFromText = (value: string): PricePeriod | null => {
 const toPeriod = (cardText: string, activeCadence: PricePeriod | null): PricePeriod => {
   const lowered = cardText.toLowerCase();
 
-  if (/billed yearly|billed annually|annual plan|yearly plan/.test(lowered)) {
+  if (/billed yearly|billed annually|paid yearly|paid annually|annual plan|yearly plan/.test(lowered)) {
     return "year";
   }
 
-  if (/billed monthly|monthly plan|per month|\/month|\/mo|monthly/.test(lowered)) {
-    return activeCadence === "year" && /billed yearly|billed annually/.test(lowered) ? "year" : "month";
+  if (/billed monthly|monthly plan|per month|\/\s*month|\/\s*mo\b|monthly/.test(lowered)) {
+    return activeCadence === "year" && /billed yearly|billed annually|paid yearly|paid annually/.test(lowered) ? "year" : "month";
   }
 
   if (/per year|\/year|yearly|annual|annually/.test(lowered)) {
     return "year";
+  }
+
+  // Detect daily pricing (e.g. marketing "~$0.28 per day" conversions)
+  if (/per day|\/day/.test(lowered)) {
+    return "day";
+  }
+
+  // Detect one-time / lifetime pricing
+  if (/\/lifetime|one-time payment|one time payment|pay once|lifetime access|buy once/.test(lowered)) {
+    return "one_time";
   }
 
   return activeCadence ?? "unknown";
@@ -151,18 +160,25 @@ const computeConfidence = (
 
 const isAnnualPriceShownPerMonth = (cardText: string): boolean => {
   const lowered = cardText.toLowerCase();
-  const hasBilledAnnually = /billed yearly|billed annually/.test(lowered);
+  const hasBilledAnnually = /billed yearly|billed annually|paid yearly|paid annually/.test(lowered);
   const hasPerMonth = /\/month|\/mo|per month/.test(lowered);
   return hasBilledAnnually && hasPerMonth;
 };
 
 const buildExtractedPlans = (states: RenderedStatePayload[]): NormalizedExtractedPlan[] => {
   const planMap = new Map<string, NormalizedExtractedPlan>();
+  const unknownPeriodPlans = new Map<string, { amount: number; cardText: string }>();
 
   for (const state of states) {
     for (const card of state.planCards) {
       const planName = card.planName ? normalizeWhitespace(card.planName) : "";
       if (!planName) {
+        continue;
+      }
+
+      // Skip cards whose price is a "per day" marketing conversion (e.g. "~$0.28 per day").
+      // These appear in all toggle states and should never be treated as plan pricing.
+      if (/per day|\/day/.test(card.text.toLowerCase())) {
         continue;
       }
 
@@ -205,9 +221,52 @@ const buildExtractedPlans = (states: RenderedStatePayload[]): NormalizedExtracte
           existing.annualPrice = primaryPrice.amount;
           existing.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(card.text);
         }
+
+        if (inferredPeriod === "unknown" && primaryPrice.amount > 0) {
+          unknownPeriodPlans.set(dedupeKey, { amount: primaryPrice.amount, cardText: card.text });
+        }
       }
 
       planMap.set(dedupeKey, existing);
+    }
+  }
+
+  // Second pass: infer period for plans with unknown period from sibling plans
+  if (unknownPeriodPlans.size > 0) {
+    let siblingMonthly = 0;
+    let siblingAnnual = 0;
+    for (const plan of planMap.values()) {
+      if (plan.monthlyPrice !== null) siblingMonthly++;
+      if (plan.annualPrice !== null) siblingAnnual++;
+    }
+
+    let inferredPeriod: "month" | "year" | null = siblingMonthly > 0 ? "month" : siblingAnnual > 0 ? "year" : null;
+
+    // Fallback: when no siblings have known periods, scan page text for period indicators.
+    // This handles sites like Grammarly where the Free plan shows "/ month" but is filtered
+    // from card detection, and the Pro plan's card text has no period indicator.
+    if (!inferredPeriod) {
+      const combinedText = states.map((s) => s.text).join(" ").toLowerCase();
+      if (/\/\s*month|per month|\/\s*mo\b/.test(combinedText)) {
+        inferredPeriod = "month";
+      } else if (/\/year|per year|annually/.test(combinedText)) {
+        inferredPeriod = "year";
+      }
+    }
+
+    if (inferredPeriod) {
+      for (const [key, { amount, cardText }] of unknownPeriodPlans) {
+        const plan = planMap.get(key);
+        if (!plan) continue;
+        if (plan.monthlyPrice !== null || plan.annualPrice !== null) continue;
+
+        if (inferredPeriod === "month") {
+          plan.monthlyPrice = amount;
+        } else {
+          plan.annualPrice = amount;
+          plan.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(cardText);
+        }
+      }
     }
   }
 
@@ -227,7 +286,8 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     if (normalized.length > 28) return false;
     if (normalized.split(/\\s+/).length > 4) return false;
     if (/[,:!?]/.test(normalized) || /\\d/.test(normalized) || normalized.includes(".")) return false;
-    return !/save up|months free|launch price|most popular|per month|billed|trial|price tag|credit card|required|enterprise power|integrations|history|users|pages|cadence|coverage/i.test(normalized);
+    if (/^(usd|eur|gbp|cad|aud|jpy|inr|brl|mxn|chf|sek|nok|dkk|nzd|sgd|hkd|krw|try|zar|pln)$/i.test(normalized)) return false;
+    return !/save up|months free|launch price|intro price|best value|limited time|most popular|per month|billed|trial|price tag|credit card|required|enterprise power|integrations|history|users|pages|cadence|coverage|compare|pricing|faq|features|trusted by|money-back/i.test(normalized);
   }
 
   function isVisible(element) {
@@ -242,6 +302,13 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     const style = window.getComputedStyle(element);
     const rect = element.getBoundingClientRect();
     return style.display !== "none" && style.visibility !== "hidden" && Number.parseFloat(style.opacity || "1") > 0 && rect.width > 0 && rect.height > 0;
+  }
+
+  function applyTextTransform(element, text) {
+    const transform = window.getComputedStyle(element).textTransform;
+    if (transform === "capitalize") return text.replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
+    if (transform === "uppercase") return text.toUpperCase();
+    return text;
   }
 
   const pricePattern = /(?:\\b(?:USD|EUR|GBP|CAD|AUD|JPY)\\b\\s*|[€£$¥])\\s*(\\d{1,4}(?:,\\d{3})*(?:\\.\\d{1,2})?)/gi;
@@ -261,7 +328,17 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
         if (!pricePattern.test(raw)) return null;
         pricePattern.lastIndex = 0;
         const style = window.getComputedStyle(entry);
-        const fontSize = Number.parseFloat(style.fontSize || "0");
+        var fontSize = Number.parseFloat(style.fontSize || "0");
+        if (entry.children.length > 0) {
+          var descendants = entry.querySelectorAll("*");
+          for (var di = 0; di < descendants.length; di++) {
+            var dText = (descendants[di].textContent || "").trim();
+            if (/\\d/.test(dText) && dText.length <= 10) {
+              var dFs = Number.parseFloat(window.getComputedStyle(descendants[di]).fontSize || "0");
+              if (dFs > fontSize) fontSize = dFs;
+            }
+          }
+        }
         const isStruck = style.textDecorationLine.includes("line-through") || style.textDecoration.includes("line-through") || entry.closest("s, del, strike, [class*='line-through'], [class*='strikethrough']") !== null;
         return { raw, fontSize, isStruck };
       })
@@ -277,11 +354,29 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     const featureCount = element.querySelectorAll("li").length;
     if (primaryPrices.length === 0 && !hasCustomSignal) return null;
 
-    const headingCandidates = Array.from(
+    var headingCandidates = Array.from(
       element.querySelectorAll("h1, h2, h3, h4, h5, [data-plan-name], [data-plan-title], strong, b")
     )
-      .map((entry) => normalizeText(entry.textContent || ""))
+      .map((entry) => applyTextTransform(entry, normalizeText(entry.textContent || "")))
       .filter((entry) => isLikelyPlanName(entry));
+
+    if (headingCandidates.length === 0) {
+      var styledEls = Array.from(element.querySelectorAll("div, span, p")).filter(isTextVisible);
+      for (var si = 0; si < styledEls.length; si++) {
+        var sEl = styledEls[si];
+        var sText = normalizeText(sEl.textContent || "");
+        if (!isLikelyPlanName(sText)) continue;
+        var sStyle = window.getComputedStyle(sEl);
+        var sFw = Number.parseInt(sStyle.fontWeight, 10);
+        if (isNaN(sFw)) sFw = sStyle.fontWeight === "bold" ? 700 : 400;
+        var sFs = Number.parseFloat(sStyle.fontSize || "0");
+        if ((sFw >= 600 || sFs >= 18) && sEl.children.length <= 2) {
+          headingCandidates.push(applyTextTransform(sEl, sText));
+          break;
+        }
+      }
+    }
+
     const normalizedHeading = headingCandidates[0] || null;
 
     const buttonText = normalizeText(
@@ -300,16 +395,129 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     if (oneTimeSignals.some((signal) => text.toLowerCase().includes(signal))) score += 2;
 
     if (score < 7 || primaryPrices.length === 0 || !normalizedHeading) return null;
-    return { planName: normalizedHeading, text, prices: primaryPrices, score };
+    if (/\\bfree\\b/i.test(normalizedHeading)) return null;
+    return { element, planName: normalizedHeading, text, prices: primaryPrices, score };
   }).filter(Boolean).sort((left, right) => right.score - left.score).slice(0, 12);
+
+  // Remove container elements that span multiple distinct plan headings
+  const nonContainerCards = cards.filter((card) => {
+    const containedHeadings = new Set();
+    for (const other of cards) {
+      if (other !== card && card.element.contains(other.element)) {
+        containedHeadings.add((other.planName || "").toLowerCase());
+      }
+    }
+    return containedHeadings.size <= 1;
+  });
+
+  // Keep cards within 75% of the max score to filter add-on sections
+  const maxCardScore = nonContainerCards.reduce((max, card) => Math.max(max, card.score), 0);
+  const scoreThreshold = Math.max(7, maxCardScore * 0.75);
+  const qualifiedCards = nonContainerCards.filter((card) => card.score >= scoreThreshold);
+
+  // When multiple page sections contain cards, prefer the first section with >= 2 cards
+  function getTopSection(el) {
+    const mainEl = document.querySelector("main") || document.body;
+    let cur = el;
+    while (cur.parentElement && cur.parentElement !== mainEl) {
+      cur = cur.parentElement;
+    }
+    return cur;
+  }
+
+  let cardsForDedup = qualifiedCards;
+  const sectionMap = new Map();
+  for (const card of qualifiedCards) {
+    const section = getTopSection(card.element);
+    if (!sectionMap.has(section)) sectionMap.set(section, []);
+    sectionMap.get(section).push(card);
+  }
+  if (sectionMap.size > 1) {
+    const sections = [...sectionMap.entries()].sort(function(a, b) {
+      const pos = a[0].compareDocumentPosition(b[0]);
+      return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+    const firstLarge = sections.find(function(entry) { return entry[1].length >= 2; });
+    cardsForDedup = firstLarge ? firstLarge[1] : sections[0][1];
+  }
 
   const dedupedCards = [];
   const seenKeys = new Set();
-  for (const card of cards) {
+  for (const card of cardsForDedup) {
     const key = (card.planName || "unknown") + "|" + card.prices.map((price) => price.raw).join("|");
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
     dedupedCards.push({ planName: card.planName, text: card.text, prices: card.prices });
+  }
+
+  if (dedupedCards.length === 0) {
+    var headings = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, strong, b"))
+      .filter(isTextVisible)
+      .filter((el) => isLikelyPlanName(normalizeText(el.textContent || "")));
+
+    if (headings.length === 0) {
+      headings = Array.from(document.querySelectorAll("div, span, p"))
+        .filter(isTextVisible)
+        .filter((el) => {
+          var txt = normalizeText(el.textContent || "");
+          if (!isLikelyPlanName(txt)) return false;
+          var st = window.getComputedStyle(el);
+          var fw = Number.parseInt(st.fontWeight, 10);
+          if (isNaN(fw)) fw = st.fontWeight === "bold" ? 700 : 400;
+          var fs = Number.parseFloat(st.fontSize || "0");
+          return (fw >= 600 || fs >= 18) && el.children.length <= 2;
+        });
+    }
+
+    const priceEls = Array.from(document.querySelectorAll("*"))
+      .filter(isTextVisible)
+      .filter((el) => {
+        const raw = normalizeText(el.textContent || "");
+        pricePattern.lastIndex = 0;
+        if (!pricePattern.test(raw)) return false;
+        const style = window.getComputedStyle(el);
+        var fontSize = Number.parseFloat(style.fontSize || "0");
+        if (el.children.length > 0) {
+          var descendants = el.querySelectorAll("*");
+          for (var di = 0; di < descendants.length; di++) {
+            var dText = (descendants[di].textContent || "").trim();
+            if (/\\d/.test(dText) && dText.length <= 10) {
+              var dFs = Number.parseFloat(window.getComputedStyle(descendants[di]).fontSize || "0");
+              if (dFs > fontSize) fontSize = dFs;
+            }
+          }
+        }
+        const isStruck = style.textDecorationLine.includes("line-through") || style.textDecoration.includes("line-through") || el.closest("s, del, strike, [class*='line-through'], [class*='strikethrough']") !== null;
+        return fontSize >= 20 && !isStruck;
+      });
+
+    const proximitySeenKeys = new Set();
+    for (const heading of headings) {
+      const planName = applyTextTransform(heading, normalizeText(heading.textContent || ""));
+      if (/\\bfree\\b/i.test(planName)) continue;
+      let ancestor = heading.parentElement;
+      let pairedPrice = null;
+      while (ancestor && ancestor !== document.body) {
+        for (const priceEl of priceEls) {
+          if (ancestor.contains(priceEl)) {
+            const raw = normalizeText(priceEl.textContent || "");
+            pairedPrice = { raw };
+            break;
+          }
+        }
+        if (pairedPrice) break;
+        ancestor = ancestor.parentElement;
+      }
+      if (pairedPrice) {
+        const dedupeKey = planName + "|" + pairedPrice.raw;
+        if (!proximitySeenKeys.has(dedupeKey)) {
+          proximitySeenKeys.add(dedupeKey);
+          const cardAncestor = ancestor || heading.parentElement;
+          const cardText = normalizeText((cardAncestor && cardAncestor.innerText) || "");
+          dedupedCards.push({ planName, text: cardText, prices: [pairedPrice] });
+        }
+      }
+    }
   }
 
   return {
@@ -400,6 +608,38 @@ const clickCadenceIfPresent = async (
     }
   }
 
+  // Handle switch toggles with adjacent text labels (e.g., "Monthly [switch] Yearly").
+  // Convention: unchecked = left label (Monthly), checked = right label (Yearly).
+  const switches = page.locator('[role="switch"]');
+  const switchCount = await switches.count().catch((): number => 0);
+
+  for (let index = 0; index < switchCount; index += 1) {
+    const sw = switches.nth(index);
+    if (!(await sw.isVisible().catch((): boolean => false))) {
+      continue;
+    }
+
+    const container = sw.locator("xpath=..");
+    const containerText = await container.innerText().catch((): string => "");
+    if (!/monthly/i.test(containerText) || !/yearly|annual/i.test(containerText)) {
+      continue;
+    }
+    if (!label.test(containerText)) {
+      continue;
+    }
+
+    const isChecked = (await sw.getAttribute("aria-checked")) === "true";
+    const wantsMonthly = /monthly/i.test(label.source);
+    const needsClick = wantsMonthly ? isChecked : !isChecked;
+
+    if (needsClick) {
+      await sw.click({ timeout: 2_000 }).catch((): undefined => undefined);
+      await page.waitForTimeout(PLAYWRIGHT_TOGGLE_SETTLE_MS);
+    }
+
+    return true;
+  }
+
   return false;
 };
 
@@ -413,12 +653,23 @@ export const extractPricingWithPlaywright = async (
 
   const navigationUrl = buildNavigationUrl(sourceUrl, normalizedSourceUrl);
 
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ headless: true });
+  const { chromium } = await import("playwright-extra");
+  const { default: stealth } = await import("puppeteer-extra-plugin-stealth");
+  chromium.use(stealth());
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--disable-blink-features=AutomationControlled",
+    ],
+  });
 
   try {
     const context = await browser.newContext({
-      extraHTTPHeaders: CRAWL_REQUEST_HEADERS,
+      extraHTTPHeaders: {
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.8",
+        "cache-control": "no-cache",
+      },
     });
     const page = await context.newPage();
 
@@ -431,9 +682,46 @@ export const extractPricingWithPlaywright = async (
       timeout: Math.min(PLAYWRIGHT_EXTRACTION_TIMEOUT_MS, 5_000),
     }).catch((): undefined => undefined);
 
+    // Wait for Cloudflare / bot challenge pages to resolve.
+    // The stealth plugin passes the checks, but the JS challenge needs time to verify.
+    const initialTitle = await page.title().catch((): string => "");
+    if (/just a moment|checking your browser|verify you are human/i.test(initialTitle)) {
+      await page
+        .waitForFunction(() => !/just a moment|checking your browser|verify you are human/i.test(document.title), {
+          timeout: 15_000,
+        })
+        .catch((): undefined => undefined);
+
+      // After challenge resolves, wait for the real page to finish loading.
+      await page.waitForLoadState("networkidle", {
+        timeout: 8_000,
+      }).catch((): undefined => undefined);
+    }
+
+    // Diagnostic: check what page Playwright actually loaded
+    const debugTitle = await page.title().catch((): string => "TITLE_ERROR");
+    const debugUrl = page.url();
+    const debugBodyLen = await page.evaluate(() => document.body?.innerText?.length ?? 0).catch((): number => -1);
+    console.log(`[pw-debug] URL: ${debugUrl}, Title: ${debugTitle}, Body length: ${debugBodyLen}`);
+
+    // Dismiss common cookie consent dialogs that may overlay pricing content.
+    await page
+      .locator(
+        'button:has-text("Accept"), button:has-text("Accept all"), button:has-text("Accept cookies"), button:has-text("Allow all"), button:has-text("I agree"), button:has-text("Got it"), button:has-text("OK")'
+      )
+      .first()
+      .click({ timeout: 2_000 })
+      .catch((): undefined => undefined);
+
     const extractedStates: RenderedStatePayload[] = [];
 
-    extractedStates.push(await extractRenderedState(page, null));
+    const rawEval = await extractRenderedState(page, null);
+    console.log(`[pw-debug] Evaluate result: planCards=${rawEval.planCards.length}, text length=${rawEval.text.length}`);
+    if (rawEval.planCards.length === 0) {
+      // Log first 300 chars of body text to see what page we got
+      console.log(`[pw-debug] Body preview: ${rawEval.text.slice(0, 300)}`);
+    }
+    extractedStates.push(rawEval);
 
     const clickedMonthly = await clickCadenceIfPresent(page, /\bmonthly\b/i).catch(
       (): boolean => false
@@ -442,7 +730,7 @@ export const extractPricingWithPlaywright = async (
       extractedStates.push(await extractRenderedState(page, "month"));
     }
 
-    const clickedYearly = await clickCadenceIfPresent(page, /\b(yearly|annual)\b/i).catch(
+    const clickedYearly = await clickCadenceIfPresent(page, /\b(yearly|annually|annual)\b/i).catch(
       (): boolean => false
     );
     if (clickedYearly) {

@@ -61,9 +61,11 @@ export default function AddCompetitorSheet() {
     };
 
     window.addEventListener("competitor:added", onCompetitorAdded);
+    window.addEventListener("competitor:deleted", onCompetitorAdded);
 
     return () => {
       window.removeEventListener("competitor:added", onCompetitorAdded);
+      window.removeEventListener("competitor:deleted", onCompetitorAdded);
     };
   }, [loadOverview]);
 
@@ -89,7 +91,7 @@ export default function AddCompetitorSheet() {
       setForm(INITIAL_FORM);
       setIsOpen(false);
       window.dispatchEvent(new Event("competitor:added"));
-      router.push(`/dashboard/setup/competitors/${company.id}/pricing`);
+      router.push(`/dashboard/competitors/${company.id}`);
       router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to add competitor";

@@ -47,7 +47,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Company model: latest crawl status, error, and content hash fields.
 - Snapshot model: parsed pricing payload, capture method, confidence, and content hash.
 - Diff model: snapshot-to-snapshot normalized diff with severity and verification state.
-- Insight model: AI recommendation payload plus model/cost metadata and feedback signal.
+- Insight model: LLM-powered recommendation with summary, move classification, 3 strategic options (price/features/positioning), and watch list. Includes model/cost metadata and feedback signal.
 
 ## Entitlements and Limits
 - Centralize in one entitlements helper.
@@ -55,7 +55,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Plan tier: paid tier comes from Stripe `priceId` mapping in config.
 - Plan tier: trial is always forced to Starter behavior.
 - Enforce server-side competitor cap by plan.
-- Enforce server-side insight generation by severity gate and cost cap.
+- Enforce server-side insight generation by severity gate and cost cap. Insight model is gpt-4o-mini with rules-v1 fallback.
 
 ## Crawl and Extraction Strategy
 - Discovery: crawl homepage links.
@@ -64,8 +64,11 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Static-first crawling.
 - Stable content hash gate: if unchanged, skip extraction and diff generation.
 - Extraction path: heuristics first.
-- Playwright fallback only when JS rendering is likely needed and under per-run cap.
-- LLM fallback only for low-confidence cases.
+- Playwright fallback triggers: interactive cadence signals, prices without plan names, prices without paired extractedPlans, implausible price spread, or low confidence.
+- Playwright extraction: renders page, detects billing toggles, clicks through monthly/annual cadences, extracts plan cards with price/name/period from rendered DOM.
+- Period detection: card text → sibling inference → page-text fallback. "Per day" marketing cards skipped. "Lifetime"/"one-time payment" mapped to `one_time`.
+- Plan name filtering: rejects strings with digits, >28 chars, >4 words, currency codes (USD/EUR/etc.), and marketing terms.
+- No LLM extraction fallback; mark `manual_needed` if both static and Playwright extraction fail.
 - Failure policy: mark blocked/manual-needed.
 - Failure policy: apply retry backoff.
 
@@ -74,6 +77,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Generate low-noise diffs.
 - Keep only meaningful, severity-rated changes.
 - Gate insight generation by entitlement tier.
+- LLM insight generation (gpt-4o-mini): produces summary, move classification, 3 strategic options, and watch list. Falls back to deterministic rules-v1 if LLM unavailable or fails.
 - Preserve a verified/unverified distinction across feeds and emails.
 
 ## Email Digest Policy
@@ -97,16 +101,20 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 ## Current Implementation Status
 - Completed: trial and entitlements backend (trial start endpoint, entitlement resolution, trial state refresh).
 - Completed: domain models and persistence for Company, Snapshot, Diff, Insight, audit, cron lock, rate limit, and processed Stripe events.
-- Completed: crawl/discovery/diff/insight backend pipeline with lease-based batch claiming, hash gating, and severity-gated insight generation.
+- Completed: crawl/discovery/diff/insight backend pipeline with lease-based batch claiming, hash gating, severity-gated insight generation, and LLM-powered insights (gpt-4o-mini with rules-v1 fallback).
 - Completed: cron endpoints and schedules (`/api/cron/crawl` every 15 minutes, `/api/cron/digest` weekly) with `CRON_SECRET` protection.
 - Completed: Stripe webhook hardening with signature verification, known-plan price validation, email fallback, and idempotent event processing.
 - Completed: authenticated setup UI for self pricing, explicit trial start, competitor add, pricing URL confirmation, and redirect-based setup gating under `/dashboard/setup`.
-- Completed: core dashboard UI wiring for overview, changes, competitors, trust, and settings pages backed by `/api/dashboard/overview`, `/api/dashboard/feed`, and `/api/dashboard/comparison`.
+- Completed: core dashboard UI wiring for overview, changes, competitors, and settings pages backed by `/api/dashboard/overview`, `/api/dashboard/feed`, and `/api/dashboard/comparison`.
 - Completed: competitor management UX on `/dashboard/competitors`, including pricing source review, crawl-now/retry actions, and visible trust state messaging.
+- Completed: competitor detail page at `/dashboard/competitors/[companyId]` with editable company name/homepage, domain change handling (resets pricing source), inline pricing source management, and delete with redirect.
+- Completed: `PATCH /api/companies/[companyId]` for updating company name and homepage URL. Domain changes clear pricing URL, candidates, and content hash.
+- Completed: add-competitor sheet redirects to `/dashboard/competitors/{id}` instead of setup page.
 - Completed: dashboard-wide entitlement/paywall states and in-app billing/settings surface under `/dashboard/settings`.
-- Completed: full dashboard setup gating so incomplete users are redirected back into `/dashboard/setup` until onboarding is finished.
+- Completed: full dashboard setup gating — requires at least ONE completed competitor (not ALL) to consider setup done.
 - Completed: repeatable end-to-end smoke coverage for setup and dashboard access paths.
 - Completed: local production build hardening for this repo, including Node runtime pinning, localhost/localtest Auth.js trust for development, duplicate Mongoose index cleanup, and stricter Stripe input validation.
+- Completed: crawler extraction hardening — per-day card filtering, lifetime/one-time detection, currency code plan name rejection, sibling period inference, page-text fallback for billing period, improved Playwright fallback trigger conditions.
 - Current state: MVP is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
 
 ## Current Priority Queue

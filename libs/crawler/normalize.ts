@@ -274,7 +274,18 @@ export const classifyPricingModel = (
   }
 
   if (payload.customPricingHints.length > 0) {
-    return "custom_only";
+    const hasConcreteExtractedPrices = (payload.extractedPlans ?? []).some(
+      (plan) =>
+        (typeof plan.monthlyPrice === "number" && plan.monthlyPrice > 0) ||
+        (typeof plan.annualPrice === "number" && plan.annualPrice > 0)
+    );
+    const hasConcretePriceMentions = payload.priceMentions.some(
+      (price) => price.amount > 0
+    );
+
+    if (!hasConcreteExtractedPrices && !hasConcretePriceMentions) {
+      return "custom_only";
+    }
   }
 
   return "unknown";
