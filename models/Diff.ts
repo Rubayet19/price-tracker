@@ -80,8 +80,9 @@ const diffSchema = new mongoose.Schema<IDiff>(
 );
 
 diffSchema.index({ companyId: 1, detectedAt: -1 });
-diffSchema.index({ severity: 1 });
-diffSchema.index({ verificationState: 1 });
+diffSchema.index({ userId: 1, detectedAt: -1 });
+diffSchema.index({ userId: 1, severity: 1, detectedAt: -1 });
+diffSchema.index({ userId: 1, verificationState: 1, detectedAt: -1 });
 
 const diffToJSONPlugin = toJSON as unknown as Parameters<typeof diffSchema.plugin>[0];
 diffSchema.plugin(diffToJSONPlugin);

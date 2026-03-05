@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { ArrowRight, ChevronRight, ExternalLink, Loader2, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
 import type { DashboardFeedRow } from "@/types/dashboard";
 import { Badge } from "@/components/ui/badge";
@@ -185,16 +185,16 @@ function PriceChangeInline({ change }: { change: PriceChangePreview }) {
   return null;
 }
 
-function FeedCard({
+const FeedCard = memo(function FeedCard({
   row,
   onViewInsight,
 }: {
   row: DashboardFeedRow;
   onViewInsight: () => void;
 }) {
-  const insightLabel = getMoveClassificationLabel(row);
-  const summary = getInsightSummary(row);
-  const priceChange = getFirstPriceChange(row.normalizedDiff);
+  const insightLabel = useMemo(() => getMoveClassificationLabel(row), [row]);
+  const summary = useMemo(() => getInsightSummary(row), [row]);
+  const priceChange = useMemo(() => getFirstPriceChange(row.normalizedDiff), [row.normalizedDiff]);
   const colors = insightLabel ? CLASSIFICATION_COLORS[insightLabel] ?? CLASSIFICATION_COLORS["Analysis available"] : null;
   const hasInsight = !!insightLabel;
 
@@ -279,7 +279,7 @@ function FeedCard({
       )}
     </div>
   );
-}
+});
 
 export function DataTable({
   rows,

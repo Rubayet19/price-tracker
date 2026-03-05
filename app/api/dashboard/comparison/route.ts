@@ -256,20 +256,33 @@ export async function GET(): Promise<NextResponse> {
     ]);
 
     const competitorCompanyIds = competitorCompanies.map((company) => company._id);
-    const competitorSnapshots =
-      competitorCompanyIds.length > 0
-        ? await SnapshotModel.find({ companyId: { $in: competitorCompanyIds } })
-            .sort({ capturedAt: -1 })
-            .lean<SnapshotLean[]>()
-            .exec()
-        : [];
 
     const latestSnapshotByCompanyId = new Map<string, SnapshotLean>();
 
-    for (const snapshot of competitorSnapshots) {
-      const companyId = snapshot.companyId.toString();
-      if (!latestSnapshotByCompanyId.has(companyId)) {
-        latestSnapshotByCompanyId.set(companyId, snapshot);
+    if (competitorCompanyIds.length > 0) {
+      const latestSnapshots = await SnapshotModel.aggregate<SnapshotLean & { _id: Types.ObjectId }>([
+        { $match: { companyId: { $in: competitorCompanyIds } } },
+        { $sort: { companyId: 1, capturedAt: -1 } },
+        {
+          $group: {
+            _id: "$companyId",
+            snapshotId: { $first: "$_id" },
+            companyId: { $first: "$companyId" },
+            capturedAt: { $first: "$capturedAt" },
+            confidence: { $first: "$confidence" },
+            isVerified: { $first: "$isVerified" },
+            pricingPayload: { $first: "$pricingPayload" },
+          },
+        },
+        {
+          $addFields: {
+            _id: "$snapshotId",
+          },
+        },
+      ]).exec();
+
+      for (const snapshot of latestSnapshots) {
+        latestSnapshotByCompanyId.set(snapshot.companyId.toString(), snapshot);
       }
     }
 

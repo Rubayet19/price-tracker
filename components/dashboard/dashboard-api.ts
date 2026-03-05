@@ -7,6 +7,39 @@ import type {
 } from "@/types/dashboard";
 import type { PricingUrlCandidate } from "@/types/companies";
 
+/* ------------------------------------------------------------------ */
+/*  Short-lived request cache — avoids re-fetching on tab switches     */
+/* ------------------------------------------------------------------ */
+
+const REQUEST_CACHE_TTL_MS = 10_000;
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const requestCache = new Map<string, CacheEntry<unknown>>();
+
+function getCached<T>(key: string): T | null {
+  const entry = requestCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > REQUEST_CACHE_TTL_MS) {
+    requestCache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+function setCache<T>(key: string, data: T): void {
+  requestCache.set(key, { data, timestamp: Date.now() });
+}
+
+export function invalidateDashboardCache(): void {
+  requestCache.clear();
+}
+
+/* ------------------------------------------------------------------ */
+
 const toErrorMessage = async (response: Response, fallbackMessage: string): Promise<string> => {
   try {
     const payload = (await response.json()) as { error?: unknown };
@@ -44,6 +77,10 @@ const createFeedQuery = (
 };
 
 export const loadDashboardOverview = async (): Promise<DashboardOverviewResponse> => {
+  const cacheKey = "overview";
+  const cached = getCached<DashboardOverviewResponse>(cacheKey);
+  if (cached) return cached;
+
   const response = await fetch("/api/dashboard/overview", {
     method: "GET",
     cache: "no-store",
@@ -53,7 +90,9 @@ export const loadDashboardOverview = async (): Promise<DashboardOverviewResponse
     throw new Error(await toErrorMessage(response, "Failed to load dashboard overview"));
   }
 
-  return (await response.json()) as DashboardOverviewResponse;
+  const data = (await response.json()) as DashboardOverviewResponse;
+  setCache(cacheKey, data);
+  return data;
 };
 
 export const loadDashboardFeed = async (
@@ -73,6 +112,10 @@ export const loadDashboardFeed = async (
 };
 
 export const loadDashboardComparison = async (): Promise<DashboardComparisonResponse> => {
+  const cacheKey = "comparison";
+  const cached = getCached<DashboardComparisonResponse>(cacheKey);
+  if (cached) return cached;
+
   const response = await fetch("/api/dashboard/comparison", {
     method: "GET",
     cache: "no-store",
@@ -82,7 +125,9 @@ export const loadDashboardComparison = async (): Promise<DashboardComparisonResp
     throw new Error(await toErrorMessage(response, "Failed to load dashboard comparison"));
   }
 
-  return (await response.json()) as DashboardComparisonResponse;
+  const data = (await response.json()) as DashboardComparisonResponse;
+  setCache(cacheKey, data);
+  return data;
 };
 
 export const createBillingPortalSession = async (returnUrl: string): Promise<string> => {
@@ -151,6 +196,7 @@ export const runCompetitorCrawl = async (companyId: string): Promise<RunCompetit
     throw new Error(await toErrorMessage(response, "Failed to run crawl"));
   }
 
+  invalidateDashboardCache();
   return (await response.json()) as RunCompetitorCrawlResponse;
 };
 
@@ -163,6 +209,8 @@ export const retryCompetitorCrawl = async (companyId: string): Promise<void> => 
   if (!response.ok) {
     throw new Error(await toErrorMessage(response, "Failed to retry crawl"));
   }
+
+  invalidateDashboardCache();
 };
 
 export const discoverCompetitorPricing = async (
@@ -208,6 +256,7 @@ export const updateCompetitorPrimaryPricing = async (
     throw new Error(await toErrorMessage(response, "Failed to save pricing source"));
   }
 
+  invalidateDashboardCache();
   return (await response.json()) as {
     primaryPricingUrl: string | null;
     pricingUrlCandidates: PricingUrlCandidate[];
@@ -223,6 +272,8 @@ export const deleteCompetitor = async (companyId: string): Promise<void> => {
   if (!response.ok) {
     throw new Error(await toErrorMessage(response, "Failed to delete competitor"));
   }
+
+  invalidateDashboardCache();
 };
 
 export interface UpdateCompetitorDetailsResponse {
@@ -249,5 +300,6 @@ export const updateCompetitorDetails = async (
     throw new Error(await toErrorMessage(response, "Failed to update competitor details"));
   }
 
+  invalidateDashboardCache();
   return (await response.json()) as UpdateCompetitorDetailsResponse;
 };
