@@ -143,6 +143,66 @@ const sortBucketChanges = (changes: PriceBucketChange[]): PriceBucketChange[] =>
   });
 };
 
+interface PlanLevelChange {
+  planName: string;
+  type: "updated" | "added" | "removed";
+  currency: string | null;
+  period: string;
+  previousAmount?: number;
+  currentAmount?: number;
+  deltaPercent?: number;
+}
+
+const computePlanChanges = (
+  previousPayload: NormalizedPricingPayload,
+  currentPayload: NormalizedPricingPayload
+): PlanLevelChange[] => {
+  const prevPlans = previousPayload.extractedPlans ?? [];
+  const currPlans = currentPayload.extractedPlans ?? [];
+  if (prevPlans.length === 0 && currPlans.length === 0) return [];
+
+  const prevByName = new Map(prevPlans.map((p) => [p.name.toLowerCase(), p]));
+  const currByName = new Map(currPlans.map((p) => [p.name.toLowerCase(), p]));
+
+  const changes: PlanLevelChange[] = [];
+
+  for (const [key, prev] of prevByName) {
+    const curr = currByName.get(key);
+    if (!curr) {
+      if (prev.monthlyPrice !== null) {
+        changes.push({ planName: prev.name, type: "removed", currency: prev.currency, period: "month", previousAmount: prev.monthlyPrice });
+      }
+      if (prev.annualPrice !== null) {
+        changes.push({ planName: prev.name, type: "removed", currency: prev.currency, period: "year", previousAmount: prev.annualPrice });
+      }
+      continue;
+    }
+
+    if (prev.monthlyPrice !== null && curr.monthlyPrice !== null && Math.abs(prev.monthlyPrice - curr.monthlyPrice) >= 0.5) {
+      const delta = prev.monthlyPrice > 0 ? (Math.abs(curr.monthlyPrice - prev.monthlyPrice) / prev.monthlyPrice) * 100 : 100;
+      changes.push({ planName: curr.name, type: "updated", currency: curr.currency, period: "month", previousAmount: prev.monthlyPrice, currentAmount: curr.monthlyPrice, deltaPercent: Number(delta.toFixed(2)) });
+    }
+
+    if (prev.annualPrice !== null && curr.annualPrice !== null && Math.abs(prev.annualPrice - curr.annualPrice) >= 0.5) {
+      const delta = prev.annualPrice > 0 ? (Math.abs(curr.annualPrice - prev.annualPrice) / prev.annualPrice) * 100 : 100;
+      changes.push({ planName: curr.name, type: "updated", currency: curr.currency, period: "year", previousAmount: prev.annualPrice, currentAmount: curr.annualPrice, deltaPercent: Number(delta.toFixed(2)) });
+    }
+  }
+
+  for (const [key, curr] of currByName) {
+    if (!prevByName.has(key)) {
+      if (curr.monthlyPrice !== null) {
+        changes.push({ planName: curr.name, type: "added", currency: curr.currency, period: "month", currentAmount: curr.monthlyPrice });
+      }
+      if (curr.annualPrice !== null) {
+        changes.push({ planName: curr.name, type: "added", currency: curr.currency, period: "year", currentAmount: curr.annualPrice });
+      }
+    }
+  }
+
+  return changes;
+};
+
 export const generatePricingDiff = (
   previousPayload: NormalizedPricingPayload,
   currentPayload: NormalizedPricingPayload,
@@ -174,10 +234,12 @@ export const generatePricingDiff = (
 
   const sortedChanges = sortBucketChanges(bucketChanges);
   const severity = determineSeverity(sortedChanges, customHintChanged);
+  const planChanges = computePlanChanges(previousPayload, currentPayload);
 
   return {
     normalizedDiff: {
       priceChanges: sortedChanges,
+      planChanges: planChanges.length > 0 ? planChanges : undefined,
       customPricingHintChanges: {
         added: addedHints,
         removed: removedHints,

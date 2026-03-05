@@ -37,6 +37,8 @@ export interface LlmInsightRecommendation {
   summary: string;
   moveClassification: MoveClassification;
   strategicOptions: StrategicOption[];
+  thingsToCheck: string[];
+  watchOutFor: string[];
   watchList: string[];
   severity: string;
   verificationState: string;

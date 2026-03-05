@@ -114,10 +114,6 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    if (company.type !== "competitor") {
-      return NextResponse.json({ error: "Only competitors can be updated" }, { status: 400 });
-    }
-
     const previousDomain = company.domain;
     let domainChanged = false;
 
@@ -130,13 +126,13 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       if (newDomain !== previousDomain) {
         const existingWithDomain = await Company.findOne({
           userId: String(userId),
-          type: "competitor",
+          type: company.type,
           domain: newDomain,
           _id: { $ne: company._id },
         });
         if (existingWithDomain) {
           return NextResponse.json(
-            { error: "Another competitor with this domain already exists" },
+            { error: "Another company with this domain already exists" },
             { status: 409 }
           );
         }
@@ -204,7 +200,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       status: "failure",
       metadata: { reason: error instanceof Error ? error.message : "unknown_error" },
     });
-    return NextResponse.json({ error: "Failed to update competitor" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update company" }, { status: 500 });
   }
 }
 

@@ -80,8 +80,8 @@ export default function TrialSetupCard({ status }: TrialSetupCardProps) {
               Start access explicitly
             </CardTitle>
             <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-[#475569]">
-              The MVP requires an explicit trial start. No card is required, and the account gets
-              Starter-tier limits for seven days.
+              Start your free trial to begin tracking competitors. No credit card required —
+              you get Starter-tier access for seven days.
             </CardDescription>
           </div>
           <Badge

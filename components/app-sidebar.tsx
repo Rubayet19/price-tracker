@@ -7,6 +7,7 @@ import {
   IconDashboard,
   IconHelp,
   IconListDetails,
+  IconMessageReport,
   IconNotes,
 } from "@tabler/icons-react";
 import config from "@/config";
@@ -47,6 +48,11 @@ const data = {
     },
   ],
   navSecondary: [
+    {
+      title: "Submit Feedback",
+      url: `mailto:${config.resend.supportEmail ?? "support@example.com"}?subject=Feedback`,
+      icon: IconMessageReport,
+    },
     {
       title: "Get Help",
       url: `mailto:${config.resend.supportEmail ?? "support@example.com"}`,

@@ -26,7 +26,7 @@ export default async function TrialSetupPage() {
   return (
     <SetupFrame
       title="Unlock competitor tracking"
-      description="The trial is explicit by design. Start access here so competitor monitoring follows the MVP entitlement rules exactly."
+      description="Start your free trial to unlock competitor monitoring and pricing intelligence."
       currentStep="trial"
       status={status}
     >

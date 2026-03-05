@@ -1,23 +1,11 @@
-import type { Dispatch, SetStateAction } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
-import type { DashboardFeedRow, FeedFilters } from "@/types/dashboard";
+"use client";
+
+import { useState } from "react";
+import { ArrowRight, ChevronRight, ExternalLink, Loader2, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
+import type { DashboardFeedRow } from "@/types/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import InsightModal from "@/components/dashboard/insight-modal";
 
 interface DataTableProps {
   rows: DashboardFeedRow[];
@@ -25,165 +13,273 @@ interface DataTableProps {
   isLoadingMore: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
-  filters: FeedFilters;
-  onFiltersChange: Dispatch<SetStateAction<FeedFilters>>;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-};
-
-const countArrayLength = (value: unknown): number => {
-  return Array.isArray(value) ? value.length : 0;
-};
-
-const summarizeDiff = (normalizedDiff: Record<string, unknown>): string => {
-  const priceChangesRaw = normalizedDiff.priceChanges;
-  const priceChanges = Array.isArray(priceChangesRaw) ? priceChangesRaw : [];
-
-  let updateCount = 0;
-
-  for (const change of priceChanges) {
-    if (!isRecord(change)) {
-      continue;
-    }
-
-    updateCount += countArrayLength(change.addedAmounts);
-    updateCount += countArrayLength(change.removedAmounts);
-    updateCount += countArrayLength(change.updatedAmounts);
-  }
-
-  if (updateCount > 0) {
-    return `${updateCount} pricing deltas across ${priceChanges.length} bucket${
-      priceChanges.length === 1 ? "" : "s"
-    }`;
-  }
-
-  const hintChanges = isRecord(normalizedDiff.customPricingHintChanges)
-    ? normalizedDiff.customPricingHintChanges
-    : null;
-
-  if (hintChanges) {
-    const added = countArrayLength(hintChanges.added);
-    const removed = countArrayLength(hintChanges.removed);
-    const totalHintChanges = added + removed;
-
-    if (totalHintChanges > 0) {
-      return `${totalHintChanges} custom-pricing hint update${
-        totalHintChanges === 1 ? "" : "s"
-      }`;
-    }
-  }
-
-  return "Pricing structure changed";
-};
 
 const formatRelativeTime = (value: string): string => {
   const date = new Date(value);
   const timestamp = date.getTime();
-
-  if (Number.isNaN(timestamp)) {
-    return "Unknown";
-  }
-
+  if (Number.isNaN(timestamp)) return "Unknown";
   const diffMs = Date.now() - timestamp;
   const diffMinutes = Math.round(diffMs / (1000 * 60));
-
-  if (diffMinutes < 1) {
-    return "Just now";
-  }
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  }
-
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
   const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-
-  const diffDays = Math.round(diffHours / 24);
-  return `${diffDays}d ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.round(diffHours / 24)}d ago`;
 };
 
-const toSeverityClass = (severity: DashboardFeedRow["severity"]): string => {
-  if (severity === "high") {
-    return "border-[#ef4444]/40 bg-[#fef2f2] text-[#b91c1c]";
+interface PriceChangePreview {
+  type: "updated" | "added" | "removed";
+  planName?: string;
+  from?: number;
+  to?: number;
+  deltaPercent?: number;
+  amount?: number;
+}
+
+const getFirstPriceChange = (normalizedDiff: Record<string, unknown>): PriceChangePreview | null => {
+  // Prefer plan-level changes (include tier name)
+  const planChangesRaw = normalizedDiff.planChanges;
+  if (Array.isArray(planChangesRaw)) {
+    for (const entry of planChangesRaw) {
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+      const pc = entry as Record<string, unknown>;
+      const planName = typeof pc.planName === "string" ? pc.planName : undefined;
+      const type = typeof pc.type === "string" ? pc.type : "updated";
+
+      if (type === "updated") {
+        const prev = typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
+        const curr = typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
+        const delta = typeof pc.deltaPercent === "number" ? pc.deltaPercent : undefined;
+        if (prev !== undefined && curr !== undefined) {
+          return { type: "updated", planName, from: prev, to: curr, deltaPercent: delta };
+        }
+      } else if (type === "added") {
+        const amount = typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
+        if (amount !== undefined) return { type: "added", planName, amount };
+      } else if (type === "removed") {
+        const amount = typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
+        if (amount !== undefined) return { type: "removed", planName, amount };
+      }
+    }
   }
 
-  if (severity === "medium") {
-    return "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]";
+  // Fallback: bucket-level changes
+  const priceChangesRaw = normalizedDiff.priceChanges;
+  if (!Array.isArray(priceChangesRaw)) return null;
+
+  for (const entry of priceChangesRaw) {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+    const bucket = entry as Record<string, unknown>;
+
+    const updated = Array.isArray(bucket.updatedAmounts) ? bucket.updatedAmounts : [];
+    for (const u of updated) {
+      if (typeof u !== "object" || u === null || Array.isArray(u)) continue;
+      const ub = u as Record<string, unknown>;
+      const prev = typeof ub.previousAmount === "number" ? ub.previousAmount : undefined;
+      const curr = typeof ub.currentAmount === "number" ? ub.currentAmount : undefined;
+      const delta = typeof ub.deltaPercent === "number" ? ub.deltaPercent : undefined;
+      if (prev !== undefined && curr !== undefined) {
+        return { type: "updated", from: prev, to: curr, deltaPercent: delta };
+      }
+    }
+
+    const added = Array.isArray(bucket.addedAmounts) ? bucket.addedAmounts : [];
+    for (const a of added) {
+      if (typeof a === "number") return { type: "added", amount: a };
+    }
+
+    const removed = Array.isArray(bucket.removedAmounts) ? bucket.removedAmounts : [];
+    for (const r of removed) {
+      if (typeof r === "number") return { type: "removed", amount: r };
+    }
   }
 
-  return "border-[#0f766e]/30 bg-[#f0fdfa] text-[#115e59]";
+  return null;
 };
 
-const toVerificationClass = (state: DashboardFeedRow["verificationState"]): string => {
-  if (state === "verified") {
-    return "border-[#16a34a]/30 bg-[#f0fdf4] text-[#166534]";
+const getMoveClassificationLabel = (row: DashboardFeedRow): string | null => {
+  const rec = row.latestInsight?.recommendation;
+  if (!rec) return null;
+  const mc = rec.moveClassification;
+  if (typeof mc === "object" && mc !== null && !Array.isArray(mc)) {
+    const label = (mc as Record<string, unknown>).label;
+    if (typeof label === "string") return label;
   }
-
-  return "border-[#64748b]/30 bg-[#f8fafc] text-[#475569]";
+  if (typeof rec.headline === "string") return "Analysis available";
+  return null;
 };
 
-const toConfidenceLabel = (confidence: number | null): "High" | "Medium" | "Low" => {
-  if (typeof confidence !== "number") {
-    return "Low";
-  }
-
-  if (confidence >= 0.8) {
-    return "High";
-  }
-
-  if (confidence >= 0.5) {
-    return "Medium";
-  }
-
-  return "Low";
+const getInsightSummary = (row: DashboardFeedRow): string | null => {
+  const rec = row.latestInsight?.recommendation;
+  if (!rec) return null;
+  if (typeof rec.summary === "string" && rec.summary.length > 0) return rec.summary;
+  return null;
 };
 
-const toSourceStatusLabel = (status: DashboardFeedRow["company"]["lastCrawlStatus"]): "OK" | "Blocked" | "Parse failed" => {
-  if (status === "blocked") {
-    return "Blocked";
-  }
-
-  if (status === "error" || status === "manual_needed") {
-    return "Parse failed";
-  }
-
-  return "OK";
+const CLASSIFICATION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  "Monetization shift": { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  "Packaging shift": { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
+  "Upmarket shift": { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  "Land-and-expand shift": { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  "Value framing shift": { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
+  "Minor adjustment": { bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-200" },
+  "Analysis available": { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
 };
 
-const toSourceStatusClass = (status: "OK" | "Blocked" | "Parse failed"): string => {
-  if (status === "Blocked") {
-    return "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]";
+function PriceChangeInline({ change }: { change: PriceChangePreview }) {
+  if (change.type === "updated" && change.from !== undefined && change.to !== undefined) {
+    const up = change.to > change.from;
+    const pct = change.deltaPercent !== undefined
+      ? `${up ? "+" : "-"}${Math.abs(change.deltaPercent).toFixed(0)}%`
+      : null;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm">
+        {change.planName && (
+          <span className="font-semibold text-[#0f172a]">{change.planName}</span>
+        )}
+        {up ? (
+          <TrendingUp className="size-3.5 text-red-500" />
+        ) : (
+          <TrendingDown className="size-3.5 text-emerald-600" />
+        )}
+        <span className="font-mono text-[#334155]">
+          ${change.from}
+        </span>
+        <ArrowRight className="size-3 text-[#94a3b8]" />
+        <span className="font-mono font-semibold text-[#0f172a]">
+          ${change.to}
+        </span>
+        {pct && (
+          <span className={`text-xs font-semibold ${up ? "text-red-600" : "text-emerald-600"}`}>
+            {pct}
+          </span>
+        )}
+      </span>
+    );
   }
-
-  if (status === "Parse failed") {
-    return "border-[#ef4444]/35 bg-[#fef2f2] text-[#b91c1c]";
+  if (change.type === "added" && change.amount !== undefined) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm text-emerald-700">
+        {change.planName && (
+          <span className="font-semibold">{change.planName}</span>
+        )}
+        <TrendingUp className="size-3.5" />
+        <span className="font-mono font-semibold">${change.amount}</span>
+        <span>new tier</span>
+      </span>
+    );
   }
-
-  return "border-[#16a34a]/30 bg-[#f0fdf4] text-[#166534]";
-};
-
-const formatLastChecked = (value: string | null): string => {
-  if (!value) {
-    return "Not checked yet";
+  if (change.type === "removed" && change.amount !== undefined) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm text-red-600">
+        {change.planName && (
+          <span className="font-semibold">{change.planName}</span>
+        )}
+        <TrendingDown className="size-3.5" />
+        <span className="font-mono font-semibold">${change.amount}</span>
+        <span>removed</span>
+      </span>
+    );
   }
+  return null;
+}
 
-  const date = new Date(value);
+function FeedCard({
+  row,
+  onViewInsight,
+}: {
+  row: DashboardFeedRow;
+  onViewInsight: () => void;
+}) {
+  const insightLabel = getMoveClassificationLabel(row);
+  const summary = getInsightSummary(row);
+  const priceChange = getFirstPriceChange(row.normalizedDiff);
+  const colors = insightLabel ? CLASSIFICATION_COLORS[insightLabel] ?? CLASSIFICATION_COLORS["Analysis available"] : null;
+  const hasInsight = !!insightLabel;
 
-  if (Number.isNaN(date.getTime())) {
-    return "Not checked yet";
-  }
+  return (
+    <div
+      className={`group relative px-4 py-4 lg:px-6 transition-colors ${
+        hasInsight ? "cursor-pointer hover:bg-[#fafbfd]" : ""
+      }`}
+      onClick={hasInsight ? onViewInsight : undefined}
+      role={hasInsight ? "button" : undefined}
+      tabIndex={hasInsight ? 0 : undefined}
+      onKeyDown={hasInsight ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onViewInsight(); } } : undefined}
+    >
+      {/* Top row: company + time + classification badge */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-[#0f172a] text-[15px]">{row.company.name}</span>
+              <span className="text-xs text-[#94a3b8]">{row.company.domain}</span>
+              <a
+                href={`https://${row.company.domain}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 text-xs text-[#0f766e] hover:text-[#115e59] hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="size-3" />
+              </a>
+            </div>
+          </div>
+        </div>
 
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-};
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-[#94a3b8] whitespace-nowrap">{formatRelativeTime(row.detectedAt)}</span>
+          {insightLabel && colors && (
+            <Badge variant="outline" className={`text-xs ${colors.bg} ${colors.text} ${colors.border}`}>
+              {insightLabel}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Insight preview */}
+      {hasInsight && (
+        <div className="mt-3 flex items-start gap-3">
+          <div className="flex-1 min-w-0 space-y-1.5">
+            {/* Price change preview */}
+            {priceChange && (
+              <div>
+                <PriceChangeInline change={priceChange} />
+              </div>
+            )}
+
+            {/* AI summary snippet */}
+            {summary && (
+              <p className="text-sm text-[#475569] leading-relaxed line-clamp-2">
+                {summary}
+              </p>
+            )}
+          </div>
+
+          {/* View insight CTA */}
+          <div className="shrink-0 self-center">
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-[#4338ca] opacity-60 group-hover:opacity-100 transition-opacity">
+              View insight
+              <ChevronRight className="size-4" />
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* No insight placeholder */}
+      {!hasInsight && (
+        <div className="mt-2">
+          {priceChange ? (
+            <PriceChangeInline change={priceChange} />
+          ) : (
+            <p className="text-sm text-[#94a3b8]">Pricing structure change detected</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function DataTable({
   rows,
@@ -191,140 +287,40 @@ export function DataTable({
   isLoadingMore,
   hasMore,
   onLoadMore,
-  filters,
-  onFiltersChange,
 }: DataTableProps) {
+  const [insightRow, setInsightRow] = useState<DashboardFeedRow | null>(null);
+
   return (
     <section id="feed" className="px-4 lg:px-6">
       <div className="overflow-hidden rounded-2xl border border-[#0f172a]/10 bg-white/95 shadow-[0_18px_30px_-24px_rgba(2,6,23,0.55)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#0f172a]/10 px-4 py-3 lg:px-6">
-          <div>
-            <h2 className="text-lg font-black tracking-tight text-[#0f172a]">Verified changes feed</h2>
-            <p className="text-sm text-[#475569]">
-              Filter by severity and verification state. Each row shows confidence, source status, and last check time.
-            </p>
+        <div className="border-b border-[#0f172a]/10 px-4 py-3 lg:px-6">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-black tracking-tight text-[#0f172a]">Change feed</h2>
+            <Sparkles className="size-4 text-[#4338ca]" />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={filters.severity}
-              onValueChange={(value) =>
-                onFiltersChange({ ...filters, severity: value as FeedFilters["severity"] })
-              }
-            >
-              <SelectTrigger className="h-9 w-[160px] border-[#0f172a]/15 bg-[#f8fafc]">
-                <SelectValue placeholder="Severity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All severities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filters.verificationState}
-              onValueChange={(value) =>
-                onFiltersChange({
-                  ...filters,
-                  verificationState: value as FeedFilters["verificationState"],
-                })
-              }
-            >
-              <SelectTrigger className="h-9 w-[170px] border-[#0f172a]/15 bg-[#f8fafc]">
-                <SelectValue placeholder="Verification" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All verification</SelectItem>
-                <SelectItem value="verified">Verified</SelectItem>
-                <SelectItem value="unverified">Unverified</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <p className="text-sm text-[#475569]">Pricing changes with AI-powered strategic insights.</p>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow className="border-[#0f172a]/10">
-              <TableHead>Competitor</TableHead>
-              <TableHead>Change summary</TableHead>
-              <TableHead>Severity</TableHead>
-              <TableHead>Verification</TableHead>
-              <TableHead>Source health</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-[#475569]">
-                  Loading change feed...
-                </TableCell>
-              </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-[#475569]">
-                  No changes found for current filters.
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row) => {
-                const confidenceLabel = toConfidenceLabel(row.company.latestConfidence);
-                const sourceStatusLabel = toSourceStatusLabel(row.company.lastCrawlStatus);
-
-                return (
-                  <TableRow key={row.diffId} className="border-[#0f172a]/10">
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-[#0f172a]">{row.company.name}</span>
-                        <span className="text-xs text-[#64748b]">{row.company.domain}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-[420px] text-sm text-[#334155]">
-                      <div className="space-y-1">
-                        <p>{summarizeDiff(row.normalizedDiff)}</p>
-                        <p className="text-xs text-[#64748b]">Detected {formatRelativeTime(row.detectedAt)}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={toSeverityClass(row.severity)}>
-                        {row.severity.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={toVerificationClass(row.verificationState)}>
-                        {row.verificationState}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-[#334155]">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="border-[#0f766e]/25 bg-[#f0fdfa] text-[#115e59]">
-                            Confidence: {confidenceLabel}
-                          </Badge>
-                          <Badge variant="outline" className={toSourceStatusClass(sourceStatusLabel)}>
-                            Source: {sourceStatusLabel}
-                          </Badge>
-                        </div>
-                        <span className="text-xs text-[#64748b]">
-                          Last checked: {formatLastChecked(row.company.lastCrawlAt)}
-                        </span>
-                        <a
-                          href={`https://${row.company.domain}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-medium text-[#0f766e] hover:text-[#115e59]"
-                        >
-                          Open source page
-                          <ExternalLink className="size-3" />
-                        </a>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-[#475569]">
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            Loading change feed...
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="py-16 text-center text-[#475569]">
+            No changes detected yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-[#0f172a]/[0.06]">
+            {rows.map((row) => (
+              <FeedCard
+                key={row.diffId}
+                row={row}
+                onViewInsight={() => setInsightRow(row)}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="flex justify-end border-t border-[#0f172a]/10 px-4 py-3 lg:px-6">
           <Button
@@ -346,6 +342,12 @@ export function DataTable({
           </Button>
         </div>
       </div>
+
+      <InsightModal
+        row={insightRow}
+        open={insightRow !== null}
+        onOpenChange={(open) => { if (!open) setInsightRow(null); }}
+      />
     </section>
   );
 }

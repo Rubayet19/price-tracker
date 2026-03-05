@@ -5,16 +5,12 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { loadDashboardFeed, loadDashboardOverview } from "@/components/dashboard/dashboard-api";
 import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
 import { DataTable } from "@/components/data-table";
-import type { DashboardFeedRow, DashboardOverviewResponse, FeedFilters } from "@/types/dashboard";
+import type { DashboardFeedRow, DashboardOverviewResponse } from "@/types/dashboard";
 import { Button } from "@/components/ui/button";
 
-const INITIAL_FILTERS: FeedFilters = {
-  severity: "all",
-  verificationState: "all",
-};
+const DEFAULT_FILTERS = { severity: "all" as const, verificationState: "all" as const };
 
 export default function DashboardChangesContent() {
-  const [filters, setFilters] = useState<FeedFilters>(INITIAL_FILTERS);
   const [rows, setRows] = useState<DashboardFeedRow[]>([]);
   const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -30,7 +26,7 @@ export default function DashboardChangesContent() {
     try {
       const [overviewResponse, response] = await Promise.all([
         loadDashboardOverview(),
-        loadDashboardFeed(filters, { limit: 20 }),
+        loadDashboardFeed(DEFAULT_FILTERS, { limit: 20 }),
       ]);
       setOverview(overviewResponse);
       setRows(response.rows);
@@ -45,7 +41,7 @@ export default function DashboardChangesContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
     void loadFirstPage();
@@ -59,7 +55,7 @@ export default function DashboardChangesContent() {
     setIsLoadingMore(true);
 
     try {
-      const response = await loadDashboardFeed(filters, {
+      const response = await loadDashboardFeed(DEFAULT_FILTERS, {
         limit: 20,
         cursor: nextCursor,
       });
@@ -72,7 +68,7 @@ export default function DashboardChangesContent() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [filters, hasMore, isLoadingMore, nextCursor]);
+  }, [hasMore, isLoadingMore, nextCursor]);
 
   const emptyState = useMemo(() => !isLoading && rows.length === 0 && !error, [error, isLoading, rows.length]);
 
@@ -81,7 +77,7 @@ export default function DashboardChangesContent() {
       <header className="space-y-1">
         <h1 className="text-3xl font-black tracking-tight text-[#0f172a]">Recent Changes</h1>
         <p className="text-sm text-[#475569]">
-          Full feed of pricing diffs with severity and verification filters.
+          All detected pricing changes with source health and AI-powered insights.
         </p>
       </header>
 
@@ -106,12 +102,10 @@ export default function DashboardChangesContent() {
         isLoadingMore={isLoadingMore}
         hasMore={hasMore}
         onLoadMore={loadMore}
-        filters={filters}
-        onFiltersChange={setFilters}
       />
 
       {emptyState ? (
-        <p className="text-center text-sm text-[#64748b]">No changes available for this filter.</p>
+        <p className="text-center text-sm text-[#64748b]">No changes detected yet.</p>
       ) : null}
     </section>
   );

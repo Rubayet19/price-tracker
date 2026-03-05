@@ -167,7 +167,7 @@ export default function CompetitorPricingSetupForm({
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4 md:col-span-3">
             <p className="text-sm font-semibold text-[#0f172a]">Monitoring cadence</p>
             <p className="mt-2 text-sm text-[#475569]">
-              Daily. This is fixed in the MVP once you confirm the pricing source below.
+              Daily. Confirm the pricing source below to start monitoring.
             </p>
           </div>
         </div>

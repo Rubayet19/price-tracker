@@ -97,8 +97,8 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
         </div>
 
         <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4 text-sm leading-6 text-[#475569]">
-          Your current access tier supports up to {competitorLimit} tracked competitors. Monitoring
-          runs daily in the MVP, and the next step will ask you to confirm the exact pricing page
+          Your current plan supports up to {competitorLimit} tracked competitors. Monitoring
+          runs daily, and the next step will ask you to confirm the exact pricing page
           before tracking starts.
         </div>
 

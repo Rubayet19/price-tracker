@@ -47,6 +47,24 @@ const toPlanDrafts = (profile: SelfPricingProfileData | null): PlanDraft[] => {
   }));
 };
 
+const updateSelfCompanyDetails = async (
+  companyId: string,
+  data: { name?: string; homepageUrl?: string }
+): Promise<void> => {
+  const response = await fetch(`/api/companies/${companyId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(
+      typeof body.error === "string" ? body.error : "Failed to update company details"
+    );
+  }
+};
+
 export default function SelfPricingSetupForm({
   existingProfile,
   existingSelfCompany,
@@ -59,7 +77,6 @@ export default function SelfPricingSetupForm({
     existingSelfCompany?.primaryPricingUrl ?? ""
   );
   const [currency, setCurrency] = useState<string>(existingProfile?.currency ?? "USD");
-  const [positioningStatement, setPositioningStatement] = useState<string>(existingProfile?.notes ?? "");
   const [plans, setPlans] = useState<PlanDraft[]>(() => toPlanDrafts(existingProfile));
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,28 +159,38 @@ export default function SelfPricingSetupForm({
       return;
     }
 
-    if (!existingSelfCompany) {
-      if (!companyName.trim()) {
-        setError("Add your product name.");
-        return;
-      }
+    if (!companyName.trim()) {
+      setError("Add your product name.");
+      return;
+    }
 
-      if (!homepageUrl.trim()) {
-        setError("Add your homepage URL.");
-        return;
-      }
+    if (!homepageUrl.trim()) {
+      setError("Add your homepage URL.");
+      return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Save pricing profile
       await saveSelfPricingProfile({
         currency: currency.trim().toUpperCase(),
         plans: parsedPlans,
-        notes: positioningStatement.trim() || undefined,
       });
 
-      if (!existingSelfCompany) {
+      if (existingSelfCompany) {
+        // Update existing company details if name or homepage changed
+        const nameChanged = companyName.trim() !== existingSelfCompany.name;
+        const urlChanged = homepageUrl.trim() !== (existingSelfCompany.homepageUrl ?? "");
+
+        if (nameChanged || urlChanged) {
+          const patch: { name?: string; homepageUrl?: string } = {};
+          if (nameChanged) patch.name = companyName.trim();
+          if (urlChanged) patch.homepageUrl = homepageUrl.trim();
+          await updateSelfCompanyDetails(existingSelfCompany.companyId, patch);
+        }
+      } else {
+        // Create new self company
         const selfCompany = await createCompany({
           name: companyName.trim(),
           type: "self",
@@ -195,18 +222,20 @@ export default function SelfPricingSetupForm({
     }
   };
 
+  const isSettings = mode === "settings";
+
   return (
     <Card className="border-[#0f172a]/10 bg-white/95">
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle className="text-2xl font-black tracking-tight text-[#0f172a]">
-              {mode === "settings" ? "Edit your pricing baseline" : "Set your product baseline"}
+              {isSettings ? "Your pricing baseline" : "Set your product baseline"}
             </CardTitle>
-            <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-[#475569]">
-              {mode === "settings"
-                ? "Update the pricing baseline used for comparison against competitors."
-                : "Add your product, homepage, and plan pricing. If you leave the pricing URL blank, Price Tracker will try to find it from your homepage automatically."}
+            <CardDescription className="mt-1 max-w-2xl text-sm text-[#475569]">
+              {isSettings
+                ? "This is compared against your competitors to generate insights."
+                : "Add your product and plan pricing. We'll use this as the baseline for competitor comparisons."}
             </CardDescription>
           </div>
           <Badge variant="outline" className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]">
@@ -216,61 +245,31 @@ export default function SelfPricingSetupForm({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {existingSelfCompany ? (
-          <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-            <p className="text-sm font-semibold text-[#0f172a]">Self company already linked</p>
-            <p className="mt-2 text-sm text-[#475569]">
-              {existingSelfCompany.name} · {existingSelfCompany.domain}
-            </p>
-            {existingSelfCompany.primaryPricingUrl ? (
-              <p className="mt-1 text-sm text-[#64748b]">{existingSelfCompany.primaryPricingUrl}</p>
-            ) : null}
+        {/* Company details + currency — single grid */}
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_90px]">
+          <div className="space-y-1.5">
+            <Label htmlFor="self-company-name">Product name</Label>
+            <Input
+              id="self-company-name"
+              value={companyName}
+              onChange={(event) => setCompanyName(event.target.value)}
+              placeholder="Acme Inc"
+              autoComplete="organization"
+            />
           </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="self-company-name">Product name</Label>
-              <Input
-                id="self-company-name"
-                value={companyName}
-                onChange={(event) => setCompanyName(event.target.value)}
-                placeholder="Price Tracker"
-                autoComplete="organization"
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="self-homepage-url">Homepage URL</Label>
-              <Input
-                id="self-homepage-url"
-                value={homepageUrl}
-                onChange={(event) => setHomepageUrl(event.target.value)}
-                placeholder="https://example.com"
-                inputMode="url"
-              />
-              <p className="text-sm text-[#64748b]">
-                Use the homepage only. Price Tracker derives the domain automatically.
-              </p>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="self-pricing-url">Pricing URL (optional)</Label>
-              <Input
-                id="self-pricing-url"
-                value={primaryPricingUrl}
-                onChange={(event) => setPrimaryPricingUrl(event.target.value)}
-                placeholder="https://example.com/pricing"
-                inputMode="url"
-              />
-              <p className="text-sm text-[#64748b]">
-                Leave this blank if you want Price Tracker to try finding the pricing page from your homepage.
-              </p>
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="self-homepage-url">Homepage URL</Label>
+            <Input
+              id="self-homepage-url"
+              value={homepageUrl}
+              onChange={(event) => setHomepageUrl(event.target.value)}
+              placeholder="https://example.com"
+              inputMode="url"
+            />
           </div>
-        )}
 
-        <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="self-currency">Currency</Label>
             <Input
               id="self-currency"
@@ -281,55 +280,32 @@ export default function SelfPricingSetupForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="self-notes">Positioning statement (optional)</Label>
-            <textarea
-              id="self-notes"
-              value={positioningStatement}
-              onChange={(event) => setPositioningStatement(event.target.value)}
-              placeholder="AI-first competitor pricing intelligence for lean SaaS teams."
-              rows={4}
-              className="flex min-h-[96px] w-full rounded-md border border-[#d5dbe3] bg-white px-3 py-2 text-sm text-[#0f172a] shadow-xs outline-none ring-0 transition focus:border-[#0f766e] focus:ring-2 focus:ring-[#0f766e]/20"
-            />
-            <p className="text-sm text-[#64748b]">
-              Keep it to one sentence. This gives the comparison layer context about how you position your product.
-            </p>
-          </div>
+          {!existingSelfCompany && (
+            <div className="space-y-1.5 md:col-span-3">
+              <Label htmlFor="self-pricing-url">Pricing page URL (optional)</Label>
+              <Input
+                id="self-pricing-url"
+                value={primaryPricingUrl}
+                onChange={(event) => setPrimaryPricingUrl(event.target.value)}
+                placeholder="https://example.com/pricing"
+                inputMode="url"
+              />
+              <p className="text-xs text-[#94a3b8]">
+                Leave blank to auto-detect from your homepage.
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4 text-sm leading-6 text-[#475569]">
-          Add explicit monthly and annual prices where they exist. Leave a cadence blank if you do not offer it.
-        </div>
-
-        <div className="space-y-4">
+        {/* Plans */}
+        <div className="space-y-3">
           {plans.map((plan, index) => (
-            <article
+            <div
               key={`${index}-${plan.name}`}
-              className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4"
+              className="rounded-xl border border-[#e2e8f0] bg-[#fafbfc] p-4"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#64748b]">
-                    Plan {index + 1}
-                  </p>
-                  <p className="mt-1 text-sm text-[#475569]">Name plus optional monthly and annual price points.</p>
-                </div>
-                {plans.length > 1 ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removePlan(index)}
-                    className="bg-white"
-                  >
-                    <Trash2 className="size-4" />
-                    Remove
-                  </Button>
-                ) : null}
-              </div>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_160px_160px]">
-                <div className="space-y-2">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_140px_140px_auto] items-end">
+                <div className="space-y-1.5">
                   <Label htmlFor={`plan-name-${index}`}>Plan name</Label>
                   <Input
                     id={`plan-name-${index}`}
@@ -339,36 +315,60 @@ export default function SelfPricingSetupForm({
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`plan-monthly-price-${index}`}>Monthly price</Label>
-                  <Input
-                    id={`plan-monthly-price-${index}`}
-                    value={plan.monthlyPrice}
-                    onChange={(event) => updatePlan(index, { monthlyPrice: event.target.value })}
-                    placeholder="19"
-                    inputMode="decimal"
-                  />
+                <div className="space-y-1.5">
+                  <Label htmlFor={`plan-monthly-price-${index}`}>Monthly</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94a3b8]">$</span>
+                    <Input
+                      id={`plan-monthly-price-${index}`}
+                      value={plan.monthlyPrice}
+                      onChange={(event) => updatePlan(index, { monthlyPrice: event.target.value })}
+                      placeholder="—"
+                      inputMode="decimal"
+                      className="pl-7"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`plan-annual-price-${index}`}>Annual price</Label>
-                  <Input
-                    id={`plan-annual-price-${index}`}
-                    value={plan.annualPrice}
-                    onChange={(event) => updatePlan(index, { annualPrice: event.target.value })}
-                    placeholder="190"
-                    inputMode="decimal"
-                  />
+                <div className="space-y-1.5">
+                  <Label htmlFor={`plan-annual-price-${index}`}>Annual</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94a3b8]">$</span>
+                    <Input
+                      id={`plan-annual-price-${index}`}
+                      value={plan.annualPrice}
+                      onChange={(event) => updatePlan(index, { annualPrice: event.target.value })}
+                      placeholder="—"
+                      inputMode="decimal"
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-end pb-[2px]">
+                  {plans.length > 1 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePlan(index)}
+                      className="size-9 text-[#94a3b8] hover:text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  ) : (
+                    <div className="size-9" />
+                  )}
                 </div>
               </div>
-            </article>
+            </div>
           ))}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button type="button" variant="outline" onClick={addPlan} className="bg-white">
-            <Plus className="size-4" />
-            Add another plan
+          <Button type="button" variant="outline" size="sm" onClick={addPlan}>
+            <Plus className="size-3.5" />
+            Add plan
           </Button>
 
           <Button
@@ -379,7 +379,7 @@ export default function SelfPricingSetupForm({
             disabled={isSubmitting}
             className="bg-[#0f766e] text-white hover:bg-[#115e59]"
           >
-            {isSubmitting ? "Saving..." : mode === "settings" ? "Save pricing baseline" : "Save pricing and continue"}
+            {isSubmitting ? "Saving..." : isSettings ? "Save changes" : "Save and continue"}
           </Button>
         </div>
 

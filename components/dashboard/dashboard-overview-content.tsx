@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, ArrowRight, ChevronRight, RefreshCw, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import { loadDashboardComparison, loadDashboardFeed, loadDashboardOverview } from "@/components/dashboard/dashboard-api";
 import DashboardComparisonSection from "@/components/dashboard/dashboard-comparison-section";
 import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
@@ -25,38 +25,187 @@ const getTodayKey = (value: Date): string => {
   return value.toISOString().slice(0, 10);
 };
 
-const formatDate = (value: string | null): string => {
-  if (!value) {
-    return "Not checked yet";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Not checked yet";
-  }
-
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-};
-
-const summarizeDiff = (normalizedDiff: Record<string, unknown>): string => {
-  const priceChangesRaw = normalizedDiff.priceChanges;
-  const priceChanges = Array.isArray(priceChangesRaw) ? priceChangesRaw : [];
-
-  if (priceChanges.length > 0) {
-    return `${priceChanges.length} pricing bucket${priceChanges.length === 1 ? "" : "s"} changed`;
-  }
-
-  return "Pricing details changed";
-};
-
 const isActiveTracking = (competitor: DashboardComparisonCompetitor): boolean => {
   return competitor.trust.lastCrawlStatus === "ok" || competitor.trust.lastCrawlStatus === "idle";
 };
+
+interface LatestChangePricePreview {
+  type: "updated" | "added" | "removed";
+  planName?: string;
+  from?: number;
+  to?: number;
+  deltaPercent?: number;
+  amount?: number;
+}
+
+const getLatestChangePricePreview = (normalizedDiff: Record<string, unknown>): LatestChangePricePreview | null => {
+  // Prefer plan-level changes
+  const planChangesRaw = normalizedDiff.planChanges;
+  if (Array.isArray(planChangesRaw)) {
+    for (const entry of planChangesRaw) {
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+      const pc = entry as Record<string, unknown>;
+      const planName = typeof pc.planName === "string" ? pc.planName : undefined;
+      const type = typeof pc.type === "string" ? pc.type : "updated";
+
+      if (type === "updated") {
+        const prev = typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
+        const curr = typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
+        const delta = typeof pc.deltaPercent === "number" ? pc.deltaPercent : undefined;
+        if (prev !== undefined && curr !== undefined) {
+          return { type: "updated", planName, from: prev, to: curr, deltaPercent: delta };
+        }
+      } else if (type === "added") {
+        const amount = typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
+        if (amount !== undefined) return { type: "added", planName, amount };
+      } else if (type === "removed") {
+        const amount = typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
+        if (amount !== undefined) return { type: "removed", planName, amount };
+      }
+    }
+  }
+
+  // Fallback: bucket-level
+  const priceChangesRaw = normalizedDiff.priceChanges;
+  if (!Array.isArray(priceChangesRaw)) return null;
+
+  for (const entry of priceChangesRaw) {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+    const bucket = entry as Record<string, unknown>;
+    const updated = Array.isArray(bucket.updatedAmounts) ? bucket.updatedAmounts : [];
+    for (const u of updated) {
+      if (typeof u !== "object" || u === null || Array.isArray(u)) continue;
+      const ub = u as Record<string, unknown>;
+      const prev = typeof ub.previousAmount === "number" ? ub.previousAmount : undefined;
+      const curr = typeof ub.currentAmount === "number" ? ub.currentAmount : undefined;
+      const delta = typeof ub.deltaPercent === "number" ? ub.deltaPercent : undefined;
+      if (prev !== undefined && curr !== undefined) {
+        return { type: "updated", from: prev, to: curr, deltaPercent: delta };
+      }
+    }
+  }
+
+  return null;
+};
+
+const formatRelativeTime = (value: string): string => {
+  const date = new Date(value);
+  const timestamp = date.getTime();
+  if (Number.isNaN(timestamp)) return "Unknown";
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.round(diffMs / (1000 * 60));
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.round(diffHours / 24)}d ago`;
+};
+
+const CLASSIFICATION_COLORS: Record<string, string> = {
+  "Monetization shift": "border-amber-200 bg-amber-50 text-amber-700",
+  "Packaging shift": "border-violet-200 bg-violet-50 text-violet-700",
+  "Upmarket shift": "border-blue-200 bg-blue-50 text-blue-700",
+  "Land-and-expand shift": "border-emerald-200 bg-emerald-50 text-emerald-700",
+  "Value framing shift": "border-sky-200 bg-sky-50 text-sky-700",
+  "Minor adjustment": "border-slate-200 bg-slate-50 text-slate-600",
+};
+
+const getMoveClassificationLabel = (row: DashboardFeedRow): string | null => {
+  const rec = row.latestInsight?.recommendation;
+  if (!rec) return null;
+  const mc = rec.moveClassification;
+  if (typeof mc === "object" && mc !== null && !Array.isArray(mc)) {
+    const label = (mc as Record<string, unknown>).label;
+    if (typeof label === "string") return label;
+  }
+  return null;
+};
+
+const getInsightSummary = (row: DashboardFeedRow): string | null => {
+  const rec = row.latestInsight?.recommendation;
+  if (!rec) return null;
+  if (typeof rec.summary === "string" && rec.summary.length > 0) return rec.summary;
+  return null;
+};
+
+function LatestChangeCard({ row }: { row: DashboardFeedRow }) {
+  const priceChange = getLatestChangePricePreview(row.normalizedDiff);
+  const classificationLabel = getMoveClassificationLabel(row);
+  const summary = getInsightSummary(row);
+  const classificationColor = classificationLabel ? CLASSIFICATION_COLORS[classificationLabel] ?? "border-slate-200 bg-slate-50 text-slate-600" : null;
+
+  return (
+    <Card className="border-[#0f172a]/10 bg-white/95 col-span-1 md:col-span-2 xl:col-span-1">
+      <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
+        <div className="min-w-0">
+          <CardDescription className="flex items-center gap-1.5">
+            <Sparkles className="size-3.5 text-[#4338ca]" />
+            Latest Change
+          </CardDescription>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm font-semibold text-[#0f172a] truncate">{row.company.name}</span>
+            <span className="text-xs text-[#94a3b8]">{formatRelativeTime(row.detectedAt)}</span>
+          </div>
+        </div>
+        <Button asChild variant="outline" size="sm" className="shrink-0 h-7 text-xs">
+          <a href="/dashboard/changes">
+            View all
+            <ChevronRight className="size-3 ml-0.5" />
+          </a>
+        </Button>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-2.5">
+        {/* Price change preview */}
+        {priceChange && (
+          <div className="flex items-center gap-1.5 text-sm">
+            {priceChange.planName && (
+              <span className="font-semibold text-[#0f172a]">{priceChange.planName}</span>
+            )}
+            {priceChange.type === "updated" && priceChange.from !== undefined && priceChange.to !== undefined && (
+              <>
+                {priceChange.to > priceChange.from ? (
+                  <TrendingUp className="size-3.5 text-red-500" />
+                ) : (
+                  <TrendingDown className="size-3.5 text-emerald-600" />
+                )}
+                <span className="font-mono text-[#334155]">${priceChange.from}</span>
+                <ArrowRight className="size-3 text-[#94a3b8]" />
+                <span className="font-mono font-semibold text-[#0f172a]">${priceChange.to}</span>
+                {priceChange.deltaPercent !== undefined && (
+                  <span className={`text-xs font-semibold ${priceChange.to > priceChange.from ? "text-red-600" : "text-emerald-600"}`}>
+                    {priceChange.to > priceChange.from ? "+" : "-"}{Math.abs(priceChange.deltaPercent).toFixed(0)}%
+                  </span>
+                )}
+              </>
+            )}
+            {priceChange.type === "added" && priceChange.amount !== undefined && (
+              <span className="text-emerald-700 font-medium">+ ${priceChange.amount} new tier</span>
+            )}
+            {priceChange.type === "removed" && priceChange.amount !== undefined && (
+              <span className="text-red-600 font-medium">- ${priceChange.amount} removed</span>
+            )}
+          </div>
+        )}
+
+        {/* Classification badge */}
+        {classificationLabel && classificationColor && (
+          <Badge variant="outline" className={`text-xs ${classificationColor}`}>
+            {classificationLabel}
+          </Badge>
+        )}
+
+        {/* Summary snippet */}
+        {summary && (
+          <p className="text-xs text-[#475569] leading-relaxed line-clamp-2">{summary}</p>
+        )}
+
+        {!priceChange && !summary && (
+          <p className="text-sm text-[#64748b]">Pricing structure change detected</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DashboardOverviewContent() {
   const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
@@ -112,17 +261,7 @@ export default function DashboardOverviewContent() {
     return recentRows.filter((row) => getTodayKey(new Date(row.detectedAt)) === todayKey).length;
   }, [recentRows]);
 
-  const needsAttention = useMemo(() => {
-    if (!overview) {
-      return 0;
-    }
-
-    return (
-      overview.competitorStatusCounts.blocked +
-      overview.competitorStatusCounts.manual_needed +
-      overview.competitorStatusCounts.error
-    );
-  }, [overview]);
+  const latestRow = recentRows.length > 0 ? recentRows[0] : null;
 
   const canAddCompetitor = Boolean(
     overview && totalCompetitors < (overview.entitlements.competitorLimit ?? 0)
@@ -175,103 +314,39 @@ export default function DashboardOverviewContent() {
           <CardContent className="pt-0 text-sm text-[#64748b]">Website updates</CardContent>
         </Card>
 
-        <Card className="border-[#0f172a]/10 bg-white/95">
-          <CardHeader>
-            <CardDescription>Needs Attention</CardDescription>
-            <CardTitle className="text-4xl font-black">{isLoading ? "—" : needsAttention}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-sm text-[#64748b]">Blocked/manual-needed/error</CardContent>
-        </Card>
+        {/* Latest Change card replaces Needs Attention */}
+        {isLoading ? (
+          <Card className="border-[#0f172a]/10 bg-white/95">
+            <CardHeader>
+              <CardDescription>Latest Change</CardDescription>
+              <CardTitle className="text-4xl font-black">—</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 text-sm text-[#64748b]">Loading...</CardContent>
+          </Card>
+        ) : latestRow ? (
+          <LatestChangeCard row={latestRow} />
+        ) : (
+          <Card className="border-[#0f172a]/10 bg-white/95">
+            <CardHeader>
+              <CardDescription className="flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-[#4338ca]" />
+                Latest Change
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-sm text-[#64748b]">No changes detected yet.</p>
+              <Button asChild variant="outline" size="sm" className="mt-3 h-7 text-xs">
+                <a href="/dashboard/changes">View feed</a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <DashboardComparisonSection
         competitors={competitors}
         selfPricingProfile={selfPricingProfile}
       />
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Card id="tracked-competitors" className="border-[#0f172a]/10 bg-white/95">
-          <CardHeader>
-            <CardTitle className="text-2xl font-black tracking-tight">Tracked Competitors</CardTitle>
-            <CardDescription>All competitors currently monitored in your workspace.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {competitors.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-[#cbd5e1] px-4 py-8 text-center text-sm text-[#64748b]">
-                No competitors yet. Use Add Competitor to start monitoring.
-              </p>
-            ) : (
-              competitors.slice(0, 6).map((competitor) => (
-                <article
-                  key={competitor.companyId}
-                  className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-[#0f172a]">{competitor.name}</p>
-                      <p className="truncate text-sm text-[#64748b]">{competitor.domain}</p>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        competitor.trust.blockedOrManualNeeded
-                          ? "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]"
-                          : "border-[#16a34a]/35 bg-[#f0fdf4] text-[#166534]"
-                      }
-                    >
-                      {competitor.trust.blockedOrManualNeeded ? "Needs attention" : "Active"}
-                    </Badge>
-                  </div>
-                  <p className="mt-2 text-xs text-[#64748b]">
-                    Last checked: {formatDate(competitor.trust.lastCrawlAt)}
-                  </p>
-                </article>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card id="recent-changes" className="border-[#0f172a]/10 bg-white/95">
-          <CardHeader className="flex flex-row items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-2xl font-black tracking-tight">Recent Changes</CardTitle>
-              <CardDescription>Latest updates from tracked competitors.</CardDescription>
-            </div>
-            <Button asChild variant="outline" size="sm">
-              <a href="/dashboard/changes">View all</a>
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recentRows.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-[#cbd5e1] px-4 py-8 text-center text-sm text-[#64748b]">
-                No recent changes found yet.
-              </p>
-            ) : (
-              recentRows.map((row) => (
-                <article key={row.diffId} className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={
-                          row.verificationState === "verified"
-                            ? "border-[#16a34a]/35 bg-[#f0fdf4] text-[#166534]"
-                            : "border-[#64748b]/35 bg-[#f8fafc] text-[#475569]"
-                        }
-                      >
-                        {row.verificationState === "verified" ? "Verified" : "Unverified"}
-                      </Badge>
-                      <p className="font-semibold text-[#0f172a]">{row.company.domain}</p>
-                    </div>
-                    <p className="text-xs text-[#64748b]">{formatDate(row.detectedAt)}</p>
-                  </div>
-                  <p className="mt-2 text-sm text-[#334155]">{summarizeDiff(row.normalizedDiff)}</p>
-                </article>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
       {!canAddCompetitor && overview ? (
         <p className="text-sm text-[#c2410c]">

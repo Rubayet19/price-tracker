@@ -185,7 +185,7 @@ export default function DashboardSettingsContent({
                 {isLoading ? "—" : overview?.entitlements.canReceiveWeeklyDigest ? "Enabled" : "Not included"}
               </p>
               <p className="mt-1 text-sm text-[#64748b]">
-                Weekly digest remains a paid-only feature for the MVP.
+                Weekly digest is available on paid plans.
               </p>
             </div>
 

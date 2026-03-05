@@ -94,7 +94,7 @@ export default function SetupFrame({
             </CardHeader>
             <CardContent className="space-y-3 text-sm leading-6 text-[#475569]">
               <p>Manual confirmation is required when discovery is ambiguous or a site is blocked.</p>
-              <p>That keeps the dashboard low-noise and aligned with the product constraints in the MVP.</p>
+              <p>This keeps your dashboard accurate and low-noise by design.</p>
             </CardContent>
           </Card>
 

@@ -221,7 +221,7 @@ const SYSTEM_PROMPT = `You are a competitive pricing analyst. Given a pricing ch
 
 Your response MUST be valid JSON with this exact shape:
 {
-  "summary": "1-2 sentence plain English summary of what changed and why it matters",
+  "summary": "2-3 sentence plain English summary of what changed, why it matters, and what it signals about the competitor's strategy",
   "moveClassification": {
     "label": "<one of: Monetization shift, Packaging shift, Upmarket shift, Land-and-expand shift, Value framing shift, Minor adjustment>",
     "description": "1-sentence explanation of why this classification applies"
@@ -229,40 +229,128 @@ Your response MUST be valid JSON with this exact shape:
   "strategicOptions": [
     {
       "strategy": "Compete on price",
-      "action": "Specific actionable step for this week",
-      "bestFor": "When this strategy makes sense",
+      "action": "Specific actionable step to take this week",
+      "bestFor": "The situation when this strategy makes most sense",
       "effort": "<Low|Medium|High>",
       "risk": "<Low|Medium|High>"
     },
     {
       "strategy": "Compete on features",
-      "action": "Specific actionable step for this week",
-      "bestFor": "When this strategy makes sense",
+      "action": "Specific actionable step to take this week",
+      "bestFor": "The situation when this strategy makes most sense",
       "effort": "<Low|Medium|High>",
       "risk": "<Low|Medium|High>"
     },
     {
       "strategy": "Compete on positioning",
-      "action": "Specific actionable step for this week",
-      "bestFor": "When this strategy makes sense",
+      "action": "Specific actionable step to take this week",
+      "bestFor": "The situation when this strategy makes most sense",
       "effort": "<Low|Medium|High>",
       "risk": "<Low|Medium|High>"
     }
   ],
-  "watchList": ["1-2 follow-up items to monitor next"]
+  "thingsToCheck": [
+    "Specific thing to verify or investigate about this change (e.g. check if feature gating changed, verify the enterprise tier was also updated, look for updated comparison page)"
+  ],
+  "watchOutFor": [
+    "Specific risk or warning signal to monitor (e.g. if they announce a free tier, if churn increases from their reviews, if they run a promo targeting your segment)"
+  ],
+  "watchList": ["1-2 follow-up items to monitor over the coming weeks"]
 }
 
 Rules:
 - Classification label MUST be exactly one of the 6 listed options.
 - strategicOptions MUST have exactly 3 entries, one per strategy type.
 - Actions must be specific and doable this week, not vague advice.
-- Watch list should have 1-2 items maximum.`;
+- thingsToCheck: 2-4 specific investigation items a founder can act on today.
+- watchOutFor: 2-3 concrete risk signals tied to this specific change.
+- watchList: 1-2 items maximum.`;
+
+const buildPlanChangeDetails = (normalizedDiff: Record<string, unknown>): string => {
+  const planChangesRaw = normalizedDiff.planChanges;
+  if (!Array.isArray(planChangesRaw) || planChangesRaw.length === 0) return "";
+
+  const lines: string[] = [];
+
+  for (const entry of planChangesRaw) {
+    const pc = asRecord(entry);
+    if (!pc) continue;
+    const planName = typeof pc.planName === "string" ? pc.planName : "Unknown";
+    const type = typeof pc.type === "string" ? pc.type : "updated";
+    const period = typeof pc.period === "string" ? pc.period : "";
+
+    if (type === "updated") {
+      const prev = typeof pc.previousAmount === "number" ? pc.previousAmount : null;
+      const curr = typeof pc.currentAmount === "number" ? pc.currentAmount : null;
+      const delta = typeof pc.deltaPercent === "number" ? pc.deltaPercent : null;
+      if (prev !== null && curr !== null) {
+        const direction = curr > prev ? "+" : "-";
+        const deltaStr = delta !== null ? ` (${direction}${Math.abs(delta).toFixed(1)}%)` : "";
+        lines.push(`  ${planName} (${period}): $${prev} → $${curr}${deltaStr}`);
+      }
+    } else if (type === "added") {
+      const amount = typeof pc.currentAmount === "number" ? pc.currentAmount : null;
+      if (amount !== null) lines.push(`  ${planName} (${period}): new tier at $${amount}`);
+    } else if (type === "removed") {
+      const amount = typeof pc.previousAmount === "number" ? pc.previousAmount : null;
+      if (amount !== null) lines.push(`  ${planName} (${period}): removed (was $${amount})`);
+    }
+  }
+
+  return lines.length > 0 ? "Plan-level changes:\n" + lines.join("\n") : "";
+};
+
+const buildPriceChangeDetails = (normalizedDiff: Record<string, unknown>): string => {
+  const priceChangesRaw = normalizedDiff.priceChanges;
+  if (!Array.isArray(priceChangesRaw) || priceChangesRaw.length === 0) return "";
+
+  const lines: string[] = [];
+
+  for (const entry of priceChangesRaw) {
+    const bucket = asRecord(entry);
+    if (!bucket) continue;
+
+    const currency = typeof bucket.currency === "string" ? bucket.currency : "USD";
+    const period = typeof bucket.period === "string" ? bucket.period : "unknown";
+    const label = `${currency}/${period}`;
+
+    const updated = Array.isArray(bucket.updatedAmounts) ? bucket.updatedAmounts : [];
+    const added = Array.isArray(bucket.addedAmounts) ? bucket.addedAmounts : [];
+    const removed = Array.isArray(bucket.removedAmounts) ? bucket.removedAmounts : [];
+
+    for (const u of updated) {
+      const ub = asRecord(u);
+      if (!ub) continue;
+      const prev = typeof ub.previousAmount === "number" ? ub.previousAmount : null;
+      const curr = typeof ub.currentAmount === "number" ? ub.currentAmount : null;
+      const delta = typeof ub.deltaPercent === "number" ? ub.deltaPercent : null;
+      if (prev !== null && curr !== null) {
+        const direction = curr > prev ? "+" : "-";
+        const deltaStr = delta !== null ? ` (${direction}${Math.abs(delta).toFixed(1)}%)` : "";
+        lines.push(`  ${label}: $${prev} → $${curr}${deltaStr}`);
+      }
+    }
+
+    for (const a of added) {
+      if (typeof a === "number") lines.push(`  ${label}: added $${a}`);
+    }
+
+    for (const r of removed) {
+      if (typeof r === "number") lines.push(`  ${label}: removed $${r}`);
+    }
+  }
+
+  return lines.length > 0 ? "Exact price changes:\n" + lines.join("\n") : "";
+};
 
 const buildUserPrompt = (
   input: InsightBuildInput,
   summary: PriceChangeSummary,
   diffDescription: string
 ): string => {
+  const planDetails = buildPlanChangeDetails(input.normalizedDiff);
+  const priceDetails = buildPriceChangeDetails(input.normalizedDiff);
+
   const lines: string[] = [
     `Competitor: ${input.companyName}`,
     `Severity: ${input.severity}`,
@@ -270,6 +358,14 @@ const buildUserPrompt = (
     `Changes: ${diffDescription}`,
     `Diff summary: ${summary.added} added, ${summary.removed} removed, ${summary.updated} updated`,
   ];
+
+  if (planDetails) {
+    lines.push(planDetails);
+  }
+
+  if (priceDetails) {
+    lines.push(priceDetails);
+  }
 
   return lines.join("\n");
 };
@@ -307,6 +403,14 @@ const validateLlmResponse = (
     });
   }
 
+  const thingsToCheck = Array.isArray(parsed.thingsToCheck)
+    ? parsed.thingsToCheck.filter((item): item is string => typeof item === "string").slice(0, 4)
+    : [];
+
+  const watchOutFor = Array.isArray(parsed.watchOutFor)
+    ? parsed.watchOutFor.filter((item): item is string => typeof item === "string").slice(0, 3)
+    : [];
+
   if (!Array.isArray(parsed.watchList)) return null;
   const watchList = parsed.watchList
     .filter((item): item is string => typeof item === "string")
@@ -320,6 +424,8 @@ const validateLlmResponse = (
       description: mc.description,
     },
     strategicOptions: validatedOptions,
+    thingsToCheck,
+    watchOutFor,
     watchList,
     severity: input.severity,
     verificationState: input.verificationState,
