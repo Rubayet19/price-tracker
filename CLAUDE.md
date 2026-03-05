@@ -44,8 +44,8 @@ The core backend loop lives in `libs/crawler/`:
 1. `runner.ts` — Lease-based batch claiming (`/api/cron/crawl`, runs every 15 min via `vercel.json`)
 2. `extract.ts` — Heuristic extraction → `playwright-extract.ts` fallback → `manual_needed` if both fail
 3. `normalize.ts` — Canonicalize pricing JSON before diffing
-4. `diff.ts` — Generate normalized diffs with severity (`low | medium | high`)
-5. `insight.ts` — LLM-powered insights (gpt-4o-mini) with rules-v1 fallback, gated by plan severity tier
+4. `diff.ts` — Generate normalized diffs with severity (`low | medium | high`) and plan-level changes (tier names mapped to price deltas)
+5. `insight.ts` — LLM-powered insights (gpt-4o-mini) with rules-v1 fallback, gated by plan severity tier. Includes `thingsToCheck`, `watchOutFor`, and `watchList`.
 6. `discovery.ts` — Homepage link scoring for finding pricing URLs
 
 Hash gating: if `contentHash` is unchanged, skip extraction and diff entirely.
@@ -88,8 +88,8 @@ Enforce entitlements server-side. Never rely on client-side checks for plan limi
 | `User` | Auth + Stripe subscription state (`customerId`, `priceId`, `hasAccess`, `trialStatus`, `trialStartedAt`, `trialEndsAt`) |
 | `Company` | Self or competitor record with crawl scheduling fields (`nextCrawlAt`, `crawlLeaseUntil`, `lastCrawlStatus`, `contentHash`) |
 | `Snapshot` | Captured pricing payload with `captureMethod`, `confidence`, and `isVerified` |
-| `Diff` | Snapshot-to-snapshot diff with `severity` and `verificationState` (`verified | unverified`) |
-| `Insight` | LLM-powered recommendation (summary, move classification, strategic options, watch list) from a diff, gated by severity. Falls back to rules-v1 if LLM unavailable. |
+| `Diff` | Snapshot-to-snapshot diff with `severity`, `verificationState`, and `planChanges` (tier-level price deltas when extractedPlans are available) |
+| `Insight` | LLM-powered recommendation (summary, move classification, strategic options, thingsToCheck, watchOutFor, watchList) from a diff, gated by severity. Falls back to rules-v1 if LLM unavailable. |
 | `SelfPricingProfile` | User's manually entered own product pricing |
 
 ## Engineering Rules

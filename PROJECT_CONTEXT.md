@@ -11,7 +11,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Trial: lasts `7 days`, no card required.
 - Trial: uses Starter limits/features.
 - Weekly digest email is for paying users only.
-- No proxies in MVP.
+- No proxies.
 - User's own product/pricing data is entered manually (not auto-extracted).
 - Decision engine gating: Starter + Trial = high-severity insights only.
 - Decision engine gating: Pro = high + medium severity insights.
@@ -27,7 +27,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Always show confidence and last-checked metadata.
 - Keep user control where certainty is low (pricing URL override, manual confirmation paths).
 
-## MVP Scope
+## Product Scope
 - Setup: manual self-plan entry.
 - Setup: add competitors (name + homepage).
 - Setup: discover pricing URL candidates and allow manual override.
@@ -47,7 +47,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Company model: latest crawl status, error, and content hash fields.
 - Snapshot model: parsed pricing payload, capture method, confidence, and content hash.
 - Diff model: snapshot-to-snapshot normalized diff with severity and verification state.
-- Insight model: LLM-powered recommendation with summary, move classification, 3 strategic options (price/features/positioning), and watch list. Includes model/cost metadata and feedback signal.
+- Insight model: LLM-powered recommendation with summary, move classification, 3 strategic options (price/features/positioning), thingsToCheck, watchOutFor, and watchList. Includes model/cost metadata and feedback signal.
 
 ## Entitlements and Limits
 - Centralize in one entitlements helper.
@@ -74,10 +74,10 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 
 ## Diff and Insight Policy
 - Canonicalize extracted pricing JSON before comparisons.
-- Generate low-noise diffs.
+- Generate low-noise diffs with plan-level changes (tier names mapped to price deltas when extractedPlans available in both snapshots).
 - Keep only meaningful, severity-rated changes.
 - Gate insight generation by entitlement tier.
-- LLM insight generation (gpt-4o-mini): produces summary, move classification, 3 strategic options, and watch list. Falls back to deterministic rules-v1 if LLM unavailable or fails.
+- LLM insight generation (gpt-4o-mini): produces summary, move classification, 3 strategic options, thingsToCheck, watchOutFor, and watchList. Falls back to deterministic rules-v1 if LLM unavailable or fails. Plan-level changes are included in the LLM prompt for tier-specific analysis.
 - Preserve a verified/unverified distinction across feeds and emails.
 
 ## Email Digest Policy
@@ -91,9 +91,9 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Protect cron endpoints with `CRON_SECRET`.
 - Use lease-based claiming to avoid duplicate crawl work.
 
-## MVP Edge Cases to Support
+## Edge Cases to Support
 - "Custom pricing" / contact-sales pages with no explicit numbers.
-- Multiple candidate pricing pages (keep one primary in MVP).
+- Multiple candidate pricing pages (keep one primary).
 - Currency mismatch/non-USD detection where possible.
 - Low-confidence extraction should not produce verified diffs/insights.
 - Bot-blocked targets should be clearly flagged and backoff scheduled.
@@ -115,10 +115,18 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Completed: repeatable end-to-end smoke coverage for setup and dashboard access paths.
 - Completed: local production build hardening for this repo, including Node runtime pinning, localhost/localtest Auth.js trust for development, duplicate Mongoose index cleanup, and stricter Stripe input validation.
 - Completed: crawler extraction hardening — per-day card filtering, lifetime/one-time detection, currency code plan name rejection, sibling period inference, page-text fallback for billing period, improved Playwright fallback trigger conditions.
-- Current state: MVP is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
+- Completed: diff pipeline enriched with `planChanges` — maps price deltas to specific plan/tier names by comparing `extractedPlans` from previous and current snapshots.
+- Completed: LLM insight prompt enhanced with plan-level details, `thingsToCheck` (2-4 investigation items), and `watchOutFor` (2-3 risk signals).
+- Completed: insight modal UI — clicking an insight badge in the change feed opens a dialog showing: "What changed" (tier-level price deltas), AI summary, 3 strategic options with effort/risk, things to check, watch out for, and monitor list.
+- Completed: dashboard change feed redesigned as card-based layout with inline insight preview (price change, AI summary snippet, "View insight" CTA) instead of a traditional table.
+- Completed: dashboard overview redesigned — removed Tracked Competitors card, Recent Changes card, and Needs Attention stat card. Replaced with a Latest Change card showing the most recent price change with "View all" link.
+- Completed: self-pricing baseline editable in settings — company name, homepage URL, and domain can all be changed. `PATCH /api/companies/[companyId]` works for both self and competitor companies.
+- Completed: removed all user-facing "MVP" references from onboarding and settings UI.
+- Completed: admin endpoint `POST /api/admin/regen-insight` for regenerating the latest insight with updated LLM prompt (protected by CRON_SECRET).
+- Current state: product is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
 
 ## Current Priority Queue
 - Validate production environment values before deployment (`NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `MONGODB_URI`, OAuth credentials).
 - Run a final manual QA pass on the main product flows: sign-in, setup, add competitor, billing/settings, crawl retry, and dashboard empty/error states.
 - Confirm Stripe live-mode configuration matches `config.ts` plan mapping and that billing portal is enabled in the Stripe dashboard.
-- Decide whether to keep or remove planning docs under `docs/` before the first release commit.
+- Pass user's own pricing (SelfPricingProfile) to the LLM for more contextual competitor-vs-self insights.
