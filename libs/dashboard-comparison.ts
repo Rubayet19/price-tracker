@@ -125,17 +125,7 @@ export const getCompetitorComparisonPrices = (
         };
       })
       .filter(
-        (
-          entry
-        ): entry is {
-          label: string;
-          minAmount: number;
-          maxAmount: number;
-          currency: string;
-          count: number;
-          source: "plan";
-          annualPriceIsPerMonth?: boolean;
-        } => entry !== null
+        (entry): entry is NonNullable<typeof entry> => entry !== null
       )
       .sort((left, right) => left.minAmount - right.minAmount) ?? [];
 

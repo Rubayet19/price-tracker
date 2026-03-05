@@ -6,6 +6,15 @@ import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
 import config from "@/config";
 
+const ALLOWED_ORIGINS = [
+  `https://${config.domainName}`,
+  ...(process.env.NODE_ENV === "development" ? ["http://localhost:3000", "http://localhost:3001"] : []),
+];
+
+const isAllowedOrigin = (url: string): boolean => {
+  return ALLOWED_ORIGINS.some((origin) => url.startsWith(origin + "/") || url === origin);
+};
+
 const checkoutRequestSchema = z.object({
   priceId: z.string().trim().min(1),
   successUrl: z.string().url(),
@@ -32,6 +41,10 @@ export async function POST(req: NextRequest) {
 
   if (!config.stripe.plans.some((plan) => plan.priceId === parsed.data.priceId)) {
     return NextResponse.json({ error: "Unknown Stripe priceId" }, { status: 400 });
+  }
+
+  if (!isAllowedOrigin(parsed.data.successUrl) || !isAllowedOrigin(parsed.data.cancelUrl)) {
+    return NextResponse.json({ error: "Invalid redirect URL" }, { status: 400 });
   }
 
   try {
@@ -64,7 +77,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create checkout session" },
+      { error: "Failed to create checkout session" },
       { status: 500 }
     );
   }

@@ -523,10 +523,8 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
   const fetched = await fetchStaticHtml(normalizedSourceUrl);
   if (fetched.ok === false) {
     if (BLOCKED_HTTP_STATUSES.has(fetched.status)) {
-      console.log(`[crawl-debug] Static fetch blocked (${fetched.status}) for ${normalizedSourceUrl}, attempting Playwright fallback`);
       try {
         const playwrightResult = await extractPricingWithPlaywright(sourceUrl);
-        console.log(`[crawl-debug] Playwright result: prices=${playwrightResult?.pricingPayload.priceMentions.length ?? 0}, plans=${playwrightResult?.pricingPayload.planNames.length ?? 0}, confidence=${playwrightResult?.confidence ?? "null"}`);
         if (
           playwrightResult &&
           playwrightResult.pricingPayload.priceMentions.length > 0
@@ -544,7 +542,7 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
           };
         }
       } catch (playwrightError) {
-        console.error(`[crawl-debug] Playwright fallback failed:`, playwrightError instanceof Error ? playwrightError.message : playwrightError);
+        console.error("Playwright fallback failed after blocked static fetch");
       }
     }
 
@@ -582,9 +580,7 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
   if (staticFoundNothing) {
     // Static HTML is either a bot challenge page or a JS-rendered shell — try Playwright.
     try {
-      console.log(`[crawl-debug] Static found nothing (blocked=${blockedSignals.length > 0}, signals=0), trying Playwright for ${normalizedSourceUrl}`);
       const playwrightResult = await extractPricingWithPlaywright(sourceUrl);
-      console.log(`[crawl-debug] Playwright result: prices=${playwrightResult?.pricingPayload.priceMentions.length ?? 0}, plans=${playwrightResult?.pricingPayload.planNames.length ?? 0}`);
       if (
         playwrightResult &&
         playwrightResult.pricingPayload.priceMentions.length > 0
@@ -602,7 +598,7 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
         };
       }
     } catch (playwrightError) {
-      console.error(`[crawl-debug] Playwright fallback failed:`, playwrightError instanceof Error ? playwrightError.message : playwrightError);
+      console.error("Playwright fallback failed after empty static extraction");
     }
 
     if (blockedSignals.length > 0) {
@@ -681,7 +677,7 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
           playwrightResult.pricingPayload.planNames.length > 0;
       }
     } catch (playwrightError) {
-      console.error(`[crawl-debug] Playwright fallback failed for ${normalizedSourceUrl}:`, playwrightError instanceof Error ? playwrightError.message : playwrightError);
+      console.error("Playwright fallback failed during confidence-based upgrade");
     }
   }
 

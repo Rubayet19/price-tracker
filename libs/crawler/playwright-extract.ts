@@ -531,7 +531,10 @@ const extractRenderedState = async (
   cadence: PricePeriod | null
 ): Promise<RenderedStatePayload> => {
   const html = await page.content();
-  const payload = await page.evaluate(RENDERED_STATE_EVALUATE_SCRIPT);
+  const payload = await page.evaluate(RENDERED_STATE_EVALUATE_SCRIPT) as {
+    planCards: Array<{ planName: string; text: string; prices: Array<{ raw: string }> }>;
+    text: string;
+  };
 
   const planCards: RenderedPlanCard[] = payload.planCards.map((card) => ({
     planName: card.planName,
@@ -698,12 +701,6 @@ export const extractPricingWithPlaywright = async (
       }).catch((): undefined => undefined);
     }
 
-    // Diagnostic: check what page Playwright actually loaded
-    const debugTitle = await page.title().catch((): string => "TITLE_ERROR");
-    const debugUrl = page.url();
-    const debugBodyLen = await page.evaluate(() => document.body?.innerText?.length ?? 0).catch((): number => -1);
-    console.log(`[pw-debug] URL: ${debugUrl}, Title: ${debugTitle}, Body length: ${debugBodyLen}`);
-
     // Dismiss common cookie consent dialogs that may overlay pricing content.
     await page
       .locator(
@@ -716,11 +713,6 @@ export const extractPricingWithPlaywright = async (
     const extractedStates: RenderedStatePayload[] = [];
 
     const rawEval = await extractRenderedState(page, null);
-    console.log(`[pw-debug] Evaluate result: planCards=${rawEval.planCards.length}, text length=${rawEval.text.length}`);
-    if (rawEval.planCards.length === 0) {
-      // Log first 300 chars of body text to see what page we got
-      console.log(`[pw-debug] Body preview: ${rawEval.text.slice(0, 300)}`);
-    }
     extractedStates.push(rawEval);
 
     const clickedMonthly = await clickCadenceIfPresent(page, /\bmonthly\b/i).catch(
