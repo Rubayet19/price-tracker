@@ -8,6 +8,7 @@ import { SessionProvider } from "next-auth/react";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
+import PostHogProviderWrapper from "@/components/PostHogProvider";
 import config from "@/config";
 
 // Crisp customer chat support:
@@ -55,6 +56,7 @@ const ClientLayout = ({ children }: { children: ReactNode }) => {
   return (
     <>
       <SessionProvider>
+        <PostHogProviderWrapper>
         {/* Show a progress bar at the top when navigating between pages */}
         <NextTopLoader color={config.colors.main} showSpinner={false} />
 
@@ -76,6 +78,7 @@ const ClientLayout = ({ children }: { children: ReactNode }) => {
 
         {/* Set Crisp customer chat support */}
         <CrispChat />
+        </PostHogProviderWrapper>
       </SessionProvider>
     </>
   );
