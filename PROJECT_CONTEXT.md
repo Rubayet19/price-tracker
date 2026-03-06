@@ -98,32 +98,9 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Low-confidence extraction should not produce verified diffs/insights.
 - Bot-blocked targets should be clearly flagged and backoff scheduled.
 
-## Current Implementation Status
-- Completed: trial and entitlements backend (trial start endpoint, entitlement resolution, trial state refresh).
-- Completed: domain models and persistence for Company, Snapshot, Diff, Insight, audit, cron lock, rate limit, and processed Stripe events.
-- Completed: crawl/discovery/diff/insight backend pipeline with lease-based batch claiming, hash gating, severity-gated insight generation, and LLM-powered insights (gpt-4o-mini with rules-v1 fallback).
-- Completed: cron endpoints and schedules (`/api/cron/crawl` every 15 minutes, `/api/cron/digest` weekly) with `CRON_SECRET` protection.
-- Completed: Stripe webhook hardening with signature verification, known-plan price validation, email fallback, and idempotent event processing.
-- Completed: authenticated setup UI for self pricing, explicit trial start, competitor add, pricing URL confirmation, and redirect-based setup gating under `/dashboard/setup`.
-- Completed: core dashboard UI wiring for overview, changes, competitors, and settings pages backed by `/api/dashboard/overview`, `/api/dashboard/feed`, and `/api/dashboard/comparison`.
-- Completed: competitor management UX on `/dashboard/competitors`, including pricing source review, crawl-now/retry actions, and visible trust state messaging.
-- Completed: competitor detail page at `/dashboard/competitors/[companyId]` with editable company name/homepage, domain change handling (resets pricing source), inline pricing source management, and delete with redirect.
-- Completed: `PATCH /api/companies/[companyId]` for updating company name and homepage URL. Domain changes clear pricing URL, candidates, and content hash.
-- Completed: add-competitor sheet redirects to `/dashboard/competitors/{id}` instead of setup page.
-- Completed: dashboard-wide entitlement/paywall states and in-app billing/settings surface under `/dashboard/settings`.
-- Completed: full dashboard setup gating — requires at least ONE completed competitor (not ALL) to consider setup done.
-- Completed: repeatable end-to-end smoke coverage for setup and dashboard access paths.
-- Completed: local production build hardening for this repo, including Node runtime pinning, localhost/localtest Auth.js trust for development, duplicate Mongoose index cleanup, and stricter Stripe input validation.
-- Completed: crawler extraction hardening — per-day card filtering, lifetime/one-time detection, currency code plan name rejection, sibling period inference, page-text fallback for billing period, improved Playwright fallback trigger conditions.
-- Completed: diff pipeline enriched with `planChanges` — maps price deltas to specific plan/tier names by comparing `extractedPlans` from previous and current snapshots.
-- Completed: LLM insight prompt enhanced with plan-level details, `thingsToCheck` (2-4 investigation items), and `watchOutFor` (2-3 risk signals).
-- Completed: insight modal UI — clicking an insight badge in the change feed opens a dialog showing: "What changed" (tier-level price deltas), AI summary, 3 strategic options with effort/risk, things to check, watch out for, and monitor list.
-- Completed: dashboard change feed redesigned as card-based layout with inline insight preview (price change, AI summary snippet, "View insight" CTA) instead of a traditional table.
-- Completed: dashboard overview redesigned — removed Tracked Competitors card, Recent Changes card, and Needs Attention stat card. Replaced with a Latest Change card showing the most recent price change with "View all" link.
-- Completed: self-pricing baseline editable in settings — company name, homepage URL, and domain can all be changed. `PATCH /api/companies/[companyId]` works for both self and competitor companies.
-- Completed: removed all user-facing "MVP" references from onboarding and settings UI.
-- Completed: admin endpoint `POST /api/admin/regen-insight` for regenerating the latest insight with updated LLM prompt (protected by CRON_SECRET).
-- Current state: product is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
+## Current Status
+
+Product is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
 
 ## Current Priority Queue
 - Validate production environment values before deployment (`NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `MONGODB_URI`, OAuth credentials).
