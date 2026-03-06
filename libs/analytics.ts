@@ -5,11 +5,9 @@ import posthog from "posthog-js";
 
 export const analytics = {
   // Onboarding
-  setupCompleted: () =>
-    posthog.capture("setup_completed"),
+  setupCompleted: () => posthog.capture("setup_completed"),
 
-  selfPricingUpdated: () =>
-    posthog.capture("self_pricing_updated"),
+  selfPricingUpdated: () => posthog.capture("self_pricing_updated"),
 
   // Competitors
   competitorAdded: (props: { companyId: string; name: string }) =>
@@ -19,15 +17,17 @@ export const analytics = {
     posthog.capture("competitor_removed", props),
 
   // Insights & Diffs
-  insightViewed: (props: { diffId: string; severity: string; companyName: string }) =>
-    posthog.capture("insight_viewed", props),
+  insightViewed: (props: {
+    diffId: string;
+    severity: string;
+    companyName: string;
+  }) => posthog.capture("insight_viewed", props),
 
   diffViewed: (props: { diffId: string; companyName: string }) =>
     posthog.capture("diff_viewed", props),
 
   // Billing
-  trialStarted: () =>
-    posthog.capture("trial_started"),
+  trialStarted: () => posthog.capture("trial_started"),
 
   planUpgraded: (props: { plan: string; priceId: string }) =>
     posthog.capture("plan_upgraded", props),
@@ -36,6 +36,5 @@ export const analytics = {
     posthog.capture("plan_downgraded", props),
 
   // Page-specific
-  pricingPageViewed: () =>
-    posthog.capture("pricing_page_viewed"),
+  pricingPageViewed: () => posthog.capture("pricing_page_viewed"),
 };

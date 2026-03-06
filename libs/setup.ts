@@ -39,7 +39,10 @@ interface SelfPricingProfileLean {
   billingPeriod?: "month" | "year";
 }
 
-const getSetupStepHref = (step: SetupStepTarget["step"], companyId?: string): string => {
+const getSetupStepHref = (
+  step: SetupStepTarget["step"],
+  companyId?: string
+): string => {
   switch (step) {
     case "self_pricing":
       return "/dashboard/setup/self-pricing";
@@ -48,7 +51,9 @@ const getSetupStepHref = (step: SetupStepTarget["step"], companyId?: string): st
     case "competitors":
       return "/dashboard/setup/competitors";
     case "competitor_pricing":
-      return companyId ? `/dashboard/setup/competitors/${companyId}/pricing` : "/dashboard/setup";
+      return companyId
+        ? `/dashboard/setup/competitors/${companyId}/pricing`
+        : "/dashboard/setup";
     case "done":
       return "/dashboard";
     default:
@@ -71,7 +76,9 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
       trialStartedAt: 1,
       trialEndsAt: 1,
     }),
-    SelfPricingProfile.findOne({ userId }).lean<SelfPricingProfileLean | null>().exec(),
+    SelfPricingProfile.findOne({ userId })
+      .lean<SelfPricingProfileLean | null>()
+      .exec(),
     Company.find({ userId })
       .sort({ createdAt: 1, name: 1 })
       .lean<CompanyLean[]>()
@@ -86,8 +93,11 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
   await refreshTrialStatusIfExpired(user, now);
 
   const entitlements = resolveEntitlements(user, now);
-  const selfCompanyRecord = companies.find((company) => company.type === "self") ?? null;
-  const competitorRecords = companies.filter((company) => company.type === "competitor");
+  const selfCompanyRecord =
+    companies.find((company) => company.type === "self") ?? null;
+  const competitorRecords = companies.filter(
+    (company) => company.type === "competitor"
+  );
 
   const competitors = competitorRecords.map((company) => ({
     companyId: String(company._id),
@@ -103,8 +113,12 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
     hasUserSelectedPrimaryPricing: hasUserSelectedPrimaryPricing(company),
   }));
 
-  const normalizedSelfPricingProfile = normalizeSelfPricingProfile(selfPricingProfile);
-  const hasSelfPricing = Boolean(normalizedSelfPricingProfile && normalizedSelfPricingProfile.plans.length > 0);
+  const normalizedSelfPricingProfile =
+    normalizeSelfPricingProfile(selfPricingProfile);
+  const hasSelfPricing = Boolean(
+    normalizedSelfPricingProfile &&
+    normalizedSelfPricingProfile.plans.length > 0
+  );
   const hasSelfCompany = Boolean(selfCompanyRecord);
   const hasCompetitors = competitors.length > 0;
   const competitorMissingPricing = competitors.find(
@@ -118,7 +132,10 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
     (competitor) => competitor.hasUserSelectedPrimaryPricing
   );
   const hasHistoricallyCompletedSetup =
-    hasSelfPricing && hasSelfCompany && hasCompetitors && hasAtLeastOneCompletedCompetitor;
+    hasSelfPricing &&
+    hasSelfCompany &&
+    hasCompetitors &&
+    hasAtLeastOneCompletedCompetitor;
 
   let nextStep: SetupStepTarget;
   if (!hasSelfPricing || !hasSelfCompany) {
@@ -139,7 +156,10 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
   } else if (competitorMissingPricing) {
     nextStep = {
       step: "competitor_pricing",
-      href: getSetupStepHref("competitor_pricing", competitorMissingPricing.companyId),
+      href: getSetupStepHref(
+        "competitor_pricing",
+        competitorMissingPricing.companyId
+      ),
       companyId: competitorMissingPricing.companyId,
     };
   } else {
@@ -159,7 +179,10 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
       endsAt: user.trialEndsAt ? user.trialEndsAt.toISOString() : null,
       isActive: isTrialActive(user, now),
       canStartTrial:
-        user.trialStatus === "not_started" && !user.trialStartedAt && !user.trialEndsAt && !user.hasAccess,
+        user.trialStatus === "not_started" &&
+        !user.trialStartedAt &&
+        !user.trialEndsAt &&
+        !user.hasAccess,
       needsTrialAccess: !entitlements.hasAccess,
     },
     selfPricingProfile: normalizedSelfPricingProfile,
@@ -203,14 +226,19 @@ export const requireCompletedSetup = async (
     status.hasCompetitors &&
     hasAtLeastOneCompletedCompetitor;
 
-  if (!hasCompletedSetupWithoutAccess || (requireAccess && !status.entitlements.hasAccess)) {
+  if (
+    !hasCompletedSetupWithoutAccess ||
+    (requireAccess && !status.entitlements.hasAccess)
+  ) {
     redirect(status.nextStep.href);
   }
 
   return status;
 };
 
-export const requireAuthenticatedDashboardUserId = (userId: string | null | undefined): string => {
+export const requireAuthenticatedDashboardUserId = (
+  userId: string | null | undefined
+): string => {
   if (!userId) {
     redirect(config.auth.loginUrl);
   }

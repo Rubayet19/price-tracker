@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { IconCreditCard, IconDotsVertical, IconLogout, IconUserCircle } from "@tabler/icons-react";
-import { signOut, useSession } from "next-auth/react";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+  IconCreditCard,
+  IconDotsVertical,
+  IconLogout,
+  IconUserCircle,
+} from "@tabler/icons-react";
+import { signOut, useSession } from "next-auth/react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,7 +68,9 @@ export function NavUser() {
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{userName}</span>
-                <span className="text-muted-foreground truncate text-xs">{userEmail}</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  {userEmail}
+                </span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -81,14 +84,19 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={session?.user?.image ?? ""} alt={userName} />
+                  <AvatarImage
+                    src={session?.user?.image ?? ""}
+                    alt={userName}
+                  />
                   <AvatarFallback className="rounded-lg bg-[#0f766e] text-white">
                     {getInitials(session?.user?.name, session?.user?.email)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{userName}</span>
-                  <span className="text-muted-foreground truncate text-xs">{userEmail}</span>
+                  <span className="text-muted-foreground truncate text-xs">
+                    {userEmail}
+                  </span>
                 </div>
               </div>
             </DropdownMenuLabel>

@@ -20,6 +20,7 @@ Hash gating: if `contentHash` unchanged, skip extraction and diff entirely.
 ## Extraction
 
 **Static → Playwright fallback triggers when any of:**
+
 - Interactive cadence signals (both "monthly" and "yearly"/"annual" text)
 - Prices found but zero plan names from h-tags
 - Prices found but zero `extractedPlans` paired
@@ -31,6 +32,7 @@ Hash gating: if `contentHash` unchanged, skip extraction and diff entirely.
 **`isLikelyPlanName` rejects:** strings with digits, punctuation, >28 chars, >4 words, currency codes (USD/EUR/GBP), marketing terms (pricing, faq, features, compare, per month, billed, trial, money-back, etc.)
 
 **`buildExtractedPlans` period inference (3 tiers):**
+
 1. Card-level: `toPeriod` from card text + active toggle cadence
 2. Sibling inference: if "unknown", infer from siblings with known periods
 3. Page-text fallback: scan full page body for `/month`, `per month`, etc.

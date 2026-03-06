@@ -11,7 +11,13 @@ import {
 } from "@/components/dashboard/setup/setup-api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { SetupSelfCompany } from "@/types/setup";
@@ -42,8 +48,10 @@ const toPlanDrafts = (profile: SelfPricingProfileData | null): PlanDraft[] => {
 
   return profile.plans.map((plan) => ({
     name: plan.name,
-    monthlyPrice: typeof plan.monthlyPrice === "number" ? String(plan.monthlyPrice) : "",
-    annualPrice: typeof plan.annualPrice === "number" ? String(plan.annualPrice) : "",
+    monthlyPrice:
+      typeof plan.monthlyPrice === "number" ? String(plan.monthlyPrice) : "",
+    annualPrice:
+      typeof plan.annualPrice === "number" ? String(plan.annualPrice) : "",
   }));
 };
 
@@ -60,7 +68,9 @@ const updateSelfCompanyDetails = async (
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(
-      typeof body.error === "string" ? body.error : "Failed to update company details"
+      typeof body.error === "string"
+        ? body.error
+        : "Failed to update company details"
     );
   }
 };
@@ -71,13 +81,21 @@ export default function SelfPricingSetupForm({
   mode = "setup",
 }: SelfPricingSetupFormProps) {
   const router = useRouter();
-  const [companyName, setCompanyName] = useState<string>(existingSelfCompany?.name ?? "");
-  const [homepageUrl, setHomepageUrl] = useState<string>(existingSelfCompany?.homepageUrl ?? "");
+  const [companyName, setCompanyName] = useState<string>(
+    existingSelfCompany?.name ?? ""
+  );
+  const [homepageUrl, setHomepageUrl] = useState<string>(
+    existingSelfCompany?.homepageUrl ?? ""
+  );
   const [primaryPricingUrl, setPrimaryPricingUrl] = useState<string>(
     existingSelfCompany?.primaryPricingUrl ?? ""
   );
-  const [currency, setCurrency] = useState<string>(existingProfile?.currency ?? "USD");
-  const [plans, setPlans] = useState<PlanDraft[]>(() => toPlanDrafts(existingProfile));
+  const [currency, setCurrency] = useState<string>(
+    existingProfile?.currency ?? "USD"
+  );
+  const [plans, setPlans] = useState<PlanDraft[]>(() =>
+    toPlanDrafts(existingProfile)
+  );
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +105,9 @@ export default function SelfPricingSetupForm({
 
   const updatePlan = (index: number, patch: Partial<PlanDraft>): void => {
     setPlans((current) =>
-      current.map((plan, planIndex) => (planIndex === index ? { ...plan, ...patch } : plan))
+      current.map((plan, planIndex) =>
+        planIndex === index ? { ...plan, ...patch } : plan
+      )
     );
   };
 
@@ -103,7 +123,9 @@ export default function SelfPricingSetupForm({
   };
 
   const removePlan = (index: number): void => {
-    setPlans((current) => current.filter((_, planIndex) => planIndex !== index));
+    setPlans((current) =>
+      current.filter((_, planIndex) => planIndex !== index)
+    );
   };
 
   const onSubmit = async (): Promise<void> => {
@@ -129,19 +151,29 @@ export default function SelfPricingSetupForm({
           throw new Error("Each plan needs a name.");
         }
 
-        const monthlyPrice = plan.monthlyPrice ? Number(plan.monthlyPrice) : null;
+        const monthlyPrice = plan.monthlyPrice
+          ? Number(plan.monthlyPrice)
+          : null;
         const annualPrice = plan.annualPrice ? Number(plan.annualPrice) : null;
 
-        if (monthlyPrice !== null && (!Number.isFinite(monthlyPrice) || monthlyPrice < 0)) {
+        if (
+          monthlyPrice !== null &&
+          (!Number.isFinite(monthlyPrice) || monthlyPrice < 0)
+        ) {
           throw new Error(`Plan "${plan.name}" has an invalid monthly price.`);
         }
 
-        if (annualPrice !== null && (!Number.isFinite(annualPrice) || annualPrice < 0)) {
+        if (
+          annualPrice !== null &&
+          (!Number.isFinite(annualPrice) || annualPrice < 0)
+        ) {
           throw new Error(`Plan "${plan.name}" has an invalid annual price.`);
         }
 
         if (monthlyPrice === null && annualPrice === null) {
-          throw new Error(`Plan "${plan.name}" needs a monthly or annual price.`);
+          throw new Error(
+            `Plan "${plan.name}" needs a monthly or annual price.`
+          );
         }
 
         return {
@@ -181,7 +213,8 @@ export default function SelfPricingSetupForm({
       if (existingSelfCompany) {
         // Update existing company details if name or homepage changed
         const nameChanged = companyName.trim() !== existingSelfCompany.name;
-        const urlChanged = homepageUrl.trim() !== (existingSelfCompany.homepageUrl ?? "");
+        const urlChanged =
+          homepageUrl.trim() !== (existingSelfCompany.homepageUrl ?? "");
 
         if (nameChanged || urlChanged) {
           const patch: { name?: string; homepageUrl?: string } = {};
@@ -201,12 +234,16 @@ export default function SelfPricingSetupForm({
         if (!primaryPricingUrl.trim()) {
           const discovery = await discoverPricingUrls(selfCompany.id);
           if (discovery.primaryPricingUrl ?? discovery.recommendedPrimaryUrl) {
-            toast.success("Pricing baseline saved. We also found your pricing page from the homepage.");
+            toast.success(
+              "Pricing baseline saved. We also found your pricing page from the homepage."
+            );
           }
         }
       }
 
-      toast.success(mode === "settings" ? "Pricing baseline updated" : "Pricing setup saved");
+      toast.success(
+        mode === "settings" ? "Pricing baseline updated" : "Pricing setup saved"
+      );
       if (mode === "settings") {
         router.refresh();
       } else {
@@ -215,7 +252,9 @@ export default function SelfPricingSetupForm({
       }
     } catch (submitError) {
       const message =
-        submitError instanceof Error ? submitError.message : "Failed to save setup details";
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to save setup details";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -230,7 +269,9 @@ export default function SelfPricingSetupForm({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle className="text-2xl font-black tracking-tight text-[#0f172a]">
-              {isSettings ? "Your pricing baseline" : "Set your product baseline"}
+              {isSettings
+                ? "Your pricing baseline"
+                : "Set your product baseline"}
             </CardTitle>
             <CardDescription className="mt-1 max-w-2xl text-sm text-[#475569]">
               {isSettings
@@ -238,7 +279,10 @@ export default function SelfPricingSetupForm({
                 : "Add your product and plan pricing. We'll use this as the baseline for competitor comparisons."}
             </CardDescription>
           </div>
-          <Badge variant="outline" className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]">
+          <Badge
+            variant="outline"
+            className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]"
+          >
             {planCountLabel}
           </Badge>
         </div>
@@ -274,7 +318,9 @@ export default function SelfPricingSetupForm({
             <Input
               id="self-currency"
               value={currency}
-              onChange={(event) => setCurrency(event.target.value.toUpperCase())}
+              onChange={(event) =>
+                setCurrency(event.target.value.toUpperCase())
+              }
               placeholder="USD"
               maxLength={3}
             />
@@ -282,7 +328,9 @@ export default function SelfPricingSetupForm({
 
           {!existingSelfCompany && (
             <div className="space-y-1.5 md:col-span-3">
-              <Label htmlFor="self-pricing-url">Pricing page URL (optional)</Label>
+              <Label htmlFor="self-pricing-url">
+                Pricing page URL (optional)
+              </Label>
               <Input
                 id="self-pricing-url"
                 value={primaryPricingUrl}
@@ -304,13 +352,15 @@ export default function SelfPricingSetupForm({
               key={`${index}-${plan.name}`}
               className="rounded-xl border border-[#e2e8f0] bg-[#fafbfc] p-4"
             >
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_140px_140px_auto] items-end">
+              <div className="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_140px_140px_auto]">
                 <div className="space-y-1.5">
                   <Label htmlFor={`plan-name-${index}`}>Plan name</Label>
                   <Input
                     id={`plan-name-${index}`}
                     value={plan.name}
-                    onChange={(event) => updatePlan(index, { name: event.target.value })}
+                    onChange={(event) =>
+                      updatePlan(index, { name: event.target.value })
+                    }
                     placeholder="Starter"
                   />
                 </div>
@@ -318,11 +368,15 @@ export default function SelfPricingSetupForm({
                 <div className="space-y-1.5">
                   <Label htmlFor={`plan-monthly-price-${index}`}>Monthly</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94a3b8]">$</span>
+                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[#94a3b8]">
+                      $
+                    </span>
                     <Input
                       id={`plan-monthly-price-${index}`}
                       value={plan.monthlyPrice}
-                      onChange={(event) => updatePlan(index, { monthlyPrice: event.target.value })}
+                      onChange={(event) =>
+                        updatePlan(index, { monthlyPrice: event.target.value })
+                      }
                       placeholder="—"
                       inputMode="decimal"
                       className="pl-7"
@@ -333,11 +387,15 @@ export default function SelfPricingSetupForm({
                 <div className="space-y-1.5">
                   <Label htmlFor={`plan-annual-price-${index}`}>Annual</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94a3b8]">$</span>
+                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[#94a3b8]">
+                      $
+                    </span>
                     <Input
                       id={`plan-annual-price-${index}`}
                       value={plan.annualPrice}
-                      onChange={(event) => updatePlan(index, { annualPrice: event.target.value })}
+                      onChange={(event) =>
+                        updatePlan(index, { annualPrice: event.target.value })
+                      }
                       placeholder="—"
                       inputMode="decimal"
                       className="pl-7"
@@ -352,7 +410,7 @@ export default function SelfPricingSetupForm({
                       variant="ghost"
                       size="icon"
                       onClick={() => removePlan(index)}
-                      className="size-9 text-[#94a3b8] hover:text-red-500 hover:bg-red-50"
+                      className="size-9 text-[#94a3b8] hover:bg-red-50 hover:text-red-500"
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -379,7 +437,11 @@ export default function SelfPricingSetupForm({
             disabled={isSubmitting}
             className="bg-[#0f766e] text-white hover:bg-[#115e59]"
           >
-            {isSubmitting ? "Saving..." : isSettings ? "Save changes" : "Save and continue"}
+            {isSubmitting
+              ? "Saving..."
+              : isSettings
+                ? "Save changes"
+                : "Save and continue"}
           </Button>
         </div>
 

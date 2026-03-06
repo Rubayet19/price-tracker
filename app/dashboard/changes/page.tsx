@@ -1,5 +1,8 @@
 import { auth } from "@/libs/auth";
-import { requireAuthenticatedDashboardUserId, requireCompletedSetup } from "@/libs/setup";
+import {
+  requireAuthenticatedDashboardUserId,
+  requireCompletedSetup,
+} from "@/libs/setup";
 import DashboardChangesContent from "@/components/dashboard/dashboard-changes-content";
 
 export default async function DashboardChangesPage() {

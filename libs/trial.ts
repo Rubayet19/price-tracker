@@ -101,7 +101,12 @@ export const startTrialForUser = async (
   }
 
   if (user.trialStatus === "converted") {
-    return toTrialStartResult(user, false, changedByRefresh, "already_converted");
+    return toTrialStartResult(
+      user,
+      false,
+      changedByRefresh,
+      "already_converted"
+    );
   }
 
   if (user.trialStatus === "expired") {
@@ -120,7 +125,9 @@ export const startTrialForUser = async (
   }
 
   user.trialStartedAt = now;
-  user.trialEndsAt = new Date(now.getTime() + config.entitlements.trialDays * MS_PER_DAY);
+  user.trialEndsAt = new Date(
+    now.getTime() + config.entitlements.trialDays * MS_PER_DAY
+  );
   user.trialStatus = "active";
   await user.save();
 

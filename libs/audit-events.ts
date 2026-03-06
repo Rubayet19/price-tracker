@@ -23,20 +23,21 @@ interface LifecycleAuditEventInput {
   metadata?: Record<string, unknown>;
 }
 
-const EVENT_TO_STATUS: Record<LifecycleAuditEventType, "success" | "rejected"> = {
-  trial_started: "success",
-  trial_start_blocked: "rejected",
-  company_created: "success",
-  company_deleted: "success",
-  company_domain_changed: "success",
-  competitor_cap_hit: "rejected",
-  primary_pricing_url_changed: "success",
-  webhook_access_granted: "success",
-  webhook_access_revoked: "success",
-  crawl_blocked: "rejected",
-  crawl_manual_needed: "rejected",
-  crawl_error: "rejected",
-};
+const EVENT_TO_STATUS: Record<LifecycleAuditEventType, "success" | "rejected"> =
+  {
+    trial_started: "success",
+    trial_start_blocked: "rejected",
+    company_created: "success",
+    company_deleted: "success",
+    company_domain_changed: "success",
+    competitor_cap_hit: "rejected",
+    primary_pricing_url_changed: "success",
+    webhook_access_granted: "success",
+    webhook_access_revoked: "success",
+    crawl_blocked: "rejected",
+    crawl_manual_needed: "rejected",
+    crawl_error: "rejected",
+  };
 
 const EVENT_TO_ACTOR: Record<
   LifecycleAuditEventType,
@@ -56,7 +57,10 @@ const EVENT_TO_ACTOR: Record<
   crawl_error: "cron",
 };
 
-const EVENT_TO_RESOURCE: Record<LifecycleAuditEventType, "trial" | "company" | "webhook" | "crawl"> = {
+const EVENT_TO_RESOURCE: Record<
+  LifecycleAuditEventType,
+  "trial" | "company" | "webhook" | "crawl"
+> = {
   trial_started: "trial",
   trial_start_blocked: "trial",
   company_created: "company",

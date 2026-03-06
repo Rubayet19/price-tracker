@@ -15,7 +15,9 @@ export const isCompetitorLimitReached = (
     return false;
   }
 
-  return overview.companyCounts.competitor >= overview.entitlements.competitorLimit;
+  return (
+    overview.companyCounts.competitor >= overview.entitlements.competitorLimit
+  );
 };
 
 export const canAddCompetitorFromOverview = (
@@ -40,7 +42,8 @@ export const getDashboardAccessNotice = (
       return {
         kind: "inactive",
         title: "Trial expired",
-        description: "Dashboard history stays visible, but adding competitors and ongoing monitoring are paused until you upgrade.",
+        description:
+          "Dashboard history stays visible, but adding competitors and ongoing monitoring are paused until you upgrade.",
         ctaLabel: "View plans",
         ctaHref: "/dashboard/settings",
       };
@@ -49,7 +52,8 @@ export const getDashboardAccessNotice = (
     return {
       kind: "inactive",
       title: "Access inactive",
-      description: "Start a paid plan to resume competitor tracking, verified change monitoring, and ongoing crawl jobs.",
+      description:
+        "Start a paid plan to resume competitor tracking, verified change monitoring, and ongoing crawl jobs.",
       ctaLabel: "View plans",
       ctaHref: "/dashboard/settings",
     };
@@ -59,7 +63,10 @@ export const getDashboardAccessNotice = (
     return null;
   }
 
-  if (overview.entitlements.planTier === "starter" || overview.entitlements.accessSource === "trial") {
+  if (
+    overview.entitlements.planTier === "starter" ||
+    overview.entitlements.accessSource === "trial"
+  ) {
     return {
       kind: "upgrade",
       title: "Competitor limit reached",

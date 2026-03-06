@@ -16,7 +16,10 @@ interface RouteContext {
   }>;
 }
 
-export async function POST(_request: NextRequest, context: RouteContext): Promise<NextResponse> {
+export async function POST(
+  _request: NextRequest,
+  context: RouteContext
+): Promise<NextResponse> {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -84,7 +87,10 @@ export async function POST(_request: NextRequest, context: RouteContext): Promis
           reason: "missing_homepage_url",
         },
       });
-      return NextResponse.json({ error: "Company has no homepageUrl to discover from" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Company has no homepageUrl to discover from" },
+        { status: 400 }
+      );
     }
 
     const discovery = await discoverPricingUrlsFromHomepage({
@@ -92,7 +98,10 @@ export async function POST(_request: NextRequest, context: RouteContext): Promis
       allowedDomain: company.domain,
     });
 
-    const mergedCandidates = mergePricingUrlCandidates(company.pricingUrlCandidates, discovery.candidates);
+    const mergedCandidates = mergePricingUrlCandidates(
+      company.pricingUrlCandidates,
+      discovery.candidates
+    );
     company.pricingUrlCandidates = mergedCandidates;
 
     if (!company.primaryPricingUrl && discovery.recommendedPrimaryUrl) {
@@ -136,6 +145,9 @@ export async function POST(_request: NextRequest, context: RouteContext): Promis
         reason: error instanceof Error ? error.message : "unknown_error",
       },
     });
-    return NextResponse.json({ error: "Failed to discover pricing URLs" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to discover pricing URLs" },
+      { status: 500 }
+    );
   }
 }

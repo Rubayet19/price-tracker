@@ -1,7 +1,12 @@
 import { model, models, Schema, type Model, type Types } from "mongoose";
 import toJSON from "./plugins/toJSON";
 
-const SNAPSHOT_CAPTURE_METHODS = ["static", "playwright", "llm", "manual"] as const;
+const SNAPSHOT_CAPTURE_METHODS = [
+  "static",
+  "playwright",
+  "llm",
+  "manual",
+] as const;
 
 export type SnapshotCaptureMethod = (typeof SNAPSHOT_CAPTURE_METHODS)[number];
 
@@ -83,7 +88,9 @@ const snapshotSchema = new Schema<Snapshot, SnapshotModel>(
 snapshotSchema.index({ companyId: 1, capturedAt: -1 });
 snapshotSchema.index({ contentHash: 1 });
 
-const snapshotToJSONPlugin = toJSON as unknown as Parameters<typeof snapshotSchema.plugin>[0];
+const snapshotToJSONPlugin = toJSON as unknown as Parameters<
+  typeof snapshotSchema.plugin
+>[0];
 snapshotSchema.plugin(snapshotToJSONPlugin);
 
 const SnapshotModel =

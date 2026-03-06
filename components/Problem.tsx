@@ -1,7 +1,7 @@
 const Arrow = ({ extraStyle }: { extraStyle: string }) => {
   return (
     <svg
-      className={`shrink-0 w-12 fill-neutral-content opacity-70 ${extraStyle}`}
+      className={`fill-neutral-content w-12 shrink-0 opacity-70 ${extraStyle}`}
       viewBox="0 0 138 138"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -23,7 +23,7 @@ const Arrow = ({ extraStyle }: { extraStyle: string }) => {
 };
 const Step = ({ emoji, text }: { emoji: string; text: string }) => {
   return (
-    <div className="w-full md:w-48 flex flex-col gap-2 items-center justify-center">
+    <div className="flex w-full flex-col items-center justify-center gap-2 md:w-48">
       <span className="text-4xl">{emoji}</span>
       <h3 className="font-bold">{text}</h3>
     </div>
@@ -42,16 +42,16 @@ const Step = ({ emoji, text }: { emoji: string; text: string }) => {
 const Problem = () => {
   return (
     <section className="bg-neutral text-neutral-content">
-      <div className="max-w-7xl mx-auto px-8 py-16 md:py-32 text-center">
-        <h2 className="max-w-3xl mx-auto font-extrabold text-4xl md:text-5xl tracking-tight mb-6 md:mb-8">
+      <div className="mx-auto max-w-7xl px-8 py-16 text-center md:py-32">
+        <h2 className="mx-auto mb-6 max-w-3xl text-4xl font-extrabold tracking-tight md:mb-8 md:text-5xl">
           80% of startups fail because founders never launch
         </h2>
-        <p className="max-w-xl mx-auto text-lg opacity-90 leading-relaxed mb-12 md:mb-20">
+        <p className="mx-auto mb-12 max-w-xl text-lg leading-relaxed opacity-90 md:mb-20">
           Emails, DNS records, user authentication... There&apos;s so much going
           on.
         </p>
 
-        <div className="flex flex-col md:flex-row justify-center items-center md:items-start gap-6">
+        <div className="flex flex-col items-center justify-center gap-6 md:flex-row md:items-start">
           <Step emoji="🧑‍💻" text="8 hrs to add Stripe" />
 
           <Arrow extraStyle="max-md:-scale-x-100 md:-rotate-90" />

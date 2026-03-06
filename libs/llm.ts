@@ -7,7 +7,7 @@ const TIMEOUT_MS = 15_000;
 
 // gpt-4o-mini pricing (per 1M tokens)
 const INPUT_COST_PER_MILLION = 0.15;
-const OUTPUT_COST_PER_MILLION = 0.60;
+const OUTPUT_COST_PER_MILLION = 0.6;
 
 export interface StructuredCompletionResult {
   parsed: Record<string, unknown>;
@@ -25,7 +25,10 @@ const getClient = (): OpenAI | null => {
   return new OpenAI({ apiKey, timeout: TIMEOUT_MS });
 };
 
-const calculateCost = (promptTokens: number, completionTokens: number): number => {
+const calculateCost = (
+  promptTokens: number,
+  completionTokens: number
+): number => {
   const inputCost = (promptTokens / 1_000_000) * INPUT_COST_PER_MILLION;
   const outputCost = (completionTokens / 1_000_000) * OUTPUT_COST_PER_MILLION;
   return Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000;

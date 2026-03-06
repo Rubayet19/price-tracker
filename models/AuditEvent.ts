@@ -79,8 +79,9 @@ auditEventSchema.index({ action: 1, createdAt: -1 });
 auditEventSchema.index({ resourceType: 1, resourceId: 1, createdAt: -1 });
 auditEventSchema.index({ status: 1, createdAt: -1 });
 
-const auditToJSONPlugin =
-  toJSON as unknown as Parameters<typeof auditEventSchema.plugin>[0];
+const auditToJSONPlugin = toJSON as unknown as Parameters<
+  typeof auditEventSchema.plugin
+>[0];
 auditEventSchema.plugin(auditToJSONPlugin);
 
 const AuditEventModel =

@@ -11,7 +11,10 @@ import {
 } from "@/libs/crawler/constants";
 import { generatePricingDiff } from "@/libs/crawler/diff";
 import { fetchAndExtractPricing } from "@/libs/crawler/extract";
-import { buildInsightFromDiff, type InsightEligibleUser } from "@/libs/crawler/insight";
+import {
+  buildInsightFromDiff,
+  type InsightEligibleUser,
+} from "@/libs/crawler/insight";
 import {
   canonicalizePricingPayload,
   classifyPricingModel,
@@ -94,12 +97,17 @@ interface RunCompanyCrawlOptions {
   now?: Date;
 }
 
-type CrawlErrorAuditEventType = "crawl_blocked" | "crawl_manual_needed" | "crawl_error";
+type CrawlErrorAuditEventType =
+  | "crawl_blocked"
+  | "crawl_manual_needed"
+  | "crawl_error";
 
 type ClaimedCompany = HydratedDocument<ICompany>;
 
 const isAllowedPeriod = (period: string): period is PricePeriod => {
-  return ["day", "week", "month", "year", "one_time", "unknown"].includes(period);
+  return ["day", "week", "month", "year", "one_time", "unknown"].includes(
+    period
+  );
 };
 
 const toNormalizedPayload = (
@@ -109,23 +117,34 @@ const toNormalizedPayload = (
     return null;
   }
 
-  const sourceUrl = typeof payload.sourceUrl === "string" ? payload.sourceUrl : null;
+  const sourceUrl =
+    typeof payload.sourceUrl === "string" ? payload.sourceUrl : null;
   if (!sourceUrl) {
     return null;
   }
 
-  const pageTitle = typeof payload.pageTitle === "string" ? payload.pageTitle : null;
-  const pageDescription = typeof payload.pageDescription === "string" ? payload.pageDescription : null;
+  const pageTitle =
+    typeof payload.pageTitle === "string" ? payload.pageTitle : null;
+  const pageDescription =
+    typeof payload.pageDescription === "string"
+      ? payload.pageDescription
+      : null;
 
   const planNames = Array.isArray(payload.planNames)
-    ? payload.planNames.filter((item): item is string => typeof item === "string")
+    ? payload.planNames.filter(
+        (item): item is string => typeof item === "string"
+      )
     : [];
 
   const customPricingHints = Array.isArray(payload.customPricingHints)
-    ? payload.customPricingHints.filter((item): item is string => typeof item === "string")
+    ? payload.customPricingHints.filter(
+        (item): item is string => typeof item === "string"
+      )
     : [];
   const oneTimePricingHints = Array.isArray(payload.oneTimePricingHints)
-    ? payload.oneTimePricingHints.filter((item): item is string => typeof item === "string")
+    ? payload.oneTimePricingHints.filter(
+        (item): item is string => typeof item === "string"
+      )
     : [];
 
   const rawPrices = Array.isArray(payload.priceMentions)
@@ -134,11 +153,19 @@ const toNormalizedPayload = (
 
   const priceMentions = rawPrices
     .map((entry) => {
-      const amount = typeof entry.amount === "number" ? entry.amount : Number(entry.amount);
-      const currency = typeof entry.currency === "string" ? entry.currency : null;
+      const amount =
+        typeof entry.amount === "number" ? entry.amount : Number(entry.amount);
+      const currency =
+        typeof entry.currency === "string" ? entry.currency : null;
       const period = typeof entry.period === "string" ? entry.period : null;
 
-      if (!Number.isFinite(amount) || amount <= 0 || !currency || !period || !isAllowedPeriod(period)) {
+      if (
+        !Number.isFinite(amount) ||
+        amount <= 0 ||
+        !currency ||
+        !period ||
+        !isAllowedPeriod(period)
+      ) {
         return null;
       }
 
@@ -148,7 +175,12 @@ const toNormalizedPayload = (
         period,
       };
     })
-    .filter((entry): entry is { amount: number; currency: string; period: PricePeriod } => !!entry);
+    .filter(
+      (
+        entry
+      ): entry is { amount: number; currency: string; period: PricePeriod } =>
+        !!entry
+    );
 
   const rawExtractedPlans = Array.isArray(payload.extractedPlans)
     ? (payload.extractedPlans as RawExtractedPlanRecord[])
@@ -162,11 +194,13 @@ const toNormalizedPayload = (
           ? entry.currency.trim().toUpperCase()
           : null;
       const monthlyPrice =
-        typeof entry.monthlyPrice === "number" && Number.isFinite(entry.monthlyPrice)
+        typeof entry.monthlyPrice === "number" &&
+        Number.isFinite(entry.monthlyPrice)
           ? entry.monthlyPrice
           : null;
       const annualPrice =
-        typeof entry.annualPrice === "number" && Number.isFinite(entry.annualPrice)
+        typeof entry.annualPrice === "number" &&
+        Number.isFinite(entry.annualPrice)
           ? entry.annualPrice
           : null;
 
@@ -183,7 +217,8 @@ const toNormalizedPayload = (
     })
     .filter((entry): entry is NormalizedExtractedPlan => entry !== null);
 
-  const rawPricingModel = typeof payload.pricingModel === "string" ? payload.pricingModel : null;
+  const rawPricingModel =
+    typeof payload.pricingModel === "string" ? payload.pricingModel : null;
   const pricingModel =
     rawPricingModel === "monthly_only" ||
     rawPricingModel === "annual_only" ||
@@ -235,7 +270,10 @@ const leaseFilter = (now: Date): FilterQuery<ICompany> => {
     type: "competitor",
     $and: [
       {
-        $or: [{ nextCrawlAt: { $exists: false } }, { nextCrawlAt: { $lte: now } }],
+        $or: [
+          { nextCrawlAt: { $exists: false } },
+          { nextCrawlAt: { $lte: now } },
+        ],
       },
       {
         $or: [
@@ -248,7 +286,10 @@ const leaseFilter = (now: Date): FilterQuery<ICompany> => {
   };
 };
 
-const claimCompanies = async (limit: number, now: Date): Promise<ClaimedCompany[]> => {
+const claimCompanies = async (
+  limit: number,
+  now: Date
+): Promise<ClaimedCompany[]> => {
   const claimed: ClaimedCompany[] = [];
   const leaseUntil = new Date(now.getTime() + CRAWL_LEASE_MS);
 
@@ -334,7 +375,10 @@ const getCompanyId = (company: ClaimedCompany): Types.ObjectId => {
   return company._id as Types.ObjectId;
 };
 
-const processCompany = async (company: ClaimedCompany, now: Date): Promise<CrawlCompanyResult> => {
+const processCompany = async (
+  company: ClaimedCompany,
+  now: Date
+): Promise<CrawlCompanyResult> => {
   const companyId = getCompanyId(company);
 
   let finalStatus: CompanyCrawlStatus = "error";
@@ -362,7 +406,10 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
         allowedDomain: company.domain,
       });
 
-      discoveredCandidates = mergePricingUrlCandidates(company.pricingUrlCandidates, discovery.candidates);
+      discoveredCandidates = mergePricingUrlCandidates(
+        company.pricingUrlCandidates,
+        discovery.candidates
+      );
       discoveredPrimaryPricingUrl = discovery.recommendedPrimaryUrl;
 
       if (discoveredPrimaryPricingUrl) {
@@ -428,7 +475,9 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
     }
 
     const extraction = await fetchAndExtractPricing(sourceUrl);
-    console.log(`[crawl-result] company=${companyId}, status=${extraction.status}, confidence=${extraction.status === "ok" ? extraction.confidence : 0}, prices=${extraction.status === "ok" ? extraction.pricingPayload.priceMentions.length : 0}, plans=${extraction.status === "ok" ? extraction.pricingPayload.planNames.length : 0}, extractedPlans=${extraction.status === "ok" ? (extraction.pricingPayload.extractedPlans?.length ?? 0) : 0}, method=${extraction.captureMethod}`);
+    console.log(
+      `[crawl-result] company=${companyId}, status=${extraction.status}, confidence=${extraction.status === "ok" ? extraction.confidence : 0}, prices=${extraction.status === "ok" ? extraction.pricingPayload.priceMentions.length : 0}, plans=${extraction.status === "ok" ? extraction.pricingPayload.planNames.length : 0}, extractedPlans=${extraction.status === "ok" ? (extraction.pricingPayload.extractedPlans?.length ?? 0) : 0}, method=${extraction.captureMethod}`
+    );
 
     if (extraction.status !== "ok") {
       finalStatus = extraction.status;
@@ -449,7 +498,10 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
     latestContentHash = extraction.contentHash;
     latestConfidence = extraction.confidence;
 
-    if (company.latestContentHash && company.latestContentHash === extraction.contentHash) {
+    if (
+      company.latestContentHash &&
+      company.latestContentHash === extraction.contentHash
+    ) {
       finalStatus = "ok";
       finalErrorMessage = null;
       skippedByHash = true;
@@ -484,11 +536,19 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
 
     snapshotCreated = true;
     changed = true;
-    console.log(`[crawl-result] SNAPSHOT CREATED id=${currentSnapshot._id}, company=${companyId}`);
+    console.log(
+      `[crawl-result] SNAPSHOT CREATED id=${currentSnapshot._id}, company=${companyId}`
+    );
 
-    const previousPayload = toNormalizedPayload(previousSnapshot?.pricingPayload);
+    const previousPayload = toNormalizedPayload(
+      previousSnapshot?.pricingPayload
+    );
     if (previousSnapshot && previousPayload) {
-      const diff = generatePricingDiff(previousPayload, extraction.pricingPayload, extraction.isVerified);
+      const diff = generatePricingDiff(
+        previousPayload,
+        extraction.pricingPayload,
+        extraction.isVerified
+      );
 
       if (diff) {
         const diffRecord = await Diff.create({
@@ -536,7 +596,8 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
     };
   } catch (error) {
     finalStatus = "error";
-    finalErrorMessage = error instanceof Error ? error.message : "Unexpected crawler error";
+    finalErrorMessage =
+      error instanceof Error ? error.message : "Unexpected crawler error";
 
     return {
       companyId: companyId.toString(),
@@ -549,7 +610,9 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
       reason: finalErrorMessage,
     };
   } finally {
-    const nextCrawlAt = new Date(now.getTime() + statusToNextDelayMs(finalStatus));
+    const nextCrawlAt = new Date(
+      now.getTime() + statusToNextDelayMs(finalStatus)
+    );
 
     const setPayload: Record<string, unknown> = {
       crawlLeaseUntil: null,
@@ -567,7 +630,8 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
     }
 
     if (attemptedDiscovery) {
-      setPayload.pricingUrlCandidates = discoveredCandidates ?? company.pricingUrlCandidates;
+      setPayload.pricingUrlCandidates =
+        discoveredCandidates ?? company.pricingUrlCandidates;
     }
 
     if (!company.primaryPricingUrl && discoveredPrimaryPricingUrl) {
@@ -596,7 +660,9 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
 
     await Company.updateOne({ _id: companyId }, updatePayload).exec();
 
-    const auditEventTypeByStatus: Partial<Record<CompanyCrawlStatus, CrawlErrorAuditEventType>> = {
+    const auditEventTypeByStatus: Partial<
+      Record<CompanyCrawlStatus, CrawlErrorAuditEventType>
+    > = {
       blocked: "crawl_blocked",
       manual_needed: "crawl_manual_needed",
       error: "crawl_error",
@@ -618,7 +684,9 @@ const processCompany = async (company: ClaimedCompany, now: Date): Promise<Crawl
   }
 };
 
-export const runCrawlBatch = async (options: RunCrawlBatchOptions = {}): Promise<CrawlBatchResult> => {
+export const runCrawlBatch = async (
+  options: RunCrawlBatchOptions = {}
+): Promise<CrawlBatchResult> => {
   await connectMongo();
 
   const startedAtDate = options.now ?? new Date();
@@ -696,7 +764,11 @@ export const runCompanyCrawl = async ({
   await connectMongo();
 
   const startedAtDate = now ?? new Date();
-  const claimedCompany = await claimSpecificCompany(companyId, userId, startedAtDate);
+  const claimedCompany = await claimSpecificCompany(
+    companyId,
+    userId,
+    startedAtDate
+  );
 
   if (claimedCompany) {
     return processCompany(claimedCompany, new Date());

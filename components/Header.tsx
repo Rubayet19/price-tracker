@@ -43,13 +43,13 @@ const Header = () => {
   return (
     <header className="bg-base-200">
       <nav
-        className="container flex items-center justify-between px-8 py-4 mx-auto"
+        className="container mx-auto flex items-center justify-between px-8 py-4"
         aria-label="Global"
       >
         {/* Your logo/name on large screens */}
         <div className="flex lg:flex-1">
           <Link
-            className="flex items-center gap-2 shrink-0 "
+            className="flex shrink-0 items-center gap-2"
             href="/"
             title={`${config.appName} homepage`}
           >
@@ -62,7 +62,7 @@ const Header = () => {
               width={32}
               height={32}
             />
-            <span className="font-extrabold text-lg">{config.appName}</span>
+            <span className="text-lg font-extrabold">{config.appName}</span>
           </Link>
         </div>
         {/* Burger button to open menu on mobile */}
@@ -79,7 +79,7 @@ const Header = () => {
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="w-6 h-6 text-base-content"
+              className="text-base-content h-6 w-6"
             >
               <path
                 strokeLinecap="round"
@@ -91,7 +91,7 @@ const Header = () => {
         </div>
 
         {/* Your links on large screens */}
-        <div className="hidden lg:flex lg:justify-center lg:gap-12 lg:items-center">
+        <div className="hidden lg:flex lg:items-center lg:justify-center lg:gap-12">
           {links.map((link) => (
             <Link
               href={link.href}
@@ -105,18 +105,18 @@ const Header = () => {
         </div>
 
         {/* CTA on large screens */}
-        <div className="hidden lg:flex lg:justify-end lg:flex-1">{cta}</div>
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end">{cta}</div>
       </nav>
 
       {/* Mobile menu, show/hide based on menu state. */}
       <div className={`relative z-50 ${isOpen ? "" : "hidden"}`}>
         <div
-          className={`fixed inset-y-0 right-0 z-10 w-full px-8 py-4 overflow-y-auto bg-base-200 sm:max-w-sm sm:ring-1 sm:ring-neutral/10 transform origin-right transition ease-in-out duration-300`}
+          className={`bg-base-200 sm:ring-neutral/10 fixed inset-y-0 right-0 z-10 w-full origin-right transform overflow-y-auto px-8 py-4 transition duration-300 ease-in-out sm:max-w-sm sm:ring-1`}
         >
           {/* Your logo/name on small screens */}
           <div className="flex items-center justify-between">
             <Link
-              className="flex items-center gap-2 shrink-0 "
+              className="flex shrink-0 items-center gap-2"
               title={`${config.appName} homepage`}
               href="/"
             >
@@ -129,7 +129,7 @@ const Header = () => {
                 width={32}
                 height={32}
               />
-              <span className="font-extrabold text-lg">{config.appName}</span>
+              <span className="text-lg font-extrabold">{config.appName}</span>
             </Link>
             <button
               type="button"
@@ -143,7 +143,7 @@ const Header = () => {
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="currentColor"
-                className="w-6 h-6"
+                className="h-6 w-6"
               >
                 <path
                   strokeLinecap="round"
@@ -155,9 +155,9 @@ const Header = () => {
           </div>
 
           {/* Your links on small screens */}
-          <div className="flow-root mt-6">
+          <div className="mt-6 flow-root">
             <div className="py-4">
-              <div className="flex flex-col gap-y-4 items-start">
+              <div className="flex flex-col items-start gap-y-4">
                 {links.map((link) => (
                   <Link
                     href={link.href}

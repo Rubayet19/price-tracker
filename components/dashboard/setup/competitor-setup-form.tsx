@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { createCompany } from "@/components/dashboard/setup/setup-api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -13,7 +19,9 @@ interface CompetitorSetupFormProps {
   competitorLimit: number;
 }
 
-export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetupFormProps) {
+export default function CompetitorSetupForm({
+  competitorLimit,
+}: CompetitorSetupFormProps) {
   const router = useRouter();
   const [name, setName] = useState<string>("");
   const [homepageUrl, setHomepageUrl] = useState<string>("");
@@ -47,7 +55,10 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
       router.push(`/dashboard/setup/competitors/${company.id}/pricing`);
       router.refresh();
     } catch (submitError) {
-      const message = submitError instanceof Error ? submitError.message : "Failed to add competitor";
+      const message =
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to add competitor";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -61,8 +72,9 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
           Add the first competitor
         </CardTitle>
         <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-[#475569]">
-          Start with the competitor that matters most. The setup flow will discover likely pricing
-          pages and ask you to confirm the final URL before tracking starts.
+          Start with the competitor that matters most. The setup flow will
+          discover likely pricing pages and ask you to confirm the final URL
+          before tracking starts.
         </CardDescription>
       </CardHeader>
 
@@ -91,15 +103,16 @@ export default function CompetitorSetupForm({ competitorLimit }: CompetitorSetup
               autoCorrect="off"
             />
             <p className="text-sm text-[#64748b]">
-              Use the homepage only. Price Tracker derives the domain and discovers pricing pages from it.
+              Use the homepage only. Price Tracker derives the domain and
+              discovers pricing pages from it.
             </p>
           </div>
         </div>
 
         <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4 text-sm leading-6 text-[#475569]">
-          Your current plan supports up to {competitorLimit} tracked competitors. Monitoring
-          runs daily, and the next step will ask you to confirm the exact pricing page
-          before tracking starts.
+          Your current plan supports up to {competitorLimit} tracked
+          competitors. Monitoring runs daily, and the next step will ask you to
+          confirm the exact pricing page before tracking starts.
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

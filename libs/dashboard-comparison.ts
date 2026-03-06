@@ -1,5 +1,8 @@
 import type { DashboardComparisonCompetitor } from "@/types/dashboard";
-import type { SelfPricingProfileData, SelfPricingPlan } from "@/types/self-pricing";
+import type {
+  SelfPricingProfileData,
+  SelfPricingPlan,
+} from "@/types/self-pricing";
 
 export type ComparisonCadence = "month" | "year";
 
@@ -58,7 +61,10 @@ const isFiniteNumber = (value: number | null): value is number => {
   return typeof value === "number" && Number.isFinite(value);
 };
 
-export const formatCurrencyAmount = (currency: string, amount: number): string => {
+export const formatCurrencyAmount = (
+  currency: string,
+  amount: number
+): string => {
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -100,7 +106,10 @@ export const getCompetitorComparisonPrices = (
   competitor: DashboardComparisonCompetitor,
   cadence: ComparisonCadence
 ): CompetitorComparisonPrice[] => {
-  const unavailableReason = getCompetitorComparisonUnavailableReason(competitor, cadence);
+  const unavailableReason = getCompetitorComparisonUnavailableReason(
+    competitor,
+    cadence
+  );
   if (unavailableReason) {
     return [];
   }
@@ -108,7 +117,8 @@ export const getCompetitorComparisonPrices = (
   const extractedPlans =
     competitor.latestSnapshot?.extractedPlans
       .map((plan) => {
-        const amount = cadence === "month" ? plan.monthlyPrice : plan.annualPrice;
+        const amount =
+          cadence === "month" ? plan.monthlyPrice : plan.annualPrice;
 
         if (!isFiniteNumber(amount) || !plan.currency) {
           return null;
@@ -121,12 +131,13 @@ export const getCompetitorComparisonPrices = (
           currency: plan.currency,
           count: 1,
           source: "plan" as const,
-          annualPriceIsPerMonth: cadence === "year" ? (plan.annualPriceIsPerMonth ?? false) : undefined,
+          annualPriceIsPerMonth:
+            cadence === "year"
+              ? (plan.annualPriceIsPerMonth ?? false)
+              : undefined,
         };
       })
-      .filter(
-        (entry): entry is NonNullable<typeof entry> => entry !== null
-      )
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       .sort((left, right) => left.minAmount - right.minAmount) ?? [];
 
   if (extractedPlans.length > 0) {
@@ -145,7 +156,9 @@ const summarizeSinglePrice = (
     return "Add your pricing baseline to compare against competitors.";
   }
 
-  const sortedSelfPrices = [...selfPrices].sort((left, right) => left.amount - right.amount);
+  const sortedSelfPrices = [...selfPrices].sort(
+    (left, right) => left.amount - right.amount
+  );
   const lowest = sortedSelfPrices[0];
   const highest = sortedSelfPrices[sortedSelfPrices.length - 1];
 
@@ -185,7 +198,10 @@ export const summarizeCompetitorComparison = (
   selfPrices: SelfComparisonPrice[],
   cadence: ComparisonCadence
 ): string => {
-  const unavailableReason = getCompetitorComparisonUnavailableReason(competitor, cadence);
+  const unavailableReason = getCompetitorComparisonUnavailableReason(
+    competitor,
+    cadence
+  );
   if (unavailableReason) {
     return unavailableReason;
   }
@@ -201,7 +217,10 @@ export const summarizeCompetitorComparison = (
   const lowestCompetitorPrice = competitorPrices[0];
   const highestCompetitorPrice = competitorPrices[competitorPrices.length - 1];
 
-  if (competitorPrices.length === 1 && lowestCompetitorPrice.minAmount === lowestCompetitorPrice.maxAmount) {
+  if (
+    competitorPrices.length === 1 &&
+    lowestCompetitorPrice.minAmount === lowestCompetitorPrice.maxAmount
+  ) {
     return summarizeSinglePrice(
       lowestCompetitorPrice.minAmount,
       selfPrices,

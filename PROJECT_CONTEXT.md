@@ -1,9 +1,11 @@
 # Price Tracker - Product Context
 
 ## Product Goal
+
 Build a competitor pricing intelligence SaaS that helps a user compare their offer against competitors and get actionable decision suggestions from verified pricing changes.
 
 ## Locked Decisions
+
 - Deploy on Vercel Hobby.
 - Plans: Starter is `$19/month` with up to `3` competitors.
 - Plans: Pro is `$49/month` with up to `10` competitors.
@@ -17,17 +19,20 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Decision engine gating: Pro = high + medium severity insights.
 
 ## Core Constraints
+
 - Vercel Hobby runtime is limited.
 - Daily crawl for all competitors must be implemented as frequent short batches, not one large nightly run.
 - Keep compute and LLM usage bounded with confidence gates and severity gates.
 
 ## Product Principles
+
 - Prefer trustworthy, low-noise output over maximum extraction coverage.
 - Separate verified vs unverified change signals.
 - Always show confidence and last-checked metadata.
 - Keep user control where certainty is low (pricing URL override, manual confirmation paths).
 
 ## Product Scope
+
 - Setup: manual self-plan entry.
 - Setup: add competitors (name + homepage).
 - Setup: discover pricing URL candidates and allow manual override.
@@ -40,6 +45,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Jobs: weekly digest route for paying users only.
 
 ## Data and Domain Model
+
 - User model additions: `trialStartedAt`, `trialEndsAt`, `trialStatus`.
 - User model additions: optional digest-tracking timestamp.
 - Company model: self/competitor identity and source URLs.
@@ -50,6 +56,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Insight model: LLM-powered recommendation with summary, move classification, 3 strategic options (price/features/positioning), thingsToCheck, watchOutFor, and watchList. Includes model/cost metadata and feedback signal.
 
 ## Entitlements and Limits
+
 - Centralize in one entitlements helper.
 - Access states: paid (`hasAccess` true) or active trial (`trialStatus` active and not expired).
 - Plan tier: paid tier comes from Stripe `priceId` mapping in config.
@@ -58,6 +65,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Enforce server-side insight generation by severity gate and cost cap. Insight model is gpt-4o-mini with rules-v1 fallback.
 
 ## Crawl and Extraction Strategy
+
 - Discovery: crawl homepage links.
 - Discovery: score likely pricing URLs.
 - Discovery: save candidates with confidence.
@@ -73,6 +81,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Failure policy: apply retry backoff.
 
 ## Diff and Insight Policy
+
 - Canonicalize extracted pricing JSON before comparisons.
 - Generate low-noise diffs with plan-level changes (tier names mapped to price deltas when extractedPlans available in both snapshots).
 - Keep only meaningful, severity-rated changes.
@@ -81,17 +90,20 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 - Preserve a verified/unverified distinction across feeds and emails.
 
 ## Email Digest Policy
+
 - Weekly only.
 - Paying users only.
 - Include verified changes from the lookback window.
 
 ## Cron and Ops
+
 - Add `vercel.json` schedule for frequent crawl batch route (10-15 min cadence).
 - Add `vercel.json` schedule for weekly digest route.
 - Protect cron endpoints with `CRON_SECRET`.
 - Use lease-based claiming to avoid duplicate crawl work.
 
 ## Edge Cases to Support
+
 - "Custom pricing" / contact-sales pages with no explicit numbers.
 - Multiple candidate pricing pages (keep one primary).
 - Currency mismatch/non-USD detection where possible.
@@ -103,6 +115,7 @@ Build a competitor pricing intelligence SaaS that helps a user compare their off
 Product is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
 
 ## Current Priority Queue
+
 - Validate production environment values before deployment (`NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `MONGODB_URI`, OAuth credentials).
 - Run a final manual QA pass on the main product flows: sign-in, setup, add competitor, billing/settings, crawl retry, and dashboard empty/error states.
 - Confirm Stripe live-mode configuration matches `config.ts` plan mapping and that billing portal is enabled in the Stripe dashboard.

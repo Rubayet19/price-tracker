@@ -4,7 +4,13 @@ import { CircleAlert, ShieldCheck } from "lucide-react";
 import SetupProgress from "@/components/dashboard/setup/setup-progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { SetupStatus, SetupStep } from "@/types/setup";
 
 interface SetupFrameProps {
@@ -43,8 +49,12 @@ export default function SetupFrame({
         >
           Setup
         </Badge>
-        <h1 className="text-4xl font-black tracking-tight text-[#0f172a]">{title}</h1>
-        <p className="max-w-3xl text-base leading-7 text-[#475569]">{description}</p>
+        <h1 className="text-4xl font-black tracking-tight text-[#0f172a]">
+          {title}
+        </h1>
+        <p className="max-w-3xl text-base leading-7 text-[#475569]">
+          {description}
+        </p>
       </div>
 
       <SetupProgress currentStep={currentStep} status={status} />
@@ -58,17 +68,22 @@ export default function SetupFrame({
               <CardTitle className="text-lg font-black tracking-tight text-[#0f172a]">
                 Access summary
               </CardTitle>
-              <CardDescription>Setup is gated by explicit trial or paid access.</CardDescription>
+              <CardDescription>
+                Setup is gated by explicit trial or paid access.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-[#475569]">
               <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
                 <p className="font-semibold text-[#0f172a]">Current access</p>
-                <p className="mt-1 capitalize">{status.entitlements.accessState.replaceAll("_", " ")}</p>
+                <p className="mt-1 capitalize">
+                  {status.entitlements.accessState.replaceAll("_", " ")}
+                </p>
               </div>
               <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
                 <p className="font-semibold text-[#0f172a]">Competitor limit</p>
                 <p className="mt-1">
-                  {status.competitorCount} of {status.entitlements.competitorLimit} competitors configured
+                  {status.competitorCount} of{" "}
+                  {status.entitlements.competitorLimit} competitors configured
                 </p>
               </div>
               <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
@@ -89,11 +104,15 @@ export default function SetupFrame({
                 Trust cues stay visible
               </CardTitle>
               <CardDescription>
-                Price Tracker keeps verification state, confidence, and crawl health attached to every competitor.
+                Price Tracker keeps verification state, confidence, and crawl
+                health attached to every competitor.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm leading-6 text-[#475569]">
-              <p>Manual confirmation is required when discovery is ambiguous or a site is blocked.</p>
+              <p>
+                Manual confirmation is required when discovery is ambiguous or a
+                site is blocked.
+              </p>
               <p>This keeps your dashboard accurate and low-noise by design.</p>
             </CardContent>
           </Card>
@@ -110,7 +129,10 @@ export default function SetupFrame({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button asChild className="w-full bg-[#0f172a] text-white hover:bg-[#1e293b]">
+                <Button
+                  asChild
+                  className="w-full bg-[#0f172a] text-white hover:bg-[#1e293b]"
+                >
                   <Link href="/#pricing">View plans</Link>
                 </Button>
               </CardContent>

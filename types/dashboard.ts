@@ -2,7 +2,12 @@ import type { PlanTier } from "@/types/entitlements";
 import type { PricingUrlCandidate } from "@/types/companies";
 import type { SelfPricingProfileData } from "@/types/self-pricing";
 
-export type DashboardCrawlStatus = "idle" | "ok" | "blocked" | "manual_needed" | "error";
+export type DashboardCrawlStatus =
+  | "idle"
+  | "ok"
+  | "blocked"
+  | "manual_needed"
+  | "error";
 export type DashboardDiffSeverity = "low" | "medium" | "high";
 export type DashboardVerificationState = "verified" | "unverified";
 

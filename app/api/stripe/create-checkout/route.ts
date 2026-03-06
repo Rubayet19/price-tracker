@@ -8,11 +8,15 @@ import config from "@/config";
 
 const ALLOWED_ORIGINS = [
   `https://${config.domainName}`,
-  ...(process.env.NODE_ENV === "development" ? ["http://localhost:3000", "http://localhost:3001"] : []),
+  ...(process.env.NODE_ENV === "development"
+    ? ["http://localhost:3000", "http://localhost:3001"]
+    : []),
 ];
 
 const isAllowedOrigin = (url: string): boolean => {
-  return ALLOWED_ORIGINS.some((origin) => url.startsWith(origin + "/") || url === origin);
+  return ALLOWED_ORIGINS.some(
+    (origin) => url.startsWith(origin + "/") || url === origin
+  );
 };
 
 const checkoutRequestSchema = z.object({
@@ -31,20 +35,37 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON payload" },
+      { status: 400 }
+    );
   }
 
   const parsed = checkoutRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid checkout payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid checkout payload" },
+      { status: 400 }
+    );
   }
 
-  if (!config.stripe.plans.some((plan) => plan.priceId === parsed.data.priceId)) {
-    return NextResponse.json({ error: "Unknown Stripe priceId" }, { status: 400 });
+  if (
+    !config.stripe.plans.some((plan) => plan.priceId === parsed.data.priceId)
+  ) {
+    return NextResponse.json(
+      { error: "Unknown Stripe priceId" },
+      { status: 400 }
+    );
   }
 
-  if (!isAllowedOrigin(parsed.data.successUrl) || !isAllowedOrigin(parsed.data.cancelUrl)) {
-    return NextResponse.json({ error: "Invalid redirect URL" }, { status: 400 });
+  if (
+    !isAllowedOrigin(parsed.data.successUrl) ||
+    !isAllowedOrigin(parsed.data.cancelUrl)
+  ) {
+    return NextResponse.json(
+      { error: "Invalid redirect URL" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -53,7 +74,7 @@ export async function POST(req: NextRequest) {
     await connectMongo();
 
     const { priceId, mode, successUrl, cancelUrl } = parsed.data;
-    
+
     let user = null;
     if (session?.user?.id) {
       const { id } = session.user;

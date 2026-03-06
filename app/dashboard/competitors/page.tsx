@@ -1,5 +1,8 @@
 import { auth } from "@/libs/auth";
-import { requireAuthenticatedDashboardUserId, requireCompletedSetup } from "@/libs/setup";
+import {
+  requireAuthenticatedDashboardUserId,
+  requireCompletedSetup,
+} from "@/libs/setup";
 import DashboardCompetitorsContent from "@/components/dashboard/dashboard-competitors-content";
 
 export default async function DashboardCompetitorsPage() {

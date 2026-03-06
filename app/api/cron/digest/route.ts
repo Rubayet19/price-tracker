@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Types } from "mongoose";
 import { acquireCronLock, releaseCronLock } from "@/libs/cron-lock";
 import { requireCronAuth } from "@/libs/cron-auth";
-import { canReceiveWeeklyDigest, resolveEntitlements } from "@/libs/entitlements";
+import {
+  canReceiveWeeklyDigest,
+  resolveEntitlements,
+} from "@/libs/entitlements";
 import connectMongo from "@/libs/mongoose";
 import Company from "@/models/Company";
 import Diff from "@/models/Diff";
@@ -65,7 +68,8 @@ const buildDigestEmail = (
   };
 
   const lines = diffs.map((diff) => {
-    const companyName = companyNameById.get(diff.companyId.toString()) ?? "Unknown company";
+    const companyName =
+      companyNameById.get(diff.companyId.toString()) ?? "Unknown company";
     return `- [${diff.severity.toUpperCase()}] ${companyName} at ${formatDateTime(diff.detectedAt)}`;
   });
 
@@ -79,7 +83,8 @@ const buildDigestEmail = (
 
   const htmlItems = diffs
     .map((diff) => {
-      const companyName = companyNameById.get(diff.companyId.toString()) ?? "Unknown company";
+      const companyName =
+        companyNameById.get(diff.companyId.toString()) ?? "Unknown company";
       return `<li><strong>${diff.severity.toUpperCase()}</strong> - ${companyName} at ${formatDateTime(diff.detectedAt)}</li>`;
     })
     .join("");
@@ -110,7 +115,8 @@ const sendDigestEmail = async (args: {
     await resend.sendEmail(args);
     return { ok: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Digest email send failed";
+    const message =
+      error instanceof Error ? error.message : "Digest email send failed";
     return {
       ok: false,
       error: message,
@@ -165,7 +171,10 @@ const handleDigest = async (): Promise<NextResponse> => {
 
     eligibleUsers += 1;
 
-    if (user.lastDigestSentAt && user.lastDigestSentAt.getTime() >= lookbackStart.getTime()) {
+    if (
+      user.lastDigestSentAt &&
+      user.lastDigestSentAt.getTime() >= lookbackStart.getTime()
+    ) {
       usersSkippedRecentlySent += 1;
       continue;
     }
@@ -188,7 +197,9 @@ const handleDigest = async (): Promise<NextResponse> => {
 
     usersWithVerifiedDiffs += 1;
 
-    const companyIds = [...new Set(verifiedDiffs.map((diff) => diff.companyId.toString()))];
+    const companyIds = [
+      ...new Set(verifiedDiffs.map((diff) => diff.companyId.toString())),
+    ];
     const companies = await Company.find({ _id: { $in: companyIds } })
       .select({ name: 1 })
       .lean<CompanyNameRecord[]>()
@@ -199,7 +210,12 @@ const handleDigest = async (): Promise<NextResponse> => {
       companyNameById.set(company._id.toString(), company.name);
     }
 
-    const digestEmail = buildDigestEmail(verifiedDiffs, companyNameById, lookbackStart, now);
+    const digestEmail = buildDigestEmail(
+      verifiedDiffs,
+      companyNameById,
+      lookbackStart,
+      now
+    );
     const sendResult = await sendDigestEmail({
       to: user.email,
       subject: digestEmail.subject,
@@ -217,7 +233,10 @@ const handleDigest = async (): Promise<NextResponse> => {
     }
 
     emailsSent += 1;
-    await User.updateOne({ _id: user._id }, { $set: { lastDigestSentAt: now } }).exec();
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { lastDigestSentAt: now } }
+    ).exec();
   }
 
   return NextResponse.json(
@@ -276,7 +295,8 @@ const handle = async (request: NextRequest): Promise<NextResponse> => {
       await releaseCronLock(DIGEST_CRON_LOCK_KEY, lock.ownerId);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to run weekly digest";
+    const message =
+      error instanceof Error ? error.message : "Failed to run weekly digest";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 };

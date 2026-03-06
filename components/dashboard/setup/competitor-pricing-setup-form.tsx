@@ -11,7 +11,13 @@ import {
 } from "@/components/dashboard/setup/setup-api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { SetupCompetitor } from "@/types/setup";
@@ -46,10 +52,16 @@ export default function CompetitorPricingSetupForm({
 }: CompetitorPricingSetupFormProps) {
   const router = useRouter();
   const [candidates, setCandidates] = useState(competitor.pricingUrlCandidates);
-  const [suggestedUrl, setSuggestedUrl] = useState<string | null>(competitor.primaryPricingUrl);
-  const [selectedCandidateUrl, setSelectedCandidateUrl] = useState<string | null>(
+  const [suggestedUrl, setSuggestedUrl] = useState<string | null>(
+    competitor.primaryPricingUrl
+  );
+  const [selectedCandidateUrl, setSelectedCandidateUrl] = useState<
+    string | null
+  >(
     competitor.primaryPricingUrl ??
-      competitor.pricingUrlCandidates.find((candidate) => candidate.selectedByUser)?.url ??
+      competitor.pricingUrlCandidates.find(
+        (candidate) => candidate.selectedByUser
+      )?.url ??
       null
   );
   const [manualUrl, setManualUrl] = useState<string>("");
@@ -75,17 +87,22 @@ export default function CompetitorPricingSetupForm({
     try {
       const response = await discoverPricingUrls(competitor.companyId);
       setCandidates(response.candidates);
-      setSuggestedUrl(response.primaryPricingUrl ?? response.recommendedPrimaryUrl ?? null);
+      setSuggestedUrl(
+        response.primaryPricingUrl ?? response.recommendedPrimaryUrl ?? null
+      );
       setSelectedCandidateUrl(
         response.primaryPricingUrl ??
           response.recommendedPrimaryUrl ??
-          response.candidates.find((candidate) => candidate.selectedByUser)?.url ??
+          response.candidates.find((candidate) => candidate.selectedByUser)
+            ?.url ??
           null
       );
       toast.success("Pricing discovery refreshed");
     } catch (discoverError) {
       const message =
-        discoverError instanceof Error ? discoverError.message : "Failed to discover pricing URLs";
+        discoverError instanceof Error
+          ? discoverError.message
+          : "Failed to discover pricing URLs";
       setError(message);
     } finally {
       setIsDiscovering(false);
@@ -104,7 +121,9 @@ export default function CompetitorPricingSetupForm({
     try {
       await updatePrimaryPricingUrl(
         competitor.companyId,
-        selectedCandidateUrl ? { candidateUrl: selectedCandidateUrl } : { url: manualUrl.trim() }
+        selectedCandidateUrl
+          ? { candidateUrl: selectedCandidateUrl }
+          : { url: manualUrl.trim() }
       );
       const crawlResponse = await crawlCompanyNow(competitor.companyId);
 
@@ -122,7 +141,9 @@ export default function CompetitorPricingSetupForm({
       router.refresh();
     } catch (submitError) {
       const message =
-        submitError instanceof Error ? submitError.message : "Failed to save the pricing URL";
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to save the pricing URL";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -138,11 +159,15 @@ export default function CompetitorPricingSetupForm({
               Confirm the primary pricing page
             </CardTitle>
             <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-[#475569]">
-              Discovery is conservative by design. Confirm the exact URL you want monitored before
-              Price Tracker runs the first crawl and starts trusting changes from this competitor.
+              Discovery is conservative by design. Confirm the exact URL you
+              want monitored before Price Tracker runs the first crawl and
+              starts trusting changes from this competitor.
             </CardDescription>
           </div>
-          <Badge variant="outline" className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]">
+          <Badge
+            variant="outline"
+            className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]"
+          >
             {competitor.domain}
           </Badge>
         </div>
@@ -152,20 +177,26 @@ export default function CompetitorPricingSetupForm({
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
             <p className="text-sm font-semibold text-[#0f172a]">Crawl status</p>
-            <p className="mt-2 text-sm capitalize text-[#475569]">
+            <p className="mt-2 text-sm text-[#475569] capitalize">
               {competitor.lastCrawlStatus.replaceAll("_", " ")}
             </p>
           </div>
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
             <p className="text-sm font-semibold text-[#0f172a]">Last checked</p>
-            <p className="mt-2 text-sm text-[#475569]">{formatDateTime(competitor.lastCrawlAt)}</p>
+            <p className="mt-2 text-sm text-[#475569]">
+              {formatDateTime(competitor.lastCrawlAt)}
+            </p>
           </div>
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
             <p className="text-sm font-semibold text-[#0f172a]">Confidence</p>
-            <p className="mt-2 text-sm text-[#475569]">{formatConfidence(competitor.latestConfidence)}</p>
+            <p className="mt-2 text-sm text-[#475569]">
+              {formatConfidence(competitor.latestConfidence)}
+            </p>
           </div>
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4 md:col-span-3">
-            <p className="text-sm font-semibold text-[#0f172a]">Monitoring cadence</p>
+            <p className="text-sm font-semibold text-[#0f172a]">
+              Monitoring cadence
+            </p>
             <p className="mt-2 text-sm text-[#475569]">
               Daily. Confirm the pricing source below to start monitoring.
             </p>
@@ -174,10 +205,14 @@ export default function CompetitorPricingSetupForm({
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
           <div>
-            <p className="text-sm font-semibold text-[#0f172a]">Discovery status</p>
+            <p className="text-sm font-semibold text-[#0f172a]">
+              Discovery status
+            </p>
             <p className="mt-1 text-sm text-[#475569]">{discoverySummary}</p>
             {suggestedUrl ? (
-              <p className="mt-2 text-sm text-[#64748b]">Suggested: {suggestedUrl}</p>
+              <p className="mt-2 text-sm text-[#64748b]">
+                Suggested: {suggestedUrl}
+              </p>
             ) : null}
           </div>
           <Button
@@ -189,7 +224,9 @@ export default function CompetitorPricingSetupForm({
             disabled={isDiscovering || !hasHomepageUrl}
             className="bg-white"
           >
-            <RefreshCw className={isDiscovering ? "size-4 animate-spin" : "size-4"} />
+            <RefreshCw
+              className={isDiscovering ? "size-4 animate-spin" : "size-4"}
+            />
             {isDiscovering ? "Refreshing..." : "Refresh discovery"}
           </Button>
         </div>
@@ -197,12 +234,19 @@ export default function CompetitorPricingSetupForm({
         {candidates.length > 0 ? (
           <div className="space-y-3">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-[#0f172a]">Step 1: choose one pricing source</p>
+              <p className="text-sm font-semibold text-[#0f172a]">
+                Step 1: choose one pricing source
+              </p>
               <p className="text-sm text-[#64748b]">
-                Click a candidate below to select it, or paste a manual URL instead.
+                Click a candidate below to select it, or paste a manual URL
+                instead.
               </p>
             </div>
-            <div role="radiogroup" aria-label="Discovered pricing URL candidates" className="space-y-3">
+            <div
+              role="radiogroup"
+              aria-label="Discovered pricing URL candidates"
+              className="space-y-3"
+            >
               {candidates.map((candidate) => {
                 const isSelected = selectedCandidateUrl === candidate.url;
                 const isSuggested = suggestedUrl === candidate.url;
@@ -226,12 +270,19 @@ export default function CompetitorPricingSetupForm({
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
                         <span className="mt-0.5 text-[#0f766e]">
-                          {isSelected ? <CheckCircle2 className="size-5" /> : <Circle className="size-5" />}
+                          {isSelected ? (
+                            <CheckCircle2 className="size-5" />
+                          ) : (
+                            <Circle className="size-5" />
+                          )}
                         </span>
                         <div className="min-w-0">
-                          <p className="font-medium text-[#0f172a]">{candidate.url}</p>
+                          <p className="font-medium text-[#0f172a]">
+                            {candidate.url}
+                          </p>
                           <p className="mt-2 text-sm text-[#64748b]">
-                            {Math.round(candidate.confidence * 100)}% discovery confidence
+                            {Math.round(candidate.confidence * 100)}% discovery
+                            confidence
                           </p>
                         </div>
                       </div>
@@ -270,7 +321,9 @@ export default function CompetitorPricingSetupForm({
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="manual-pricing-url">Step 2: or paste a manual pricing URL</Label>
+          <Label htmlFor="manual-pricing-url">
+            Step 2: or paste a manual pricing URL
+          </Label>
           <Input
             id="manual-pricing-url"
             value={manualUrl}
@@ -282,7 +335,8 @@ export default function CompetitorPricingSetupForm({
             inputMode="url"
           />
           <p className="text-sm text-[#64748b]">
-            Use this when the discovered candidates miss the exact pricing page you want.
+            Use this when the discovered candidates miss the exact pricing page
+            you want.
           </p>
         </div>
 
@@ -294,8 +348,8 @@ export default function CompetitorPricingSetupForm({
 
         {!hasHomepageUrl ? (
           <p className="rounded-xl border border-[#f59e0b]/30 bg-[#fffbeb] px-4 py-3 text-sm text-[#92400e]">
-            This competitor does not have a homepage URL saved yet, so discovery is disabled. Enter
-            the pricing URL manually for now.
+            This competitor does not have a homepage URL saved yet, so discovery
+            is disabled. Enter the pricing URL manually for now.
           </p>
         ) : null}
 
@@ -308,7 +362,9 @@ export default function CompetitorPricingSetupForm({
             disabled={isSubmitting || !activeSelection}
             className="bg-[#0f766e] text-white hover:bg-[#115e59]"
           >
-            {isSubmitting ? "Confirming and crawling..." : "Confirm URL and run first crawl"}
+            {isSubmitting
+              ? "Confirming and crawling..."
+              : "Confirm URL and run first crawl"}
           </Button>
         </div>
 

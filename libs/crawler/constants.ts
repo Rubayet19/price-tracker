@@ -1,7 +1,10 @@
 export const DEFAULT_CRAWL_BATCH_LIMIT = 3;
 export const MAX_CRAWL_BATCH_LIMIT = 20;
 
-const parseIntFromEnv = (value: string | undefined, fallback: number): number => {
+const parseIntFromEnv = (
+  value: string | undefined,
+  fallback: number
+): number => {
   if (!value) {
     return fallback;
   }
@@ -19,14 +22,20 @@ export const CRAWL_BATCH_LIMIT = parseIntFromEnv(
   DEFAULT_CRAWL_BATCH_LIMIT
 );
 
-export const CRAWL_LEASE_MS = parseIntFromEnv(process.env.CRAWL_LEASE_MS, 6 * 60 * 1000);
+export const CRAWL_LEASE_MS = parseIntFromEnv(
+  process.env.CRAWL_LEASE_MS,
+  6 * 60 * 1000
+);
 
 export const SUCCESS_CRAWL_DELAY_MS = parseIntFromEnv(
   process.env.CRAWL_SUCCESS_DELAY_MS,
   24 * 60 * 60 * 1000
 );
 
-export const ERROR_BACKOFF_MS = parseIntFromEnv(process.env.CRAWL_ERROR_BACKOFF_MS, 6 * 60 * 60 * 1000);
+export const ERROR_BACKOFF_MS = parseIntFromEnv(
+  process.env.CRAWL_ERROR_BACKOFF_MS,
+  6 * 60 * 60 * 1000
+);
 export const BLOCKED_BACKOFF_MS = parseIntFromEnv(
   process.env.CRAWL_BLOCKED_BACKOFF_MS,
   36 * 60 * 60 * 1000
@@ -36,8 +45,14 @@ export const MANUAL_NEEDED_BACKOFF_MS = parseIntFromEnv(
   48 * 60 * 60 * 1000
 );
 
-export const FETCH_TIMEOUT_MS = parseIntFromEnv(process.env.CRAWL_FETCH_TIMEOUT_MS, 15_000);
-export const MAX_HTML_LENGTH = parseIntFromEnv(process.env.CRAWL_MAX_HTML_LENGTH, 1_000_000);
+export const FETCH_TIMEOUT_MS = parseIntFromEnv(
+  process.env.CRAWL_FETCH_TIMEOUT_MS,
+  15_000
+);
+export const MAX_HTML_LENGTH = parseIntFromEnv(
+  process.env.CRAWL_MAX_HTML_LENGTH,
+  1_000_000
+);
 export const PLAYWRIGHT_EXTRACTION_TIMEOUT_MS = parseIntFromEnv(
   process.env.CRAWL_PLAYWRIGHT_TIMEOUT_MS,
   20_000

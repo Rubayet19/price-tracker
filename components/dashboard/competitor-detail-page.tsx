@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, ExternalLink, RefreshCw, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Circle,
+  ExternalLink,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import {
   deleteCompetitor,
@@ -17,7 +25,13 @@ import type { DashboardComparisonCompetitor } from "@/types/dashboard";
 import type { PricingUrlCandidate } from "@/types/companies";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -37,17 +51,22 @@ const formatDate = (value: string | null): string => {
 
 const deriveDomain = (homepageUrl: string): string | null => {
   try {
-    const url = new URL(homepageUrl.includes("://") ? homepageUrl : `https://${homepageUrl}`);
+    const url = new URL(
+      homepageUrl.includes("://") ? homepageUrl : `https://${homepageUrl}`
+    );
     return url.hostname.toLowerCase().replace(/^www\./, "");
   } catch {
     return null;
   }
 };
 
-export default function CompetitorDetailPage({ companyId }: CompetitorDetailPageProps) {
+export default function CompetitorDetailPage({
+  companyId,
+}: CompetitorDetailPageProps) {
   const router = useRouter();
 
-  const [competitor, setCompetitor] = useState<DashboardComparisonCompetitor | null>(null);
+  const [competitor, setCompetitor] =
+    useState<DashboardComparisonCompetitor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -59,7 +78,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
 
   // Pricing source form
   const [candidates, setCandidates] = useState<PricingUrlCandidate[]>([]);
-  const [selectedCandidateUrl, setSelectedCandidateUrl] = useState<string | null>(null);
+  const [selectedCandidateUrl, setSelectedCandidateUrl] = useState<
+    string | null
+  >(null);
   const [manualUrl, setManualUrl] = useState("");
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSavingPricing, setIsSavingPricing] = useState(false);
@@ -86,7 +107,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
         match.pricingUrlCandidates.find((c) => c.selectedByUser)?.url ?? null
       );
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Failed to load competitor");
+      setLoadError(
+        error instanceof Error ? error.message : "Failed to load competitor"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -96,15 +119,21 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
     void loadCompetitor();
   }, [loadCompetitor]);
 
-  const derivedDomain = useMemo(() => deriveDomain(editHomepageUrl), [editHomepageUrl]);
-  const domainWillChange = competitor ? derivedDomain !== null && derivedDomain !== competitor.domain : false;
+  const derivedDomain = useMemo(
+    () => deriveDomain(editHomepageUrl),
+    [editHomepageUrl]
+  );
+  const domainWillChange = competitor
+    ? derivedDomain !== null && derivedDomain !== competitor.domain
+    : false;
 
   const hasDetailsChanges =
     competitor !== null &&
     (editName.trim() !== competitor.name ||
       editHomepageUrl.trim() !== (competitor.homepageUrl ?? ""));
 
-  const currentPricingSelection = selectedCandidateUrl ?? manualUrl.trim() ?? "";
+  const currentPricingSelection =
+    selectedCandidateUrl ?? manualUrl.trim() ?? "";
 
   const onSaveDetails = async () => {
     if (!competitor) return;
@@ -114,14 +143,21 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
     try {
       const payload: { name?: string; homepageUrl?: string } = {};
       if (editName.trim() !== competitor.name) payload.name = editName.trim();
-      if (editHomepageUrl.trim() !== (competitor.homepageUrl ?? "")) payload.homepageUrl = editHomepageUrl.trim();
+      if (editHomepageUrl.trim() !== (competitor.homepageUrl ?? ""))
+        payload.homepageUrl = editHomepageUrl.trim();
 
       const result = await updateCompetitorDetails(companyId, payload);
-      toast.success(result.domainChanged ? "Details saved — domain changed, pricing source reset" : "Details saved");
+      toast.success(
+        result.domainChanged
+          ? "Details saved — domain changed, pricing source reset"
+          : "Details saved"
+      );
       window.dispatchEvent(new Event("competitor:added"));
       await loadCompetitor();
     } catch (error) {
-      setDetailsError(error instanceof Error ? error.message : "Failed to save details");
+      setDetailsError(
+        error instanceof Error ? error.message : "Failed to save details"
+      );
     } finally {
       setIsSavingDetails(false);
     }
@@ -143,7 +179,11 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
       }
       toast.success("Pricing discovery refreshed");
     } catch (error) {
-      setPricingError(error instanceof Error ? error.message : "Failed to discover pricing URLs");
+      setPricingError(
+        error instanceof Error
+          ? error.message
+          : "Failed to discover pricing URLs"
+      );
     } finally {
       setIsDiscovering(false);
     }
@@ -160,7 +200,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
     try {
       await updateCompetitorPrimaryPricing(
         companyId,
-        selectedCandidateUrl ? { candidateUrl: selectedCandidateUrl } : { url: manualUrl.trim() }
+        selectedCandidateUrl
+          ? { candidateUrl: selectedCandidateUrl }
+          : { url: manualUrl.trim() }
       );
 
       if (scheduleCrawl) {
@@ -181,7 +223,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
       window.dispatchEvent(new Event("competitor:added"));
       await loadCompetitor();
     } catch (error) {
-      setPricingError(error instanceof Error ? error.message : "Failed to save pricing source");
+      setPricingError(
+        error instanceof Error ? error.message : "Failed to save pricing source"
+      );
     } finally {
       setIsSavingPricing(false);
     }
@@ -198,7 +242,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
       router.push("/dashboard/competitors");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete competitor");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete competitor"
+      );
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -252,10 +298,14 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
                 Competitor details
               </CardTitle>
               <CardDescription className="mt-1 text-sm text-[#475569]">
-                Edit the competitor name and homepage. Domain is derived from the homepage URL.
+                Edit the competitor name and homepage. Domain is derived from
+                the homepage URL.
               </CardDescription>
             </div>
-            <Badge variant="outline" className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]">
+            <Badge
+              variant="outline"
+              className="border-[#cbd5e1] bg-[#f8fafc] text-[#475569]"
+            >
               {competitor.domain}
             </Badge>
           </div>
@@ -290,8 +340,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
             <div className="flex items-start gap-3 rounded-xl border border-[#f59e0b]/30 bg-[#fffbeb] px-4 py-3">
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[#d97706]" />
               <p className="text-sm text-[#92400e]">
-                Changing the domain will reset the pricing source and require a new crawl.
-                Existing snapshots and diffs will remain but new data will come from the updated domain.
+                Changing the domain will reset the pricing source and require a
+                new crawl. Existing snapshots and diffs will remain but new data
+                will come from the updated domain.
               </p>
             </div>
           )}
@@ -303,7 +354,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
           )}
 
           <Button
-            onClick={() => { void onSaveDetails(); }}
+            onClick={() => {
+              void onSaveDetails();
+            }}
             disabled={isSavingDetails || !hasDetailsChanges || !editName.trim()}
             className="bg-[#0f172a] text-white hover:bg-[#1e293b]"
           >
@@ -319,7 +372,8 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
             Pricing source
           </CardTitle>
           <CardDescription className="mt-1 text-sm text-[#475569]">
-            Confirm the exact pricing page to monitor. Price Tracker will check this URL daily.
+            Confirm the exact pricing page to monitor. Price Tracker will check
+            this URL daily.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -327,7 +381,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-[#0f172a]">Current source</p>
+                <p className="text-sm font-semibold text-[#0f172a]">
+                  Current source
+                </p>
                 {competitor.primaryPricingUrl ? (
                   <a
                     href={competitor.primaryPricingUrl}
@@ -339,13 +395,16 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
                     <ExternalLink className="size-3.5" />
                   </a>
                 ) : (
-                  <p className="mt-1 text-sm text-[#c2410c]">No pricing source confirmed yet.</p>
+                  <p className="mt-1 text-sm text-[#c2410c]">
+                    No pricing source confirmed yet.
+                  </p>
                 )}
               </div>
               <Badge
                 variant="outline"
                 className={
-                  competitor.trust.lastCrawlStatus === "error" || competitor.trust.blockedOrManualNeeded
+                  competitor.trust.lastCrawlStatus === "error" ||
+                  competitor.trust.blockedOrManualNeeded
                     ? "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]"
                     : "border-[#16a34a]/35 bg-[#f0fdf4] text-[#166534]"
                 }
@@ -366,7 +425,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
           {/* Discovery */}
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
             <div>
-              <p className="text-sm font-semibold text-[#0f172a]">Discovery candidates</p>
+              <p className="text-sm font-semibold text-[#0f172a]">
+                Discovery candidates
+              </p>
               <p className="text-sm text-[#64748b]">
                 {candidates.length > 0
                   ? `${candidates.length} candidate${candidates.length === 1 ? "" : "s"} available`
@@ -376,18 +437,26 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
             <Button
               type="button"
               variant="outline"
-              onClick={() => { void onDiscover(); }}
+              onClick={() => {
+                void onDiscover();
+              }}
               disabled={isDiscovering || !competitor.homepageUrl}
               className="bg-white"
             >
-              <RefreshCw className={isDiscovering ? "size-4 animate-spin" : "size-4"} />
+              <RefreshCw
+                className={isDiscovering ? "size-4 animate-spin" : "size-4"}
+              />
               {isDiscovering ? "Refreshing..." : "Refresh discovery"}
             </Button>
           </div>
 
           {/* Candidate list */}
           {candidates.length > 0 && (
-            <div role="radiogroup" aria-label="Discovered pricing URL candidates" className="space-y-2">
+            <div
+              role="radiogroup"
+              aria-label="Discovered pricing URL candidates"
+              className="space-y-2"
+            >
               {candidates.map((candidate) => {
                 const isSelected = currentPricingSelection === candidate.url;
 
@@ -410,11 +479,20 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
                         <span className="mt-0.5 text-[#0f766e]">
-                          {isSelected ? <CheckCircle2 className="size-5" /> : <Circle className="size-5" />}
+                          {isSelected ? (
+                            <CheckCircle2 className="size-5" />
+                          ) : (
+                            <Circle className="size-5" />
+                          )}
                         </span>
-                        <p className="min-w-0 break-all font-medium text-[#0f172a]">{candidate.url}</p>
+                        <p className="min-w-0 font-medium break-all text-[#0f172a]">
+                          {candidate.url}
+                        </p>
                       </div>
-                      <Badge variant="outline" className="border-[#cbd5e1] bg-white text-[#475569]">
+                      <Badge
+                        variant="outline"
+                        className="border-[#cbd5e1] bg-white text-[#475569]"
+                      >
                         {Math.round(candidate.confidence * 100)}%
                       </Badge>
                     </div>
@@ -426,7 +504,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
 
           {/* Manual URL */}
           <div className="space-y-2">
-            <Label htmlFor="detail-manual-pricing-url">Manual pricing URL</Label>
+            <Label htmlFor="detail-manual-pricing-url">
+              Manual pricing URL
+            </Label>
             <Input
               id="detail-manual-pricing-url"
               value={manualUrl}
@@ -438,7 +518,8 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
               inputMode="url"
             />
             <p className="text-sm text-[#64748b]">
-              Use manual entry when discovery is blocked or the exact pricing page is not in the candidate list.
+              Use manual entry when discovery is blocked or the exact pricing
+              page is not in the candidate list.
             </p>
           </div>
 
@@ -452,14 +533,18 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
             <Button
               type="button"
               variant="outline"
-              onClick={() => { void onSavePricing(false); }}
+              onClick={() => {
+                void onSavePricing(false);
+              }}
               disabled={isSavingPricing || !currentPricingSelection}
             >
               {isSavingPricing ? "Saving..." : "Save pricing source"}
             </Button>
             <Button
               type="button"
-              onClick={() => { void onSavePricing(true); }}
+              onClick={() => {
+                void onSavePricing(true);
+              }}
               disabled={isSavingPricing || !currentPricingSelection}
               className="bg-[#0f766e] text-white hover:bg-[#115e59]"
             >
@@ -472,11 +557,14 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
       {/* Section C: Danger Zone */}
       <Card className="border-[#fecaca] bg-white/95">
         <CardHeader>
-          <CardTitle className="text-lg font-bold text-[#991b1b]">Danger zone</CardTitle>
+          <CardTitle className="text-lg font-bold text-[#991b1b]">
+            Danger zone
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-[#7f1d1d]">
-            Deleting this competitor removes all stored snapshots, diffs, and insights permanently.
+            Deleting this competitor removes all stored snapshots, diffs, and
+            insights permanently.
           </p>
           {showDeleteConfirm ? (
             <div className="mt-4 space-y-3">
@@ -487,7 +575,9 @@ export default function CompetitorDetailPage({ companyId }: CompetitorDetailPage
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={() => { void onDelete(); }}
+                  onClick={() => {
+                    void onDelete();
+                  }}
                   disabled={isDeleting}
                 >
                   <Trash2 className="size-4" />

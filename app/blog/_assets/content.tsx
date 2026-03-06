@@ -80,7 +80,7 @@ const socialIcons: {
         x="0px"
         y="0px"
         viewBox="0 0 1668.56 1221.19"
-        className="w-9 h-9"
+        className="h-9 w-9"
         // Using a dark theme? ->  className="w-9 h-9 fill-white"
       >
         <g id="layer1" transform="translate(52.390088,-25.058597)">
@@ -97,7 +97,7 @@ const socialIcons: {
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        className="w-6 h-6"
+        className="h-6 w-6"
         // Using a dark theme? ->  className="w-6 h-6 fill-white"
         viewBox="0 0 24 24"
       >
@@ -110,7 +110,7 @@ const socialIcons: {
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        className="w-6 h-6"
+        className="h-6 w-6"
         // Using a dark theme? ->  className="w-6 h-6 fill-white"
         viewBox="0 0 24 24"
       >

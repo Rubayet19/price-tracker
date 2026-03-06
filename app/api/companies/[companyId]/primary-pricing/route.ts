@@ -63,7 +63,10 @@ const setSelectedCandidate = (
   }));
 };
 
-export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext
+): Promise<NextResponse> {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -80,7 +83,10 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON payload" },
+      { status: 400 }
+    );
   }
 
   const parsed = pricingSelectionSchema.safeParse(body);
@@ -93,7 +99,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 
   const candidateUrlInput = parsed.data.candidateUrl?.trim();
   const selectedUrlInput = candidateUrlInput || parsed.data.url;
-  const normalizedSelectedUrl = selectedUrlInput ? normalizeUrl(selectedUrlInput) : null;
+  const normalizedSelectedUrl = selectedUrlInput
+    ? normalizeUrl(selectedUrlInput)
+    : null;
 
   if (!normalizedSelectedUrl) {
     return NextResponse.json({ error: "Invalid pricing URL" }, { status: 400 });
@@ -162,7 +170,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       );
     }
 
-    const mergedCandidates = mergePricingUrlCandidates(company.pricingUrlCandidates);
+    const mergedCandidates = mergePricingUrlCandidates(
+      company.pricingUrlCandidates
+    );
     const selectingExistingCandidate = Boolean(candidateUrlInput);
 
     if (selectingExistingCandidate) {
@@ -202,7 +212,10 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 
     const previousPrimaryPricingUrl = company.primaryPricingUrl ?? null;
     company.primaryPricingUrl = normalizedSelectedUrl;
-    company.pricingUrlCandidates = setSelectedCandidate(nextCandidates, normalizedSelectedUrl);
+    company.pricingUrlCandidates = setSelectedCandidate(
+      nextCandidates,
+      normalizedSelectedUrl
+    );
     await company.save();
 
     await logAuditEvent({
@@ -251,6 +264,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         reason: error instanceof Error ? error.message : "unknown_error",
       },
     });
-    return NextResponse.json({ error: "Failed to update primary pricing URL" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update primary pricing URL" },
+      { status: 500 }
+    );
   }
 }

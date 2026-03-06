@@ -80,6 +80,9 @@ selfPricingProfileSchema.plugin(toJSON);
 
 const SelfPricingProfile =
   (mongoose.models.SelfPricingProfile as Model<ISelfPricingProfile>) ||
-  mongoose.model<ISelfPricingProfile>("SelfPricingProfile", selfPricingProfileSchema);
+  mongoose.model<ISelfPricingProfile>(
+    "SelfPricingProfile",
+    selfPricingProfileSchema
+  );
 
 export default SelfPricingProfile;

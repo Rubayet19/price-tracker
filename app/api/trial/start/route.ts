@@ -116,6 +116,9 @@ export async function POST() {
         reason: error instanceof Error ? error.message : "unknown_error",
       },
     });
-    return NextResponse.json({ error: "Failed to start trial" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to start trial" },
+      { status: 500 }
+    );
   }
 }

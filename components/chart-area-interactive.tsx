@@ -1,7 +1,16 @@
 import { Clock3, ShieldAlert, ShieldCheck, Waypoints } from "lucide-react";
-import type { DashboardFeedRow, DashboardOverviewResponse } from "@/types/dashboard";
+import type {
+  DashboardFeedRow,
+  DashboardOverviewResponse,
+} from "@/types/dashboard";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 interface ChartAreaInteractiveProps {
@@ -39,13 +48,18 @@ const formatRelativeTime = (value: string): string => {
 const toConfidenceText = (rows: DashboardFeedRow[]): string => {
   const confidenceValues = rows
     .map((row) => row.company.latestConfidence)
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    .filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isFinite(value)
+    );
 
   if (confidenceValues.length === 0) {
     return "No confidence samples yet";
   }
 
-  const average = confidenceValues.reduce((total, value) => total + value, 0) / confidenceValues.length;
+  const average =
+    confidenceValues.reduce((total, value) => total + value, 0) /
+    confidenceValues.length;
   return `${Math.round(average * 100)}% avg confidence`;
 };
 
@@ -54,23 +68,33 @@ const toVerificationRate = (rows: DashboardFeedRow[]): string => {
     return "No recent feed rows";
   }
 
-  const verifiedCount = rows.filter((row) => row.verificationState === "verified").length;
+  const verifiedCount = rows.filter(
+    (row) => row.verificationState === "verified"
+  ).length;
   return `${Math.round((verifiedCount / rows.length) * 100)}% verified in feed`;
 };
 
-export function ChartAreaInteractive({ overview, rows, isLoading }: ChartAreaInteractiveProps) {
+export function ChartAreaInteractive({
+  overview,
+  rows,
+  isLoading,
+}: ChartAreaInteractiveProps) {
   const latestDetectedAt = rows[0]?.detectedAt ?? null;
   const blockedSources =
-    (overview?.competitorStatusCounts.blocked ?? 0) + (overview?.competitorStatusCounts.manual_needed ?? 0);
+    (overview?.competitorStatusCounts.blocked ?? 0) +
+    (overview?.competitorStatusCounts.manual_needed ?? 0);
   const totalCompetitors = overview?.companyCounts.competitor ?? 0;
 
   return (
     <Card className="border-[#0f172a]/10 bg-white/90 shadow-[0_18px_35px_-28px_rgba(2,6,23,0.7)]">
       <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <CardTitle className="text-xl font-black tracking-tight text-[#0f172a]">Trust signal overview</CardTitle>
+          <CardTitle className="text-xl font-black tracking-tight text-[#0f172a]">
+            Trust signal overview
+          </CardTitle>
           <CardDescription className="mt-1 text-[#475569]">
-            Confidence, verification, and crawl health are visible before acting on a pricing change.
+            Confidence, verification, and crawl health are visible before acting
+            on a pricing change.
           </CardDescription>
         </div>
         <Badge
@@ -81,36 +105,65 @@ export function ChartAreaInteractive({ overview, rows, isLoading }: ChartAreaInt
               : "border-[#16a34a]/35 bg-[#f0fdf4] text-[#166534]"
           }
         >
-          {blockedSources > 0 ? <ShieldAlert className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
-          {blockedSources > 0 ? `${blockedSources} sources need review` : "All sources healthy"}
+          {blockedSources > 0 ? (
+            <ShieldAlert className="size-3.5" />
+          ) : (
+            <ShieldCheck className="size-3.5" />
+          )}
+          {blockedSources > 0
+            ? `${blockedSources} sources need review`
+            : "All sources healthy"}
         </Badge>
       </CardHeader>
 
       <CardContent className="grid gap-4 md:grid-cols-3">
         <article className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0f766e]">Latest feed update</p>
+          <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
+            Latest feed update
+          </p>
           <p className="mt-2 text-lg font-bold text-[#0f172a]">
-            {isLoading ? "Loading..." : latestDetectedAt ? formatRelativeTime(latestDetectedAt) : "No changes yet"}
+            {isLoading
+              ? "Loading..."
+              : latestDetectedAt
+                ? formatRelativeTime(latestDetectedAt)
+                : "No changes yet"}
           </p>
           <p className="mt-1 text-sm text-[#475569]">
             {latestDetectedAt
-              ? new Date(latestDetectedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+              ? new Date(latestDetectedAt).toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
               : "Waiting for first verified or unverified diff."}
           </p>
         </article>
 
         <article className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0f766e]">Confidence</p>
-          <p className="mt-2 text-lg font-bold text-[#0f172a]">{isLoading ? "Loading..." : toConfidenceText(rows)}</p>
+          <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
+            Confidence
+          </p>
+          <p className="mt-2 text-lg font-bold text-[#0f172a]">
+            {isLoading ? "Loading..." : toConfidenceText(rows)}
+          </p>
           <p className="mt-1 text-sm text-[#475569]">
-            {isLoading ? "Fetching sample confidence scores..." : "Average confidence from currently loaded feed rows."}
+            {isLoading
+              ? "Fetching sample confidence scores..."
+              : "Average confidence from currently loaded feed rows."}
           </p>
         </article>
 
         <article className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0f766e]">Verification mix</p>
-          <p className="mt-2 text-lg font-bold text-[#0f172a]">{isLoading ? "Loading..." : toVerificationRate(rows)}</p>
-          <p className="mt-1 text-sm text-[#475569]">Verified and unverified rows remain explicitly separated.</p>
+          <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
+            Verification mix
+          </p>
+          <p className="mt-2 text-lg font-bold text-[#0f172a]">
+            {isLoading ? "Loading..." : toVerificationRate(rows)}
+          </p>
+          <p className="mt-1 text-sm text-[#475569]">
+            Verified and unverified rows remain explicitly separated.
+          </p>
         </article>
 
         <div className="md:col-span-3">

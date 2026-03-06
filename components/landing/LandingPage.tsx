@@ -134,7 +134,7 @@ export default function LandingPage() {
         >
           <Link
             href="#top"
-            className="rounded-md text-lg font-black tracking-tight text-[#0f172a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2"
+            className="rounded-md text-lg font-black tracking-tight text-[#0f172a] focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             Price Tracker
           </Link>
@@ -162,13 +162,22 @@ export default function LandingPage() {
 
         <div className="border-t border-[#0f172a]/10 md:hidden">
           <div className="mx-auto flex w-full max-w-6xl gap-2 overflow-x-auto px-5 py-2">
-            <Link href="#benefits" className={`${linkClasses} whitespace-nowrap`}>
+            <Link
+              href="#benefits"
+              className={`${linkClasses} whitespace-nowrap`}
+            >
               Benefits
             </Link>
-            <Link href="#workflow" className={`${linkClasses} whitespace-nowrap`}>
+            <Link
+              href="#workflow"
+              className={`${linkClasses} whitespace-nowrap`}
+            >
               How it works
             </Link>
-            <Link href="#pricing" className={`${linkClasses} whitespace-nowrap`}>
+            <Link
+              href="#pricing"
+              className={`${linkClasses} whitespace-nowrap`}
+            >
               Pricing
             </Link>
             <Link href="#faq" className={`${linkClasses} whitespace-nowrap`}>
@@ -179,15 +188,21 @@ export default function LandingPage() {
       </header>
 
       <main id="top">
-        <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 pb-16 pt-14 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pb-24 lg:pt-20">
+        <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-14 pb-16 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pt-20 lg:pb-24">
           <div>
-            <span className={badgeClasses}>Competitor Pricing Intelligence</span>
-            <h1 className="mt-5 text-balance text-4xl font-black tracking-tight text-[#0f172a] sm:text-5xl lg:text-6xl">
+            <span className={badgeClasses}>
+              Competitor Pricing Intelligence
+            </span>
+            <h1 className="mt-5 text-4xl font-black tracking-tight text-balance text-[#0f172a] sm:text-5xl lg:text-6xl">
               Stop guessing on competitor pricing.
-              <span className="block text-[#0f766e]">Respond with verified signals.</span>
+              <span className="block text-[#0f766e]">
+                Respond with verified signals.
+              </span>
             </h1>
-            <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[#334155]">
-              Price Tracker monitors competitor pricing pages, detects meaningful changes, and surfaces confidence-backed diffs so your team can act faster.
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-[#334155]">
+              Price Tracker monitors competitor pricing pages, detects
+              meaningful changes, and surfaces confidence-backed diffs so your
+              team can act faster.
             </p>
 
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -197,20 +212,21 @@ export default function LandingPage() {
               />
               <Link
                 href="#pricing"
-                className="inline-flex items-center justify-center rounded-full border border-[#0f172a]/20 px-6 py-3 text-sm font-semibold text-[#0f172a] transition-colors motion-reduce:transition-none hover:border-[#0f766e] hover:text-[#0f766e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2"
+                className="inline-flex items-center justify-center rounded-full border border-[#0f172a]/20 px-6 py-3 text-sm font-semibold text-[#0f172a] transition-colors hover:border-[#0f766e] hover:text-[#0f766e] focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
               >
                 View plans
               </Link>
             </div>
 
             <p className="mt-4 text-sm text-[#475569]">
-              No card required for trial. Weekly digest emails are sent to paying users only.
+              No card required for trial. Weekly digest emails are sent to
+              paying users only.
             </p>
           </div>
 
           <div className="relative">
-            <div className="absolute -left-8 -top-6 h-16 w-16 rounded-full bg-[#0f766e]/20 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
-            <div className="absolute -bottom-8 right-2 h-24 w-24 rounded-full bg-[#ea580c]/20 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
+            <div className="absolute -top-6 -left-8 h-16 w-16 rounded-full bg-[#0f766e]/20 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
+            <div className="absolute right-2 -bottom-8 h-24 w-24 rounded-full bg-[#ea580c]/20 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
 
             <div className="relative overflow-hidden rounded-3xl border border-[#0f172a]/10 bg-white shadow-[0_20px_60px_-30px_rgba(2,6,23,0.45)]">
               <Image
@@ -225,9 +241,9 @@ export default function LandingPage() {
 
               <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0f172a]/40 to-transparent" />
 
-              <div className="relative m-4 rounded-2xl border border-white/45 bg-white/92 p-4 shadow-lg backdrop-blur sm:absolute sm:bottom-6 sm:left-6 sm:right-6 sm:m-0 sm:p-5">
+              <div className="relative m-4 rounded-2xl border border-white/45 bg-white/92 p-4 shadow-lg backdrop-blur sm:absolute sm:right-6 sm:bottom-6 sm:left-6 sm:m-0 sm:p-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0f766e]">
+                  <p className="text-xs font-semibold tracking-[0.18em] text-[#0f766e] uppercase">
                     Live change feed
                   </p>
                   <p className="mt-1 text-base font-bold text-[#0f172a]">
@@ -235,7 +251,10 @@ export default function LandingPage() {
                   </p>
                 </div>
 
-                <ul className="mt-3 space-y-2" aria-label="Sample pricing changes">
+                <ul
+                  className="mt-3 space-y-2"
+                  aria-label="Sample pricing changes"
+                >
                   <li className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2.5">
                     <p className="text-xs font-semibold text-[#0f172a]">
                       Rival A raised Pro from $39 to $49
@@ -267,10 +286,17 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="benefits" aria-labelledby="benefits-title" className="mx-auto w-full max-w-6xl px-5 pb-16 md:px-8 lg:pb-24">
+        <section
+          id="benefits"
+          aria-labelledby="benefits-title"
+          className="mx-auto w-full max-w-6xl px-5 pb-16 md:px-8 lg:pb-24"
+        >
           <div className="mb-9">
             <p className={badgeClasses}>Value</p>
-            <h2 id="benefits-title" className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl">
+            <h2
+              id="benefits-title"
+              className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl"
+            >
               Built to make pricing decisions less risky
             </h2>
           </div>
@@ -281,49 +307,81 @@ export default function LandingPage() {
                 key={item.title}
                 className="rounded-2xl border border-[#0f172a]/10 bg-white/90 p-6 shadow-[0_14px_30px_-24px_rgba(2,6,23,0.75)]"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0f766e]">{item.eyebrow}</p>
-                <h3 className="mt-3 text-xl font-bold text-[#0f172a]">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-[#475569]">{item.description}</p>
+                <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
+                  {item.eyebrow}
+                </p>
+                <h3 className="mt-3 text-xl font-bold text-[#0f172a]">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-[#475569]">
+                  {item.description}
+                </p>
               </article>
             ))}
           </div>
         </section>
 
-        <section id="workflow" aria-labelledby="workflow-title" className="bg-[#0f172a] py-16 text-white lg:py-20">
+        <section
+          id="workflow"
+          aria-labelledby="workflow-title"
+          className="bg-[#0f172a] py-16 text-white lg:py-20"
+        >
           <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
-            <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#99f6e4]">
+            <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-[#99f6e4] uppercase">
               Workflow
             </p>
-            <h2 id="workflow-title" className="mt-4 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">
+            <h2
+              id="workflow-title"
+              className="mt-4 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl"
+            >
               From setup to signal in four practical steps
             </h2>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {workflow.map((step) => (
-                <article key={step.title} className="rounded-2xl border border-white/15 bg-white/[0.03] p-5">
+                <article
+                  key={step.title}
+                  className="rounded-2xl border border-white/15 bg-white/[0.03] p-5"
+                >
                   <h3 className="text-lg font-bold text-white">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-300">{step.description}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    {step.description}
+                  </p>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section aria-labelledby="trust-title" className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 lg:py-24">
+        <section
+          aria-labelledby="trust-title"
+          className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 lg:py-24"
+        >
           <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-start">
             <div>
               <p className={badgeClasses}>Trust by design</p>
-              <h2 id="trust-title" className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl">
+              <h2
+                id="trust-title"
+                className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl"
+              >
                 Signals stay useful because confidence comes first
               </h2>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-[#475569]">
-                Price Tracker favors low-noise, verifiable updates over aggressive automation. If confidence is low, the product flags uncertainty instead of pretending certainty.
+                Price Tracker favors low-noise, verifiable updates over
+                aggressive automation. If confidence is low, the product flags
+                uncertainty instead of pretending certainty.
               </p>
 
               <div className="mt-7 flex flex-wrap gap-2 text-sm">
-                <span className="rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 font-medium text-[#0f766e]">Verified vs unverified separation</span>
-                <span className="rounded-full border border-[#ea580c]/20 bg-[#ea580c]/10 px-3 py-1 font-medium text-[#9a3412]">Static-first crawling</span>
-                <span className="rounded-full border border-[#0f172a]/15 bg-white px-3 py-1 font-medium text-[#334155]">Hash-gated extraction</span>
+                <span className="rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 font-medium text-[#0f766e]">
+                  Verified vs unverified separation
+                </span>
+                <span className="rounded-full border border-[#ea580c]/20 bg-[#ea580c]/10 px-3 py-1 font-medium text-[#9a3412]">
+                  Static-first crawling
+                </span>
+                <span className="rounded-full border border-[#0f172a]/15 bg-white px-3 py-1 font-medium text-[#334155]">
+                  Hash-gated extraction
+                </span>
               </div>
             </div>
 
@@ -333,8 +391,12 @@ export default function LandingPage() {
                   key={stat.label}
                   className="rounded-2xl border border-[#0f172a]/10 bg-white p-5 shadow-[0_14px_30px_-24px_rgba(2,6,23,0.65)]"
                 >
-                  <p className="text-3xl font-black tracking-tight text-[#0f172a]">{stat.value}</p>
-                  <p className="mt-1 text-sm font-semibold uppercase tracking-[0.12em] text-[#0f766e]">{stat.label}</p>
+                  <p className="text-3xl font-black tracking-tight text-[#0f172a]">
+                    {stat.value}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold tracking-[0.12em] text-[#0f766e] uppercase">
+                    {stat.label}
+                  </p>
                   <p className="mt-2 text-sm text-[#475569]">{stat.note}</p>
                 </article>
               ))}
@@ -342,15 +404,23 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="pricing" aria-labelledby="pricing-title" className="border-y border-[#0f172a]/10 bg-white/70 py-16 lg:py-20">
+        <section
+          id="pricing"
+          aria-labelledby="pricing-title"
+          className="border-y border-[#0f172a]/10 bg-white/70 py-16 lg:py-20"
+        >
           <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
             <div className="max-w-3xl">
               <p className={badgeClasses}>Pricing</p>
-              <h2 id="pricing-title" className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl">
+              <h2
+                id="pricing-title"
+                className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl"
+              >
                 Choose your competitor coverage
               </h2>
               <p className="mt-3 text-base text-[#475569]">
-                Plans are wired to Stripe Checkout. Pick the one matching your monitoring scope, then activate instantly.
+                Plans are wired to Stripe Checkout. Pick the one matching your
+                monitoring scope, then activate instantly.
               </p>
             </div>
 
@@ -366,11 +436,17 @@ export default function LandingPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-2xl font-black tracking-tight text-[#0f172a]">{plan.name}</h3>
-                      {plan.description ? <p className="mt-2 text-sm text-[#475569]">{plan.description}</p> : null}
+                      <h3 className="text-2xl font-black tracking-tight text-[#0f172a]">
+                        {plan.name}
+                      </h3>
+                      {plan.description ? (
+                        <p className="mt-2 text-sm text-[#475569]">
+                          {plan.description}
+                        </p>
+                      ) : null}
                     </div>
                     {plan.isFeatured ? (
-                      <span className="rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#0f766e]">
+                      <span className="rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold tracking-[0.1em] text-[#0f766e] uppercase">
                         Most Popular
                       </span>
                     ) : null}
@@ -378,16 +454,31 @@ export default function LandingPage() {
 
                   <div className="mt-6 flex items-end gap-2">
                     {plan.priceAnchor ? (
-                      <span className="text-lg font-semibold text-[#64748b] line-through">${plan.priceAnchor}</span>
+                      <span className="text-lg font-semibold text-[#64748b] line-through">
+                        ${plan.priceAnchor}
+                      </span>
                     ) : null}
-                    <span className="text-5xl font-black tracking-tight text-[#0f172a]">${plan.price}</span>
-                    <span className="pb-1 text-sm font-semibold uppercase tracking-[0.12em] text-[#64748b]">USD</span>
+                    <span className="text-5xl font-black tracking-tight text-[#0f172a]">
+                      ${plan.price}
+                    </span>
+                    <span className="pb-1 text-sm font-semibold tracking-[0.12em] text-[#64748b] uppercase">
+                      USD
+                    </span>
                   </div>
 
-                  <ul className="mt-6 space-y-2" aria-label={`${plan.name} features`}>
+                  <ul
+                    className="mt-6 space-y-2"
+                    aria-label={`${plan.name} features`}
+                  >
                     {plan.features.map((feature) => (
-                      <li key={feature.name} className="flex items-start gap-2 text-sm text-[#334155]">
-                        <span aria-hidden className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#0f766e]" />
+                      <li
+                        key={feature.name}
+                        className="flex items-start gap-2 text-sm text-[#334155]"
+                      >
+                        <span
+                          aria-hidden
+                          className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#0f766e]"
+                        />
                         <span>{feature.name}</span>
                       </li>
                     ))}
@@ -395,7 +486,9 @@ export default function LandingPage() {
 
                   <div className="mt-6">
                     <ButtonCheckout priceId={plan.priceId} />
-                    <p className="mt-2 text-center text-xs text-[#64748b]">Secure Stripe checkout</p>
+                    <p className="mt-2 text-center text-xs text-[#64748b]">
+                      Secure Stripe checkout
+                    </p>
                   </div>
                 </article>
               ))}
@@ -403,10 +496,17 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="faq" aria-labelledby="faq-title" className="mx-auto w-full max-w-5xl px-5 py-16 md:px-8 lg:py-24">
+        <section
+          id="faq"
+          aria-labelledby="faq-title"
+          className="mx-auto w-full max-w-5xl px-5 py-16 md:px-8 lg:py-24"
+        >
           <div className="mb-8">
             <p className={badgeClasses}>FAQ</p>
-            <h2 id="faq-title" className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl">
+            <h2
+              id="faq-title"
+              className="mt-4 text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl"
+            >
               Common questions before you start
             </h2>
           </div>
@@ -417,23 +517,29 @@ export default function LandingPage() {
                 key={faq.question}
                 className="group rounded-2xl border border-[#0f172a]/10 bg-white p-5 open:border-[#0f766e]/35"
               >
-                <summary className="cursor-pointer list-none pr-6 text-left text-base font-semibold text-[#0f172a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2">
+                <summary className="cursor-pointer list-none pr-6 text-left text-base font-semibold text-[#0f172a] focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 focus-visible:outline-none">
                   {faq.question}
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-[#475569]">{faq.answer}</p>
+                <p className="mt-3 text-sm leading-relaxed text-[#475569]">
+                  {faq.answer}
+                </p>
               </details>
             ))}
           </div>
         </section>
 
-        <section className="pb-20 px-5 md:px-8">
+        <section className="px-5 pb-20 md:px-8">
           <div className="mx-auto w-full max-w-6xl rounded-3xl border border-[#0f172a]/10 bg-[#0f172a] px-6 py-12 text-white shadow-[0_20px_60px_-28px_rgba(2,6,23,0.9)] sm:px-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#99f6e4]">Ready to monitor smarter?</p>
+            <p className="text-xs font-semibold tracking-[0.18em] text-[#99f6e4] uppercase">
+              Ready to monitor smarter?
+            </p>
             <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
-              Launch Price Tracker and catch the next competitor move before it catches you.
+              Launch Price Tracker and catch the next competitor move before it
+              catches you.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-300">
-              Start your trial, connect your first competitors, and get confidence-tagged pricing updates in your dashboard.
+              Start your trial, connect your first competitors, and get
+              confidence-tagged pricing updates in your dashboard.
             </p>
 
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -443,7 +549,7 @@ export default function LandingPage() {
               />
               <Link
                 href="#pricing"
-                className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white transition-colors motion-reduce:transition-none hover:border-[#99f6e4] hover:text-[#99f6e4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#99f6e4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a]"
+                className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white transition-colors hover:border-[#99f6e4] hover:text-[#99f6e4] focus-visible:ring-2 focus-visible:ring-[#99f6e4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a] focus-visible:outline-none motion-reduce:transition-none"
               >
                 Compare plans
               </Link>
@@ -451,7 +557,10 @@ export default function LandingPage() {
           </div>
 
           <footer className="mx-auto mt-8 w-full max-w-6xl border-t border-[#0f172a]/10 pt-6 text-sm text-[#64748b]">
-            <p>© {new Date().getFullYear()} Price Tracker. Competitor pricing intelligence for decisive teams.</p>
+            <p>
+              © {new Date().getFullYear()} Price Tracker. Competitor pricing
+              intelligence for decisive teams.
+            </p>
           </footer>
         </section>
       </main>

@@ -52,7 +52,9 @@ export default function CompetitorManagementSheet({
   onUpdated,
 }: CompetitorManagementSheetProps) {
   const [manualUrl, setManualUrl] = useState<string>("");
-  const [selectedCandidateUrl, setSelectedCandidateUrl] = useState<string | null>(null);
+  const [selectedCandidateUrl, setSelectedCandidateUrl] = useState<
+    string | null
+  >(null);
   const [candidates, setCandidates] = useState(
     competitor?.pricingUrlCandidates ?? []
   );
@@ -70,7 +72,9 @@ export default function CompetitorManagementSheet({
     setCandidates(competitor.pricingUrlCandidates);
     setManualUrl(competitor.primaryPricingUrl ?? "");
     setSelectedCandidateUrl(
-      competitor.pricingUrlCandidates.find((candidate) => candidate.selectedByUser)?.url ?? null
+      competitor.pricingUrlCandidates.find(
+        (candidate) => candidate.selectedByUser
+      )?.url ?? null
     );
     setError(null);
     setShowDeleteConfirm(false);
@@ -98,7 +102,9 @@ export default function CompetitorManagementSheet({
     try {
       await updateCompetitorPrimaryPricing(
         competitor.companyId,
-        selectedCandidateUrl ? { candidateUrl: selectedCandidateUrl } : { url: manualUrl.trim() }
+        selectedCandidateUrl
+          ? { candidateUrl: selectedCandidateUrl }
+          : { url: manualUrl.trim() }
       );
 
       if (scheduleCrawl) {
@@ -116,7 +122,9 @@ export default function CompetitorManagementSheet({
       onOpenChange(false);
     } catch (saveError) {
       const message =
-        saveError instanceof Error ? saveError.message : "Failed to update pricing source";
+        saveError instanceof Error
+          ? saveError.message
+          : "Failed to update pricing source";
       setError(message);
     } finally {
       setIsSaving(false);
@@ -144,7 +152,9 @@ export default function CompetitorManagementSheet({
       toast.success("Pricing discovery refreshed");
     } catch (discoverError) {
       const message =
-        discoverError instanceof Error ? discoverError.message : "Failed to discover pricing URLs";
+        discoverError instanceof Error
+          ? discoverError.message
+          : "Failed to discover pricing URLs";
       setError(message);
     } finally {
       setIsDiscovering(false);
@@ -167,7 +177,9 @@ export default function CompetitorManagementSheet({
       onOpenChange(false);
     } catch (deleteError) {
       const message =
-        deleteError instanceof Error ? deleteError.message : "Failed to delete competitor";
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Failed to delete competitor";
       setError(message);
     } finally {
       setIsDeleting(false);
@@ -185,7 +197,8 @@ export default function CompetitorManagementSheet({
         <SheetHeader>
           <SheetTitle>Manage pricing source</SheetTitle>
           <SheetDescription>
-            Review the current source, refresh discovery, and confirm the URL you want Price Tracker to trust.
+            Review the current source, refresh discovery, and confirm the URL
+            you want Price Tracker to trust.
           </SheetDescription>
         </SheetHeader>
 
@@ -193,7 +206,9 @@ export default function CompetitorManagementSheet({
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-semibold text-[#0f172a]">{competitor.name}</p>
+                <p className="font-semibold text-[#0f172a]">
+                  {competitor.name}
+                </p>
                 <p className="text-sm text-[#64748b]">{competitor.domain}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -203,17 +218,17 @@ export default function CompetitorManagementSheet({
                     Edit details
                   </Link>
                 </Button>
-              <Badge
-                variant="outline"
-                className={
-                  competitor.trust.lastCrawlStatus === "error" ||
-                  competitor.trust.blockedOrManualNeeded
-                    ? "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]"
-                    : "border-[#16a34a]/35 bg-[#f0fdf4] text-[#166534]"
-                }
-              >
-                {competitor.trust.lastCrawlStatus.replaceAll("_", " ")}
-              </Badge>
+                <Badge
+                  variant="outline"
+                  className={
+                    competitor.trust.lastCrawlStatus === "error" ||
+                    competitor.trust.blockedOrManualNeeded
+                      ? "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]"
+                      : "border-[#16a34a]/35 bg-[#f0fdf4] text-[#166534]"
+                  }
+                >
+                  {competitor.trust.lastCrawlStatus.replaceAll("_", " ")}
+                </Badge>
               </div>
             </div>
             <p className="mt-3 text-sm text-[#475569]">
@@ -230,7 +245,9 @@ export default function CompetitorManagementSheet({
                 <ExternalLink className="size-3.5" />
               </a>
             ) : (
-              <p className="mt-2 text-sm font-medium text-[#c2410c]">No pricing source confirmed yet.</p>
+              <p className="mt-2 text-sm font-medium text-[#c2410c]">
+                No pricing source confirmed yet.
+              </p>
             )}
             {competitor.trust.lastCrawlError ? (
               <p className="mt-3 rounded-xl border border-[#f59e0b]/30 bg-[#fffbeb] px-3 py-2 text-sm text-[#92400e]">
@@ -241,7 +258,9 @@ export default function CompetitorManagementSheet({
 
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
             <div>
-              <p className="text-sm font-semibold text-[#0f172a]">Discovery candidates</p>
+              <p className="text-sm font-semibold text-[#0f172a]">
+                Discovery candidates
+              </p>
               <p className="text-sm text-[#64748b]">
                 {candidates.length > 0
                   ? `${candidates.length} candidate${candidates.length === 1 ? "" : "s"} available`
@@ -257,7 +276,9 @@ export default function CompetitorManagementSheet({
               disabled={isDiscovering || !hasHomepageUrl}
               className="bg-white"
             >
-              <RefreshCw className={isDiscovering ? "size-4 animate-spin" : "size-4"} />
+              <RefreshCw
+                className={isDiscovering ? "size-4 animate-spin" : "size-4"}
+              />
               {isDiscovering ? "Refreshing..." : "Refresh discovery"}
             </Button>
           </div>
@@ -282,7 +303,9 @@ export default function CompetitorManagementSheet({
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <p className="min-w-0 break-all font-medium text-[#0f172a]">{candidate.url}</p>
+                      <p className="min-w-0 font-medium break-all text-[#0f172a]">
+                        {candidate.url}
+                      </p>
                       <Badge
                         variant="outline"
                         className="border-[#cbd5e1] bg-white text-[#475569]"
@@ -297,7 +320,9 @@ export default function CompetitorManagementSheet({
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="competitor-manual-pricing-url">Manual pricing URL</Label>
+            <Label htmlFor="competitor-manual-pricing-url">
+              Manual pricing URL
+            </Label>
             <Input
               id="competitor-manual-pricing-url"
               value={manualUrl}
@@ -309,7 +334,8 @@ export default function CompetitorManagementSheet({
               inputMode="url"
             />
             <p className="text-sm text-[#64748b]">
-              Use manual entry when discovery is blocked or the exact pricing page is not in the candidate list.
+              Use manual entry when discovery is blocked or the exact pricing
+              page is not in the candidate list.
             </p>
           </div>
 
@@ -320,9 +346,12 @@ export default function CompetitorManagementSheet({
           ) : null}
 
           <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-4">
-            <p className="text-sm font-semibold text-[#991b1b]">Remove competitor</p>
+            <p className="text-sm font-semibold text-[#991b1b]">
+              Remove competitor
+            </p>
             <p className="mt-1 text-sm text-[#7f1d1d]">
-              This deletes the competitor and its stored snapshots, diffs, and insights.
+              This deletes the competitor and its stored snapshots, diffs, and
+              insights.
             </p>
             {showDeleteConfirm ? (
               <div className="mt-4 space-y-3">

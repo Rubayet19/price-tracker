@@ -32,14 +32,14 @@ export const metadata = getSEOTags({
 
 const PrivacyPolicy = () => {
   return (
-    <main className="max-w-xl mx-auto">
+    <main className="mx-auto max-w-xl">
       <div className="p-5">
         <Link href="/" className="btn btn-ghost">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
-            className="w-5 h-5"
+            className="h-5 w-5"
           >
             <path
               fillRule="evenodd"
@@ -49,7 +49,7 @@ const PrivacyPolicy = () => {
           </svg>{" "}
           Back
         </Link>
-        <h1 className="text-3xl font-extrabold pb-6">
+        <h1 className="pb-6 text-3xl font-extrabold">
           Privacy Policy for {config.appName}
         </h1>
 

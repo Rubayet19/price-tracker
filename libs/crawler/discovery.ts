@@ -31,7 +31,10 @@ const PRICING_PATH_PATTERNS: Array<{ pattern: RegExp; weight: number }> = [
   { pattern: /^\/pricing(?:\/|$)/, weight: 0.85 },
   { pattern: /^\/plans?(?:\/|$)/, weight: 0.78 },
   { pattern: /(?:^|\/)(pricing|plans?)(?:\/|$)/, weight: 0.52 },
-  { pattern: /(?:^|\/)(subscriptions?|billing|cost|prices?)(?:\/|$)/, weight: 0.35 },
+  {
+    pattern: /(?:^|\/)(subscriptions?|billing|cost|prices?)(?:\/|$)/,
+    weight: 0.35,
+  },
 ];
 
 const PRICING_TEXT_PATTERNS: Array<{ pattern: RegExp; weight: number }> = [
@@ -44,10 +47,20 @@ const PRICING_TEXT_PATTERNS: Array<{ pattern: RegExp; weight: number }> = [
 ];
 
 const NEGATIVE_PATH_PATTERNS: Array<{ pattern: RegExp; weight: number }> = [
-  { pattern: /(?:^|\/)(blog|docs?|documentation|help|support)(?:\/|$)/, weight: 0.35 },
-  { pattern: /(?:^|\/)(about|contact|careers?|jobs?|team)(?:\/|$)/, weight: 0.25 },
+  {
+    pattern: /(?:^|\/)(blog|docs?|documentation|help|support)(?:\/|$)/,
+    weight: 0.35,
+  },
+  {
+    pattern: /(?:^|\/)(about|contact|careers?|jobs?|team)(?:\/|$)/,
+    weight: 0.25,
+  },
   { pattern: /(?:^|\/)(privacy|terms|legal|status)(?:\/|$)/, weight: 0.45 },
-  { pattern: /(?:^|\/)(login|signin|sign-in|signup|sign-up|register|auth)(?:\/|$)/, weight: 0.35 },
+  {
+    pattern:
+      /(?:^|\/)(login|signin|sign-in|signup|sign-up|register|auth)(?:\/|$)/,
+    weight: 0.35,
+  },
   { pattern: /\.(?:png|jpe?g|svg|gif|webp|pdf|zip|xml)$/i, weight: 1 },
 ];
 
@@ -69,7 +82,9 @@ const normalizeDomain = (value: string): string | null => {
   }
 
   try {
-    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    const parsed = new URL(
+      trimmed.includes("://") ? trimmed : `https://${trimmed}`
+    );
     return normalizeHostname(parsed.hostname);
   } catch {
     const candidate = trimmed.split("/")[0]?.split(":")[0];
@@ -90,7 +105,10 @@ const isSameDomainOrSubdomain = (hostname: string, domain: string): boolean => {
   return hostname === domain || hostname.endsWith(`.${domain}`);
 };
 
-const scorePatterns = (value: string, patterns: Array<{ pattern: RegExp; weight: number }>): number => {
+const scorePatterns = (
+  value: string,
+  patterns: Array<{ pattern: RegExp; weight: number }>
+): number => {
   let score = 0;
 
   for (const { pattern, weight } of patterns) {
@@ -106,10 +124,22 @@ const scoreCandidate = (url: URL, anchorText: string): number => {
   const normalizedPath = url.pathname.toLowerCase();
   const normalizedText = anchorText.toLowerCase();
 
-  const positivePathScore = scorePatterns(normalizedPath, PRICING_PATH_PATTERNS);
-  const positiveTextScore = scorePatterns(normalizedText, PRICING_TEXT_PATTERNS);
-  const negativePathScore = scorePatterns(normalizedPath, NEGATIVE_PATH_PATTERNS);
-  const negativeTextScore = scorePatterns(normalizedText, NEGATIVE_TEXT_PATTERNS);
+  const positivePathScore = scorePatterns(
+    normalizedPath,
+    PRICING_PATH_PATTERNS
+  );
+  const positiveTextScore = scorePatterns(
+    normalizedText,
+    PRICING_TEXT_PATTERNS
+  );
+  const negativePathScore = scorePatterns(
+    normalizedPath,
+    NEGATIVE_PATH_PATTERNS
+  );
+  const negativeTextScore = scorePatterns(
+    normalizedText,
+    NEGATIVE_TEXT_PATTERNS
+  );
 
   let score = 0.04 + positivePathScore + positiveTextScore;
 
@@ -179,7 +209,8 @@ const fetchHomepageHtml = async (url: string): Promise<string | null> => {
       return null;
     }
 
-    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+    const contentType =
+      response.headers.get("content-type")?.toLowerCase() ?? "";
     if (!contentType.includes("text/html")) {
       return null;
     }
@@ -192,7 +223,9 @@ const fetchHomepageHtml = async (url: string): Promise<string | null> => {
   }
 };
 
-const sortCandidates = (candidates: IPricingUrlCandidate[]): IPricingUrlCandidate[] => {
+const sortCandidates = (
+  candidates: IPricingUrlCandidate[]
+): IPricingUrlCandidate[] => {
   return [...candidates].sort((left, right) => {
     if (left.confidence !== right.confidence) {
       return right.confidence - left.confidence;
@@ -202,14 +235,23 @@ const sortCandidates = (candidates: IPricingUrlCandidate[]): IPricingUrlCandidat
   });
 };
 
-const pickRecommendedPrimaryUrl = (candidates: IPricingUrlCandidate[]): string | null => {
+const pickRecommendedPrimaryUrl = (
+  candidates: IPricingUrlCandidate[]
+): string | null => {
   const best = candidates[0];
-  if (!best || best.confidence < PRICING_URL_DISCOVERY_PRIMARY_CONFIDENCE_THRESHOLD) {
+  if (
+    !best ||
+    best.confidence < PRICING_URL_DISCOVERY_PRIMARY_CONFIDENCE_THRESHOLD
+  ) {
     return null;
   }
 
   const secondBest = candidates[1];
-  if (secondBest && best.confidence - secondBest.confidence < PRICING_URL_DISCOVERY_MIN_PRIMARY_GAP) {
+  if (
+    secondBest &&
+    best.confidence - secondBest.confidence <
+      PRICING_URL_DISCOVERY_MIN_PRIMARY_GAP
+  ) {
     return null;
   }
 
@@ -241,7 +283,8 @@ export const mergePricingUrlCandidates = (
       }
 
       existing.confidence = Math.max(existing.confidence, confidence);
-      existing.selectedByUser = existing.selectedByUser || candidate.selectedByUser;
+      existing.selectedByUser =
+        existing.selectedByUser || candidate.selectedByUser;
     }
   }
 
@@ -262,7 +305,8 @@ export const discoverPricingUrlsFromHomepage = async (
 
   const homepageParsed = new URL(normalizedHomepageUrl);
   const allowedDomain =
-    normalizeDomain(input.allowedDomain ?? "") ?? normalizeHostname(homepageParsed.hostname);
+    normalizeDomain(input.allowedDomain ?? "") ??
+    normalizeHostname(homepageParsed.hostname);
 
   const html = await fetchHomepageHtml(normalizedHomepageUrl);
   if (!html) {
@@ -273,7 +317,10 @@ export const discoverPricingUrlsFromHomepage = async (
     };
   }
 
-  const maxCandidates = Math.max(1, input.maxCandidates ?? PRICING_URL_DISCOVERY_MAX_CANDIDATES);
+  const maxCandidates = Math.max(
+    1,
+    input.maxCandidates ?? PRICING_URL_DISCOVERY_MAX_CANDIDATES
+  );
   const candidateMap = new Map<string, IPricingUrlCandidate>();
   const anchors = parseAnchors(html);
 
@@ -315,7 +362,10 @@ export const discoverPricingUrlsFromHomepage = async (
     }
   }
 
-  const candidates = sortCandidates([...candidateMap.values()]).slice(0, maxCandidates);
+  const candidates = sortCandidates([...candidateMap.values()]).slice(
+    0,
+    maxCandidates
+  );
   return {
     homepageUrl: normalizedHomepageUrl,
     candidates,

@@ -58,12 +58,16 @@ const handle = async (request: NextRequest): Promise<NextResponse> => {
     try {
       const result = await runCrawlBatch({ limit });
 
-      return NextResponse.json({ ok: true, skipped: false, result }, { status: 200 });
+      return NextResponse.json(
+        { ok: true, skipped: false, result },
+        { status: 200 }
+      );
     } finally {
       await releaseCronLock(CRAWL_CRON_LOCK_KEY, lock.ownerId);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to run crawl batch";
+    const message =
+      error instanceof Error ? error.message : "Failed to run crawl batch";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 };

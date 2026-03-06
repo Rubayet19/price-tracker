@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 
-export type PricePeriod = "day" | "week" | "month" | "year" | "one_time" | "unknown";
+export type PricePeriod =
+  | "day"
+  | "week"
+  | "month"
+  | "year"
+  | "one_time"
+  | "unknown";
 export type ComparisonCadence = "month" | "year";
 export type PricingModel =
   | "monthly_only"
@@ -71,7 +77,10 @@ export const normalizeUrl = (value: string): string | null => {
 };
 
 const stripTagContent = (html: string, tagName: string): string => {
-  const pattern = new RegExp(`<${tagName}[^>]*>[\\s\\S]*?<\\/${tagName}>`, "gi");
+  const pattern = new RegExp(
+    `<${tagName}[^>]*>[\\s\\S]*?<\\/${tagName}>`,
+    "gi"
+  );
   return html.replace(pattern, " ");
 };
 
@@ -119,12 +128,16 @@ export const createContentHash = (value: string): string => {
 };
 
 const uniqueStrings = (items: string[]): string[] => {
-  return [...new Set(items.map((item) => normalizeWhitespace(item).toLowerCase()))]
+  return [
+    ...new Set(items.map((item) => normalizeWhitespace(item).toLowerCase())),
+  ]
     .filter((item) => item.length > 0)
     .sort((a, b) => a.localeCompare(b));
 };
 
-const uniquePrices = (prices: NormalizedPricePoint[]): NormalizedPricePoint[] => {
+const uniquePrices = (
+  prices: NormalizedPricePoint[]
+): NormalizedPricePoint[] => {
   const keyToPrice = new Map<string, NormalizedPricePoint>();
 
   for (const price of prices) {
@@ -153,7 +166,9 @@ const uniquePrices = (prices: NormalizedPricePoint[]): NormalizedPricePoint[] =>
   });
 };
 
-const uniqueExtractedPlans = (plans: NormalizedExtractedPlan[] | undefined): NormalizedExtractedPlan[] => {
+const uniqueExtractedPlans = (
+  plans: NormalizedExtractedPlan[] | undefined
+): NormalizedExtractedPlan[] => {
   if (!plans || plans.length === 0) {
     return [];
   }
@@ -174,11 +189,13 @@ const uniqueExtractedPlans = (plans: NormalizedExtractedPlan[] | undefined): Nor
         name: displayName,
         currency: plan.currency ? plan.currency.toUpperCase() : null,
         monthlyPrice:
-          typeof plan.monthlyPrice === "number" && Number.isFinite(plan.monthlyPrice)
+          typeof plan.monthlyPrice === "number" &&
+          Number.isFinite(plan.monthlyPrice)
             ? Number(plan.monthlyPrice.toFixed(2))
             : null,
         annualPrice:
-          typeof plan.annualPrice === "number" && Number.isFinite(plan.annualPrice)
+          typeof plan.annualPrice === "number" &&
+          Number.isFinite(plan.annualPrice)
             ? Number(plan.annualPrice.toFixed(2))
             : null,
         annualPriceIsPerMonth: plan.annualPriceIsPerMonth ?? false,
@@ -190,7 +207,10 @@ const uniqueExtractedPlans = (plans: NormalizedExtractedPlan[] | undefined): Nor
       existing.currency = plan.currency.toUpperCase();
     }
 
-    if (existing.monthlyPrice === null && typeof plan.monthlyPrice === "number") {
+    if (
+      existing.monthlyPrice === null &&
+      typeof plan.monthlyPrice === "number"
+    ) {
       existing.monthlyPrice = Number(plan.monthlyPrice.toFixed(2));
     }
 
@@ -200,7 +220,9 @@ const uniqueExtractedPlans = (plans: NormalizedExtractedPlan[] | undefined): Nor
     }
   }
 
-  return [...planMap.values()].sort((left, right) => left.name.localeCompare(right.name));
+  return [...planMap.values()].sort((left, right) =>
+    left.name.localeCompare(right.name)
+  );
 };
 
 const uniqueComparisonCadences = (
@@ -210,23 +232,29 @@ const uniqueComparisonCadences = (
     return [];
   }
 
-  return [...new Set(cadences)].sort((left, right) => left.localeCompare(right));
+  return [...new Set(cadences)].sort((left, right) =>
+    left.localeCompare(right)
+  );
 };
 
-export const getComparisonCadences = (
-  payload: {
-    priceMentions: ReadonlyArray<NormalizedPricePoint>;
-    extractedPlans?: ReadonlyArray<NormalizedExtractedPlan>;
-  }
-): ComparisonCadence[] => {
+export const getComparisonCadences = (payload: {
+  priceMentions: ReadonlyArray<NormalizedPricePoint>;
+  extractedPlans?: ReadonlyArray<NormalizedExtractedPlan>;
+}): ComparisonCadence[] => {
   const cadenceSet = new Set<ComparisonCadence>();
 
   for (const plan of payload.extractedPlans ?? []) {
-    if (typeof plan.monthlyPrice === "number" && Number.isFinite(plan.monthlyPrice)) {
+    if (
+      typeof plan.monthlyPrice === "number" &&
+      Number.isFinite(plan.monthlyPrice)
+    ) {
       cadenceSet.add("month");
     }
 
-    if (typeof plan.annualPrice === "number" && Number.isFinite(plan.annualPrice)) {
+    if (
+      typeof plan.annualPrice === "number" &&
+      Number.isFinite(plan.annualPrice)
+    ) {
       cadenceSet.add("year");
     }
   }
@@ -244,20 +272,21 @@ export const getComparisonCadences = (
   return uniqueComparisonCadences([...cadenceSet]);
 };
 
-export const classifyPricingModel = (
-  payload: {
-    priceMentions: ReadonlyArray<NormalizedPricePoint>;
-    extractedPlans?: ReadonlyArray<NormalizedExtractedPlan>;
-    customPricingHints: ReadonlyArray<string>;
-    oneTimePricingHints?: ReadonlyArray<string>;
-  }
-): PricingModel => {
+export const classifyPricingModel = (payload: {
+  priceMentions: ReadonlyArray<NormalizedPricePoint>;
+  extractedPlans?: ReadonlyArray<NormalizedExtractedPlan>;
+  customPricingHints: ReadonlyArray<string>;
+  oneTimePricingHints?: ReadonlyArray<string>;
+}): PricingModel => {
   const comparisonCadences = getComparisonCadences(payload);
   const hasOneTimePricing =
     (payload.oneTimePricingHints?.length ?? 0) > 0 ||
     payload.priceMentions.some((price) => price.period === "one_time");
 
-  if (comparisonCadences.includes("month") && comparisonCadences.includes("year")) {
+  if (
+    comparisonCadences.includes("month") &&
+    comparisonCadences.includes("year")
+  ) {
     return "mixed_recurring";
   }
 
@@ -311,8 +340,12 @@ export const canonicalizePricingPayload = (
 
   return {
     sourceUrl: payload.sourceUrl,
-    pageTitle: payload.pageTitle ? normalizeWhitespace(payload.pageTitle) : null,
-    pageDescription: payload.pageDescription ? normalizeWhitespace(payload.pageDescription) : null,
+    pageTitle: payload.pageTitle
+      ? normalizeWhitespace(payload.pageTitle)
+      : null,
+    pageDescription: payload.pageDescription
+      ? normalizeWhitespace(payload.pageDescription)
+      : null,
     planNames: uniqueStrings(payload.planNames),
     priceMentions,
     extractedPlans,

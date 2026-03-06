@@ -29,8 +29,10 @@ export const isCronAuthorized = (request: NextRequest): boolean => {
   const headerSecret = request.headers.get("x-cron-secret")?.trim();
   const bearerSecret = getBearerToken(request.headers.get("authorization"));
 
-  return (headerSecret != null && safeCompare(headerSecret, expectedSecret)) ||
-    (bearerSecret != null && safeCompare(bearerSecret, expectedSecret));
+  return (
+    (headerSecret != null && safeCompare(headerSecret, expectedSecret)) ||
+    (bearerSecret != null && safeCompare(bearerSecret, expectedSecret))
+  );
 };
 
 export const requireCronAuth = (request: NextRequest): NextResponse | null => {

@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
   const now = new Date();
 
   // Find the most recent insight
-  const latestInsight = await InsightModel.findOne().sort({ generatedAt: -1 }).lean();
+  const latestInsight = await InsightModel.findOne()
+    .sort({ generatedAt: -1 })
+    .lean();
   if (!latestInsight) {
     return NextResponse.json({ error: "No insights found" }, { status: 404 });
   }
@@ -39,7 +41,10 @@ export async function POST(req: NextRequest) {
   ]);
 
   if (!company || !user) {
-    return NextResponse.json({ error: "Company or user not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Company or user not found" },
+      { status: 404 }
+    );
   }
 
   // Delete the old insight
@@ -65,7 +70,13 @@ export async function POST(req: NextRequest) {
   });
 
   if (!result.shouldCreate || !result.createInput) {
-    return NextResponse.json({ error: "Insight generation returned shouldCreate=false", reason: result.reason }, { status: 422 });
+    return NextResponse.json(
+      {
+        error: "Insight generation returned shouldCreate=false",
+        reason: result.reason,
+      },
+      { status: 422 }
+    );
   }
 
   const newInsight = await InsightModel.create(result.createInput);

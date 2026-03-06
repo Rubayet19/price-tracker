@@ -11,7 +11,10 @@ interface RouteContext {
   }>;
 }
 
-export async function POST(_request: Request, context: RouteContext): Promise<NextResponse> {
+export async function POST(
+  _request: Request,
+  context: RouteContext
+): Promise<NextResponse> {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -66,7 +69,9 @@ export async function POST(_request: Request, context: RouteContext): Promise<Ne
     const now = new Date();
     const leaseUntil = company.crawlLeaseUntil ?? null;
     const hasLease = Boolean(leaseUntil);
-    const leaseIsActive = Boolean(leaseUntil && leaseUntil.getTime() > now.getTime());
+    const leaseIsActive = Boolean(
+      leaseUntil && leaseUntil.getTime() > now.getTime()
+    );
 
     if (leaseIsActive) {
       return NextResponse.json(
@@ -101,6 +106,9 @@ export async function POST(_request: Request, context: RouteContext): Promise<Ne
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to retry crawl" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to retry crawl" },
+      { status: 500 }
+    );
   }
 }

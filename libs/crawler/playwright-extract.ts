@@ -43,9 +43,14 @@ export interface PlaywrightExtractionResult {
 const CADENCE_TOGGLE_SELECTOR =
   'button, [role="button"], [role="tab"], label, [aria-pressed], [data-state], [type="button"]';
 
-const buildNavigationUrl = (originalUrl: string, normalizedUrl: string): string => {
+const buildNavigationUrl = (
+  originalUrl: string,
+  normalizedUrl: string
+): string => {
   try {
-    const prepared = originalUrl.includes("://") ? originalUrl : `https://${originalUrl}`;
+    const prepared = originalUrl.includes("://")
+      ? originalUrl
+      : `https://${originalUrl}`;
     const hash = new URL(prepared).hash;
     return hash ? `${normalizedUrl}${hash}` : normalizedUrl;
   } catch {
@@ -58,7 +63,9 @@ const normalizeWhitespace = (value: string): string => {
 };
 
 const uniqueStrings = (items: string[]): string[] => {
-  return [...new Set(items.map((item) => normalizeWhitespace(item).toLowerCase()))].filter(Boolean);
+  return [
+    ...new Set(items.map((item) => normalizeWhitespace(item).toLowerCase())),
+  ].filter(Boolean);
 };
 
 const detectCadenceFromText = (value: string): PricePeriod | null => {
@@ -75,15 +82,29 @@ const detectCadenceFromText = (value: string): PricePeriod | null => {
   return null;
 };
 
-const toPeriod = (cardText: string, activeCadence: PricePeriod | null): PricePeriod => {
+const toPeriod = (
+  cardText: string,
+  activeCadence: PricePeriod | null
+): PricePeriod => {
   const lowered = cardText.toLowerCase();
 
-  if (/billed yearly|billed annually|paid yearly|paid annually|annual plan|yearly plan/.test(lowered)) {
+  if (
+    /billed yearly|billed annually|paid yearly|paid annually|annual plan|yearly plan/.test(
+      lowered
+    )
+  ) {
     return "year";
   }
 
-  if (/billed monthly|monthly plan|per month|\/\s*month|\/\s*mo\b|monthly/.test(lowered)) {
-    return activeCadence === "year" && /billed yearly|billed annually|paid yearly|paid annually/.test(lowered) ? "year" : "month";
+  if (
+    /billed monthly|monthly plan|per month|\/\s*month|\/\s*mo\b|monthly/.test(
+      lowered
+    )
+  ) {
+    return activeCadence === "year" &&
+      /billed yearly|billed annually|paid yearly|paid annually/.test(lowered)
+      ? "year"
+      : "month";
   }
 
   if (/per year|\/year|yearly|annual|annually/.test(lowered)) {
@@ -96,7 +117,11 @@ const toPeriod = (cardText: string, activeCadence: PricePeriod | null): PricePer
   }
 
   // Detect one-time / lifetime pricing
-  if (/\/lifetime|one-time payment|one time payment|pay once|lifetime access|buy once/.test(lowered)) {
+  if (
+    /\/lifetime|one-time payment|one time payment|pay once|lifetime access|buy once/.test(
+      lowered
+    )
+  ) {
     return "one_time";
   }
 
@@ -160,14 +185,20 @@ const computeConfidence = (
 
 const isAnnualPriceShownPerMonth = (cardText: string): boolean => {
   const lowered = cardText.toLowerCase();
-  const hasBilledAnnually = /billed yearly|billed annually|paid yearly|paid annually/.test(lowered);
+  const hasBilledAnnually =
+    /billed yearly|billed annually|paid yearly|paid annually/.test(lowered);
   const hasPerMonth = /\/month|\/mo|per month/.test(lowered);
   return hasBilledAnnually && hasPerMonth;
 };
 
-const buildExtractedPlans = (states: RenderedStatePayload[]): NormalizedExtractedPlan[] => {
+const buildExtractedPlans = (
+  states: RenderedStatePayload[]
+): NormalizedExtractedPlan[] => {
   const planMap = new Map<string, NormalizedExtractedPlan>();
-  const unknownPeriodPlans = new Map<string, { amount: number; cardText: string }>();
+  const unknownPeriodPlans = new Map<
+    string,
+    { amount: number; cardText: string }
+  >();
 
   for (const state of states) {
     for (const card of state.planCards) {
@@ -219,11 +250,16 @@ const buildExtractedPlans = (states: RenderedStatePayload[]): NormalizedExtracte
 
         if (inferredPeriod === "year" && existing.annualPrice === null) {
           existing.annualPrice = primaryPrice.amount;
-          existing.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(card.text);
+          existing.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(
+            card.text
+          );
         }
 
         if (inferredPeriod === "unknown" && primaryPrice.amount > 0) {
-          unknownPeriodPlans.set(dedupeKey, { amount: primaryPrice.amount, cardText: card.text });
+          unknownPeriodPlans.set(dedupeKey, {
+            amount: primaryPrice.amount,
+            cardText: card.text,
+          });
         }
       }
 
@@ -240,13 +276,17 @@ const buildExtractedPlans = (states: RenderedStatePayload[]): NormalizedExtracte
       if (plan.annualPrice !== null) siblingAnnual++;
     }
 
-    let inferredPeriod: "month" | "year" | null = siblingMonthly > 0 ? "month" : siblingAnnual > 0 ? "year" : null;
+    let inferredPeriod: "month" | "year" | null =
+      siblingMonthly > 0 ? "month" : siblingAnnual > 0 ? "year" : null;
 
     // Fallback: when no siblings have known periods, scan page text for period indicators.
     // This handles sites like Grammarly where the Free plan shows "/ month" but is filtered
     // from card detection, and the Pro plan's card text has no period indicator.
     if (!inferredPeriod) {
-      const combinedText = states.map((s) => s.text).join(" ").toLowerCase();
+      const combinedText = states
+        .map((s) => s.text)
+        .join(" ")
+        .toLowerCase();
       if (/\/\s*month|per month|\/\s*mo\b/.test(combinedText)) {
         inferredPeriod = "month";
       } else if (/\/year|per year|annually/.test(combinedText)) {
@@ -531,8 +571,12 @@ const extractRenderedState = async (
   cadence: PricePeriod | null
 ): Promise<RenderedStatePayload> => {
   const html = await page.content();
-  const payload = await page.evaluate(RENDERED_STATE_EVALUATE_SCRIPT) as {
-    planCards: Array<{ planName: string; text: string; prices: Array<{ raw: string }> }>;
+  const payload = (await page.evaluate(RENDERED_STATE_EVALUATE_SCRIPT)) as {
+    planCards: Array<{
+      planName: string;
+      text: string;
+      prices: Array<{ raw: string }>;
+    }>;
     text: string;
   };
 
@@ -541,8 +585,12 @@ const extractRenderedState = async (
     text: card.text,
     prices: card.prices
       .map((price) => {
-        const currencyMatch = price.raw.match(/\b(USD|EUR|GBP|CAD|AUD|JPY)\b|([€£$¥])/i);
-        const amountMatch = price.raw.match(/(\d{1,4}(?:,\d{3})*(?:\.\d{1,2})?)/);
+        const currencyMatch = price.raw.match(
+          /\b(USD|EUR|GBP|CAD|AUD|JPY)\b|([€£$¥])/i
+        );
+        const amountMatch = price.raw.match(
+          /(\d{1,4}(?:,\d{3})*(?:\.\d{1,2})?)/
+        );
         const currencyToken = currencyMatch?.[1] ?? currencyMatch?.[2] ?? null;
         const amountToken = amountMatch?.[1] ?? null;
 
@@ -555,17 +603,18 @@ const extractRenderedState = async (
           return null;
         }
 
-        const currency = currencyToken.length === 1
-          ? currencyToken === "$"
-            ? "USD"
-            : currencyToken === "€"
-              ? "EUR"
-              : currencyToken === "£"
-                ? "GBP"
-                : currencyToken === "¥"
-                  ? "JPY"
-                  : currencyToken
-          : currencyToken.toUpperCase();
+        const currency =
+          currencyToken.length === 1
+            ? currencyToken === "$"
+              ? "USD"
+              : currencyToken === "€"
+                ? "EUR"
+                : currencyToken === "£"
+                  ? "GBP"
+                  : currencyToken === "¥"
+                    ? "JPY"
+                    : currencyToken
+            : currencyToken.toUpperCase();
 
         return {
           amount,
@@ -605,7 +654,9 @@ const clickCadenceIfPresent = async (
         continue;
       }
 
-      await candidate.click({ timeout: 2_000 }).catch((): undefined => undefined);
+      await candidate
+        .click({ timeout: 2_000 })
+        .catch((): undefined => undefined);
       await page.waitForTimeout(PLAYWRIGHT_TOGGLE_SETTLE_MS);
       return true;
     }
@@ -624,7 +675,10 @@ const clickCadenceIfPresent = async (
 
     const container = sw.locator("xpath=..");
     const containerText = await container.innerText().catch((): string => "");
-    if (!/monthly/i.test(containerText) || !/yearly|annual/i.test(containerText)) {
+    if (
+      !/monthly/i.test(containerText) ||
+      !/yearly|annual/i.test(containerText)
+    ) {
       continue;
     }
     if (!label.test(containerText)) {
@@ -661,15 +715,14 @@ export const extractPricingWithPlaywright = async (
   chromium.use(stealth());
   const browser = await chromium.launch({
     headless: true,
-    args: [
-      "--disable-blink-features=AutomationControlled",
-    ],
+    args: ["--disable-blink-features=AutomationControlled"],
   });
 
   try {
     const context = await browser.newContext({
       extraHTTPHeaders: {
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "accept-language": "en-US,en;q=0.8",
         "cache-control": "no-cache",
       },
@@ -681,24 +734,38 @@ export const extractPricingWithPlaywright = async (
       timeout: PLAYWRIGHT_EXTRACTION_TIMEOUT_MS,
     });
 
-    await page.waitForLoadState("networkidle", {
-      timeout: Math.min(PLAYWRIGHT_EXTRACTION_TIMEOUT_MS, 5_000),
-    }).catch((): undefined => undefined);
+    await page
+      .waitForLoadState("networkidle", {
+        timeout: Math.min(PLAYWRIGHT_EXTRACTION_TIMEOUT_MS, 5_000),
+      })
+      .catch((): undefined => undefined);
 
     // Wait for Cloudflare / bot challenge pages to resolve.
     // The stealth plugin passes the checks, but the JS challenge needs time to verify.
     const initialTitle = await page.title().catch((): string => "");
-    if (/just a moment|checking your browser|verify you are human/i.test(initialTitle)) {
+    if (
+      /just a moment|checking your browser|verify you are human/i.test(
+        initialTitle
+      )
+    ) {
       await page
-        .waitForFunction(() => !/just a moment|checking your browser|verify you are human/i.test(document.title), {
-          timeout: 15_000,
-        })
+        .waitForFunction(
+          () =>
+            !/just a moment|checking your browser|verify you are human/i.test(
+              document.title
+            ),
+          {
+            timeout: 15_000,
+          }
+        )
         .catch((): undefined => undefined);
 
       // After challenge resolves, wait for the real page to finish loading.
-      await page.waitForLoadState("networkidle", {
-        timeout: 8_000,
-      }).catch((): undefined => undefined);
+      await page
+        .waitForLoadState("networkidle", {
+          timeout: 8_000,
+        })
+        .catch((): undefined => undefined);
     }
 
     // Dismiss common cookie consent dialogs that may overlay pricing content.
@@ -715,22 +782,28 @@ export const extractPricingWithPlaywright = async (
     const rawEval = await extractRenderedState(page, null);
     extractedStates.push(rawEval);
 
-    const clickedMonthly = await clickCadenceIfPresent(page, /\bmonthly\b/i).catch(
-      (): boolean => false
-    );
+    const clickedMonthly = await clickCadenceIfPresent(
+      page,
+      /\bmonthly\b/i
+    ).catch((): boolean => false);
     if (clickedMonthly) {
       extractedStates.push(await extractRenderedState(page, "month"));
     }
 
-    const clickedYearly = await clickCadenceIfPresent(page, /\b(yearly|annually|annual)\b/i).catch(
-      (): boolean => false
-    );
+    const clickedYearly = await clickCadenceIfPresent(
+      page,
+      /\b(yearly|annually|annual)\b/i
+    ).catch((): boolean => false);
     if (clickedYearly) {
       extractedStates.push(await extractRenderedState(page, "year"));
     }
 
     const planNames: string[] = [];
-    const priceMentions: Array<{ amount: number; currency: string; period: PricePeriod }> = [];
+    const priceMentions: Array<{
+      amount: number;
+      currency: string;
+      period: PricePeriod;
+    }> = [];
     const customPricingHints: string[] = [];
     const oneTimePricingHints: string[] = [];
     const renderedHtml = extractedStates.map((state) => state.html).join("\n");
@@ -794,7 +867,10 @@ export const extractPricingWithPlaywright = async (
       contentHash: createContentHash(normalizeHtmlForHash(renderedHtml)),
       pricingPayload: payload,
       confidence,
-      isVerified: confidence >= 0.75 && payload.planNames.length > 0 && payload.priceMentions.length > 0,
+      isVerified:
+        confidence >= 0.75 &&
+        payload.planNames.length > 0 &&
+        payload.priceMentions.length > 0,
       extractedCadences,
     };
   } finally {

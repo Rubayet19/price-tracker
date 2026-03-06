@@ -18,7 +18,13 @@ interface VerifiedDiffCountRow {
   count: number;
 }
 
-const CRAWL_STATUS_KEYS: CompanyCrawlStatus[] = ["idle", "ok", "blocked", "manual_needed", "error"];
+const CRAWL_STATUS_KEYS: CompanyCrawlStatus[] = [
+  "idle",
+  "ok",
+  "blocked",
+  "manual_needed",
+  "error",
+];
 const DIFF_SEVERITY_KEYS: DiffSeverity[] = ["low", "medium", "high"];
 
 export async function GET(): Promise<NextResponse> {
@@ -51,39 +57,40 @@ export async function GET(): Promise<NextResponse> {
     const windowStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const userObjectId = new Types.ObjectId(String(userId));
 
-    const [selfCount, competitorCount, competitorStatusRows, verifiedDiffRows] = await Promise.all([
-      Company.countDocuments({ userId: userObjectId, type: "self" }),
-      Company.countDocuments({ userId: userObjectId, type: "competitor" }),
-      Company.aggregate<CompanyStatusCountRow>([
-        {
-          $match: {
-            userId: userObjectId,
-            type: "competitor",
+    const [selfCount, competitorCount, competitorStatusRows, verifiedDiffRows] =
+      await Promise.all([
+        Company.countDocuments({ userId: userObjectId, type: "self" }),
+        Company.countDocuments({ userId: userObjectId, type: "competitor" }),
+        Company.aggregate<CompanyStatusCountRow>([
+          {
+            $match: {
+              userId: userObjectId,
+              type: "competitor",
+            },
           },
-        },
-        {
-          $group: {
-            _id: "$lastCrawlStatus",
-            count: { $sum: 1 },
+          {
+            $group: {
+              _id: "$lastCrawlStatus",
+              count: { $sum: 1 },
+            },
           },
-        },
-      ]),
-      DiffModel.aggregate<VerifiedDiffCountRow>([
-        {
-          $match: {
-            userId: userObjectId,
-            verificationState: "verified",
-            detectedAt: { $gte: windowStart },
+        ]),
+        DiffModel.aggregate<VerifiedDiffCountRow>([
+          {
+            $match: {
+              userId: userObjectId,
+              verificationState: "verified",
+              detectedAt: { $gte: windowStart },
+            },
           },
-        },
-        {
-          $group: {
-            _id: "$severity",
-            count: { $sum: 1 },
+          {
+            $group: {
+              _id: "$severity",
+              count: { $sum: 1 },
+            },
           },
-        },
-      ]),
-    ]);
+        ]),
+      ]);
 
     const competitorStatusCounts: Record<CompanyCrawlStatus, number> = {
       idle: 0,
@@ -94,7 +101,9 @@ export async function GET(): Promise<NextResponse> {
     };
 
     for (const statusKey of CRAWL_STATUS_KEYS) {
-      const statusRow = competitorStatusRows.find((row) => row._id === statusKey);
+      const statusRow = competitorStatusRows.find(
+        (row) => row._id === statusKey
+      );
       competitorStatusCounts[statusKey] = statusRow?.count ?? 0;
     }
 
@@ -105,18 +114,23 @@ export async function GET(): Promise<NextResponse> {
     };
 
     for (const severityKey of DIFF_SEVERITY_KEYS) {
-      const severityRow = verifiedDiffRows.find((row) => row._id === severityKey);
+      const severityRow = verifiedDiffRows.find(
+        (row) => row._id === severityKey
+      );
       verifiedCountsBySeverity[severityKey] = severityRow?.count ?? 0;
     }
 
     const verifiedTotal =
-      verifiedCountsBySeverity.low + verifiedCountsBySeverity.medium + verifiedCountsBySeverity.high;
+      verifiedCountsBySeverity.low +
+      verifiedCountsBySeverity.medium +
+      verifiedCountsBySeverity.high;
 
     return NextResponse.json({
       entitlements,
       billing: {
         priceId: user.priceId ?? null,
-        hasCustomerId: typeof user.customerId === "string" && user.customerId.length > 0,
+        hasCustomerId:
+          typeof user.customerId === "string" && user.customerId.length > 0,
       },
       trial: {
         status: user.trialStatus,
@@ -138,6 +152,9 @@ export async function GET(): Promise<NextResponse> {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to load dashboard overview" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load dashboard overview" },
+      { status: 500 }
+    );
   }
 }

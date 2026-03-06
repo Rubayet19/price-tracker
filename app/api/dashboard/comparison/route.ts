@@ -60,7 +60,9 @@ interface ExtractedPlan {
 }
 
 const isPricePeriod = (value: string): value is PricePeriod => {
-  return ["day", "week", "month", "year", "one_time", "unknown"].includes(value);
+  return ["day", "week", "month", "year", "one_time", "unknown"].includes(
+    value
+  );
 };
 
 interface ComparisonClassification {
@@ -116,7 +118,9 @@ const toPricePoints = (payload: Record<string, unknown>): PricePoint[] => {
   return pricePoints;
 };
 
-const toPricePointBuckets = (pricePoints: ReadonlyArray<PricePoint>): PricePointBucket[] => {
+const toPricePointBuckets = (
+  pricePoints: ReadonlyArray<PricePoint>
+): PricePointBucket[] => {
   const bucketMap = new Map<string, PricePointBucket>();
 
   for (const point of pricePoints) {
@@ -148,7 +152,9 @@ const toPricePointBuckets = (pricePoints: ReadonlyArray<PricePoint>): PricePoint
   });
 };
 
-const toExtractedPlans = (payload: Record<string, unknown>): ExtractedPlan[] => {
+const toExtractedPlans = (
+  payload: Record<string, unknown>
+): ExtractedPlan[] => {
   const rawExtractedPlans = payload.extractedPlans;
   if (!Array.isArray(rawExtractedPlans)) {
     return [];
@@ -166,11 +172,13 @@ const toExtractedPlans = (payload: Record<string, unknown>): ExtractedPlan[] => 
           ? entry.currency.trim().toUpperCase()
           : null;
       const monthlyPrice =
-        typeof entry.monthlyPrice === "number" && Number.isFinite(entry.monthlyPrice)
+        typeof entry.monthlyPrice === "number" &&
+        Number.isFinite(entry.monthlyPrice)
           ? entry.monthlyPrice
           : null;
       const annualPrice =
-        typeof entry.annualPrice === "number" && Number.isFinite(entry.annualPrice)
+        typeof entry.annualPrice === "number" &&
+        Number.isFinite(entry.annualPrice)
           ? entry.annualPrice
           : null;
 
@@ -196,13 +204,18 @@ const toComparisonClassification = (
   extractedPlans: ReadonlyArray<ExtractedPlan>
 ): ComparisonClassification => {
   const customPricingHints = Array.isArray(payload.customPricingHints)
-    ? payload.customPricingHints.filter((entry): entry is string => typeof entry === "string")
+    ? payload.customPricingHints.filter(
+        (entry): entry is string => typeof entry === "string"
+      )
     : [];
   const oneTimePricingHints = Array.isArray(payload.oneTimePricingHints)
-    ? payload.oneTimePricingHints.filter((entry): entry is string => typeof entry === "string")
+    ? payload.oneTimePricingHints.filter(
+        (entry): entry is string => typeof entry === "string"
+      )
     : [];
 
-  const rawPricingModel = typeof payload.pricingModel === "string" ? payload.pricingModel : null;
+  const rawPricingModel =
+    typeof payload.pricingModel === "string" ? payload.pricingModel : null;
   const pricingModel =
     rawPricingModel === "monthly_only" ||
     rawPricingModel === "annual_only" ||
@@ -220,7 +233,8 @@ const toComparisonClassification = (
 
   const rawComparisonCadences = Array.isArray(payload.comparisonCadences)
     ? payload.comparisonCadences.filter(
-        (entry): entry is "month" | "year" => entry === "month" || entry === "year"
+        (entry): entry is "month" | "year" =>
+          entry === "month" || entry === "year"
       )
     : [];
 
@@ -248,19 +262,25 @@ export async function GET(): Promise<NextResponse> {
     await connectMongo();
 
     const [selfPricingProfile, competitorCompanies] = await Promise.all([
-      SelfPricingProfile.findOne({ userId: String(userId) }).lean<Record<string, unknown> | null>().exec(),
+      SelfPricingProfile.findOne({ userId: String(userId) })
+        .lean<Record<string, unknown> | null>()
+        .exec(),
       Company.find({ userId: String(userId), type: "competitor" })
         .sort({ name: 1 })
         .lean<CompanyLean[]>()
         .exec(),
     ]);
 
-    const competitorCompanyIds = competitorCompanies.map((company) => company._id);
+    const competitorCompanyIds = competitorCompanies.map(
+      (company) => company._id
+    );
 
     const latestSnapshotByCompanyId = new Map<string, SnapshotLean>();
 
     if (competitorCompanyIds.length > 0) {
-      const latestSnapshots = await SnapshotModel.aggregate<SnapshotLean & { _id: Types.ObjectId }>([
+      const latestSnapshots = await SnapshotModel.aggregate<
+        SnapshotLean & { _id: Types.ObjectId }
+      >([
         { $match: { companyId: { $in: competitorCompanyIds } } },
         { $sort: { companyId: 1, capturedAt: -1 } },
         {
@@ -287,15 +307,26 @@ export async function GET(): Promise<NextResponse> {
     }
 
     const competitors = competitorCompanies.map((company) => {
-      const latestSnapshot = latestSnapshotByCompanyId.get(company._id.toString());
-      const pricePoints = latestSnapshot ? toPricePoints(latestSnapshot.pricingPayload) : [];
+      const latestSnapshot = latestSnapshotByCompanyId.get(
+        company._id.toString()
+      );
+      const pricePoints = latestSnapshot
+        ? toPricePoints(latestSnapshot.pricingPayload)
+        : [];
       const pricePointBuckets = toPricePointBuckets(pricePoints);
-      const extractedPlans = latestSnapshot ? toExtractedPlans(latestSnapshot.pricingPayload) : [];
+      const extractedPlans = latestSnapshot
+        ? toExtractedPlans(latestSnapshot.pricingPayload)
+        : [];
       const comparisonClassification = latestSnapshot
-        ? toComparisonClassification(latestSnapshot.pricingPayload, pricePoints, extractedPlans)
+        ? toComparisonClassification(
+            latestSnapshot.pricingPayload,
+            pricePoints,
+            extractedPlans
+          )
         : { pricingModel: "unknown" as const, comparisonCadences: [] };
       const blockedOrManualNeeded =
-        company.lastCrawlStatus === "blocked" || company.lastCrawlStatus === "manual_needed";
+        company.lastCrawlStatus === "blocked" ||
+        company.lastCrawlStatus === "manual_needed";
 
       return {
         companyId: company._id.toString(),
@@ -333,6 +364,9 @@ export async function GET(): Promise<NextResponse> {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to load dashboard comparison" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load dashboard comparison" },
+      { status: 500 }
+    );
   }
 }

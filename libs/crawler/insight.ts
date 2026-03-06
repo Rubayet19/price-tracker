@@ -68,7 +68,9 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
   return null;
 };
 
-const getPriceChangeSummary = (normalizedDiff: Record<string, unknown>): PriceChangeSummary => {
+const getPriceChangeSummary = (
+  normalizedDiff: Record<string, unknown>
+): PriceChangeSummary => {
   const priceChangesRaw = normalizedDiff.priceChanges;
   if (!Array.isArray(priceChangesRaw)) {
     return { added: 0, removed: 0, updated: 0 };
@@ -84,9 +86,15 @@ const getPriceChangeSummary = (normalizedDiff: Record<string, unknown>): PriceCh
       continue;
     }
 
-    const addedAmounts = Array.isArray(asBucket.addedAmounts) ? asBucket.addedAmounts.length : 0;
-    const removedAmounts = Array.isArray(asBucket.removedAmounts) ? asBucket.removedAmounts.length : 0;
-    const updatedAmounts = Array.isArray(asBucket.updatedAmounts) ? asBucket.updatedAmounts.length : 0;
+    const addedAmounts = Array.isArray(asBucket.addedAmounts)
+      ? asBucket.addedAmounts.length
+      : 0;
+    const removedAmounts = Array.isArray(asBucket.removedAmounts)
+      ? asBucket.removedAmounts.length
+      : 0;
+    const updatedAmounts = Array.isArray(asBucket.updatedAmounts)
+      ? asBucket.updatedAmounts.length
+      : 0;
 
     added += addedAmounts;
     removed += removedAmounts;
@@ -118,8 +126,11 @@ const buildDiffDescription = (
       const bucket = asRecord(entry);
       if (!bucket) continue;
 
-      const planName = typeof bucket.planName === "string" ? bucket.planName : null;
-      const updatedAmounts = Array.isArray(bucket.updatedAmounts) ? bucket.updatedAmounts : [];
+      const planName =
+        typeof bucket.planName === "string" ? bucket.planName : null;
+      const updatedAmounts = Array.isArray(bucket.updatedAmounts)
+        ? bucket.updatedAmounts
+        : [];
 
       for (const update of updatedAmounts) {
         const u = asRecord(update);
@@ -135,7 +146,9 @@ const buildDiffDescription = (
     }
   }
 
-  return parts.length > 0 ? parts.join(". ") : "Pricing structure changes detected";
+  return parts.length > 0
+    ? parts.join(". ")
+    : "Pricing structure changes detected";
 };
 
 /* ------------------------------------------------------------------ */
@@ -150,23 +163,33 @@ const createActionItems = (
   const actions: string[] = [];
 
   if (severity === "high") {
-    actions.push("Review competitor positioning and update your pricing strategy within 24 hours.");
+    actions.push(
+      "Review competitor positioning and update your pricing strategy within 24 hours."
+    );
   }
 
   if (summary.updated > 0) {
-    actions.push("Compare changed price points against your plan tiers and conversion funnel performance.");
+    actions.push(
+      "Compare changed price points against your plan tiers and conversion funnel performance."
+    );
   }
 
   if (summary.added > 0 || summary.removed > 0) {
-    actions.push("Audit your sales messaging for affected segments and adjust objection handling.");
+    actions.push(
+      "Audit your sales messaging for affected segments and adjust objection handling."
+    );
   }
 
   if (verificationState === "unverified") {
-    actions.push("Manually verify the competitor pricing page before acting on this change.");
+    actions.push(
+      "Manually verify the competitor pricing page before acting on this change."
+    );
   }
 
   if (actions.length === 0) {
-    actions.push("Monitor this competitor for repeated movement before making pricing changes.");
+    actions.push(
+      "Monitor this competitor for repeated movement before making pricing changes."
+    );
   }
 
   return actions;
@@ -191,7 +214,11 @@ const buildRulesV1Recommendation = (
     risk: getRiskLabel(input.severity),
     severity: input.severity,
     verificationState: input.verificationState,
-    actionItems: createActionItems(input.severity, input.verificationState, summary),
+    actionItems: createActionItems(
+      input.severity,
+      input.verificationState,
+      summary
+    ),
     diffSummary: summary,
   };
 };
@@ -266,7 +293,9 @@ Rules:
 - watchOutFor: 2-3 concrete risk signals tied to this specific change.
 - watchList: 1-2 items maximum.`;
 
-const buildPlanChangeDetails = (normalizedDiff: Record<string, unknown>): string => {
+const buildPlanChangeDetails = (
+  normalizedDiff: Record<string, unknown>
+): string => {
   const planChangesRaw = normalizedDiff.planChanges;
   if (!Array.isArray(planChangesRaw) || planChangesRaw.length === 0) return "";
 
@@ -280,29 +309,40 @@ const buildPlanChangeDetails = (normalizedDiff: Record<string, unknown>): string
     const period = typeof pc.period === "string" ? pc.period : "";
 
     if (type === "updated") {
-      const prev = typeof pc.previousAmount === "number" ? pc.previousAmount : null;
-      const curr = typeof pc.currentAmount === "number" ? pc.currentAmount : null;
-      const delta = typeof pc.deltaPercent === "number" ? pc.deltaPercent : null;
+      const prev =
+        typeof pc.previousAmount === "number" ? pc.previousAmount : null;
+      const curr =
+        typeof pc.currentAmount === "number" ? pc.currentAmount : null;
+      const delta =
+        typeof pc.deltaPercent === "number" ? pc.deltaPercent : null;
       if (prev !== null && curr !== null) {
         const direction = curr > prev ? "+" : "-";
-        const deltaStr = delta !== null ? ` (${direction}${Math.abs(delta).toFixed(1)}%)` : "";
+        const deltaStr =
+          delta !== null ? ` (${direction}${Math.abs(delta).toFixed(1)}%)` : "";
         lines.push(`  ${planName} (${period}): $${prev} → $${curr}${deltaStr}`);
       }
     } else if (type === "added") {
-      const amount = typeof pc.currentAmount === "number" ? pc.currentAmount : null;
-      if (amount !== null) lines.push(`  ${planName} (${period}): new tier at $${amount}`);
+      const amount =
+        typeof pc.currentAmount === "number" ? pc.currentAmount : null;
+      if (amount !== null)
+        lines.push(`  ${planName} (${period}): new tier at $${amount}`);
     } else if (type === "removed") {
-      const amount = typeof pc.previousAmount === "number" ? pc.previousAmount : null;
-      if (amount !== null) lines.push(`  ${planName} (${period}): removed (was $${amount})`);
+      const amount =
+        typeof pc.previousAmount === "number" ? pc.previousAmount : null;
+      if (amount !== null)
+        lines.push(`  ${planName} (${period}): removed (was $${amount})`);
     }
   }
 
   return lines.length > 0 ? "Plan-level changes:\n" + lines.join("\n") : "";
 };
 
-const buildPriceChangeDetails = (normalizedDiff: Record<string, unknown>): string => {
+const buildPriceChangeDetails = (
+  normalizedDiff: Record<string, unknown>
+): string => {
   const priceChangesRaw = normalizedDiff.priceChanges;
-  if (!Array.isArray(priceChangesRaw) || priceChangesRaw.length === 0) return "";
+  if (!Array.isArray(priceChangesRaw) || priceChangesRaw.length === 0)
+    return "";
 
   const lines: string[] = [];
 
@@ -310,23 +350,33 @@ const buildPriceChangeDetails = (normalizedDiff: Record<string, unknown>): strin
     const bucket = asRecord(entry);
     if (!bucket) continue;
 
-    const currency = typeof bucket.currency === "string" ? bucket.currency : "USD";
-    const period = typeof bucket.period === "string" ? bucket.period : "unknown";
+    const currency =
+      typeof bucket.currency === "string" ? bucket.currency : "USD";
+    const period =
+      typeof bucket.period === "string" ? bucket.period : "unknown";
     const label = `${currency}/${period}`;
 
-    const updated = Array.isArray(bucket.updatedAmounts) ? bucket.updatedAmounts : [];
+    const updated = Array.isArray(bucket.updatedAmounts)
+      ? bucket.updatedAmounts
+      : [];
     const added = Array.isArray(bucket.addedAmounts) ? bucket.addedAmounts : [];
-    const removed = Array.isArray(bucket.removedAmounts) ? bucket.removedAmounts : [];
+    const removed = Array.isArray(bucket.removedAmounts)
+      ? bucket.removedAmounts
+      : [];
 
     for (const u of updated) {
       const ub = asRecord(u);
       if (!ub) continue;
-      const prev = typeof ub.previousAmount === "number" ? ub.previousAmount : null;
-      const curr = typeof ub.currentAmount === "number" ? ub.currentAmount : null;
-      const delta = typeof ub.deltaPercent === "number" ? ub.deltaPercent : null;
+      const prev =
+        typeof ub.previousAmount === "number" ? ub.previousAmount : null;
+      const curr =
+        typeof ub.currentAmount === "number" ? ub.currentAmount : null;
+      const delta =
+        typeof ub.deltaPercent === "number" ? ub.deltaPercent : null;
       if (prev !== null && curr !== null) {
         const direction = curr > prev ? "+" : "-";
-        const deltaStr = delta !== null ? ` (${direction}${Math.abs(delta).toFixed(1)}%)` : "";
+        const deltaStr =
+          delta !== null ? ` (${direction}${Math.abs(delta).toFixed(1)}%)` : "";
         lines.push(`  ${label}: $${prev} → $${curr}${deltaStr}`);
       }
     }
@@ -375,24 +425,33 @@ const validateLlmResponse = (
   input: InsightBuildInput,
   summary: PriceChangeSummary
 ): LlmInsightRecommendation | null => {
-  if (typeof parsed.summary !== "string" || parsed.summary.length === 0) return null;
+  if (typeof parsed.summary !== "string" || parsed.summary.length === 0)
+    return null;
 
   const mc = asRecord(parsed.moveClassification);
   if (!mc) return null;
-  if (typeof mc.label !== "string" || !MOVE_CLASSIFICATION_LABELS.has(mc.label)) return null;
+  if (typeof mc.label !== "string" || !MOVE_CLASSIFICATION_LABELS.has(mc.label))
+    return null;
   if (typeof mc.description !== "string") return null;
 
-  if (!Array.isArray(parsed.strategicOptions) || parsed.strategicOptions.length !== 3) return null;
+  if (
+    !Array.isArray(parsed.strategicOptions) ||
+    parsed.strategicOptions.length !== 3
+  )
+    return null;
 
   const validatedOptions = [];
   for (const opt of parsed.strategicOptions) {
     const o = asRecord(opt);
     if (!o) return null;
-    if (typeof o.strategy !== "string" || !STRATEGY_TYPES.has(o.strategy)) return null;
+    if (typeof o.strategy !== "string" || !STRATEGY_TYPES.has(o.strategy))
+      return null;
     if (typeof o.action !== "string" || o.action.length === 0) return null;
     if (typeof o.bestFor !== "string") return null;
-    if (typeof o.effort !== "string" || !EFFORT_RISK_LEVELS.has(o.effort)) return null;
-    if (typeof o.risk !== "string" || !EFFORT_RISK_LEVELS.has(o.risk)) return null;
+    if (typeof o.effort !== "string" || !EFFORT_RISK_LEVELS.has(o.effort))
+      return null;
+    if (typeof o.risk !== "string" || !EFFORT_RISK_LEVELS.has(o.risk))
+      return null;
 
     validatedOptions.push({
       strategy: o.strategy as StrategyType,
@@ -404,11 +463,15 @@ const validateLlmResponse = (
   }
 
   const thingsToCheck = Array.isArray(parsed.thingsToCheck)
-    ? parsed.thingsToCheck.filter((item): item is string => typeof item === "string").slice(0, 4)
+    ? parsed.thingsToCheck
+        .filter((item): item is string => typeof item === "string")
+        .slice(0, 4)
     : [];
 
   const watchOutFor = Array.isArray(parsed.watchOutFor)
-    ? parsed.watchOutFor.filter((item): item is string => typeof item === "string").slice(0, 3)
+    ? parsed.watchOutFor
+        .filter((item): item is string => typeof item === "string")
+        .slice(0, 3)
     : [];
 
   if (!Array.isArray(parsed.watchList)) return null;
@@ -437,7 +500,9 @@ const validateLlmResponse = (
 /*  Public API                                                         */
 /* ------------------------------------------------------------------ */
 
-export const buildInsightFromDiff = async (input: InsightBuildInput): Promise<InsightBuildResult> => {
+export const buildInsightFromDiff = async (
+  input: InsightBuildInput
+): Promise<InsightBuildResult> => {
   const entitlements = resolveEntitlements(input.user, input.now);
 
   if (!entitlements.insightSeverityGate) {
@@ -460,7 +525,10 @@ export const buildInsightFromDiff = async (input: InsightBuildInput): Promise<In
   // Attempt LLM-powered insight
   try {
     const userPrompt = buildUserPrompt(input, summary, diffDescription);
-    const result = await generateStructuredCompletion(SYSTEM_PROMPT, userPrompt);
+    const result = await generateStructuredCompletion(
+      SYSTEM_PROMPT,
+      userPrompt
+    );
 
     if (result) {
       const validated = validateLlmResponse(result.parsed, input, summary);

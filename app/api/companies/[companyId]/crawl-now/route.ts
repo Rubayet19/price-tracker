@@ -10,7 +10,10 @@ interface RouteContext {
   }>;
 }
 
-export async function POST(_request: Request, context: RouteContext): Promise<NextResponse> {
+export async function POST(
+  _request: Request,
+  context: RouteContext
+): Promise<NextResponse> {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -56,7 +59,8 @@ export async function POST(_request: Request, context: RouteContext): Promise<Ne
       result,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to run crawl";
+    const message =
+      error instanceof Error ? error.message : "Failed to run crawl";
 
     if (message === "Company not found") {
       return NextResponse.json({ error: message }, { status: 404 });

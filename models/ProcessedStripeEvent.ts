@@ -65,6 +65,9 @@ processedStripeEventSchema.plugin(toJSON);
 
 const ProcessedStripeEvent =
   (mongoose.models.ProcessedStripeEvent as Model<IProcessedStripeEvent>) ||
-  mongoose.model<IProcessedStripeEvent>("ProcessedStripeEvent", processedStripeEventSchema);
+  mongoose.model<IProcessedStripeEvent>(
+    "ProcessedStripeEvent",
+    processedStripeEventSchema
+  );
 
 export default ProcessedStripeEvent;

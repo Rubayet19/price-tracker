@@ -36,7 +36,7 @@ const CardArticle = ({
               height={338}
               priority={isImagePriority}
               placeholder="blur"
-              className="aspect-video object-center object-cover hover:scale-[1.03] duration-200 ease-in-out"
+              className="aspect-video object-cover object-center duration-200 ease-in-out hover:scale-[1.03]"
             />
           </figure>
         </Link>
@@ -52,7 +52,7 @@ const CardArticle = ({
         )}
 
         {/* TITLE WITH RIGHT TAG */}
-        <TitleTag className="mb-1 text-xl md:text-2xl font-bold">
+        <TitleTag className="mb-1 text-xl font-bold md:text-2xl">
           <Link
             href={`/blog/${article.slug}`}
             className="link link-hover hover:link-primary"
@@ -63,7 +63,7 @@ const CardArticle = ({
           </Link>
         </TitleTag>
 
-        <div className=" text-base-content/80 space-y-4">
+        <div className="text-base-content/80 space-y-4">
           {/* DESCRIPTION */}
           <p className="">{article.description}</p>
 

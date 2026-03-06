@@ -40,7 +40,10 @@ const INACTIVE_SUBSCRIPTION_STATUSES = new Set<Stripe.Subscription.Status>([
 
 const STRIPE_EVENT_LOCK_MS = 5 * 60 * 1000;
 
-const getStripeConfig = (): { stripe: Stripe; webhookSecret: string } | null => {
+const getStripeConfig = (): {
+  stripe: Stripe;
+  webhookSecret: string;
+} | null => {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
 
@@ -90,11 +93,15 @@ const getInvoicePriceId = (invoice: Stripe.Invoice): string | null => {
   return invoice.lines.data[0]?.price?.id ?? null;
 };
 
-const getSubscriptionPriceId = (subscription: Stripe.Subscription): string | null => {
+const getSubscriptionPriceId = (
+  subscription: Stripe.Subscription
+): string | null => {
   return subscription.items.data[0]?.price?.id ?? null;
 };
 
-const hasActiveSubscriptionAccess = (status: Stripe.Subscription.Status): boolean => {
+const hasActiveSubscriptionAccess = (
+  status: Stripe.Subscription.Status
+): boolean => {
   return ACTIVE_SUBSCRIPTION_STATUSES.has(status);
 };
 
@@ -137,7 +144,9 @@ const findOrCreateUserFromCheckout = async (params: {
   const { userId, customerEmail } = params;
 
   if (userId) {
-    const userById = (await User.findById(userId)) as MutableUserDocument | null;
+    const userById = (await User.findById(
+      userId
+    )) as MutableUserDocument | null;
     if (userById) {
       return userById;
     }
@@ -148,7 +157,9 @@ const findOrCreateUserFromCheckout = async (params: {
   }
 
   const normalizedEmail = customerEmail.trim().toLowerCase();
-  let userByEmail = (await User.findOne({ email: normalizedEmail })) as MutableUserDocument | null;
+  let userByEmail = (await User.findOne({
+    email: normalizedEmail,
+  })) as MutableUserDocument | null;
 
   if (!userByEmail) {
     userByEmail = (await User.create({
@@ -159,7 +170,9 @@ const findOrCreateUserFromCheckout = async (params: {
   return userByEmail;
 };
 
-const claimStripeEvent = async (event: Stripe.Event): Promise<StripeEventClaimResult> => {
+const claimStripeEvent = async (
+  event: Stripe.Event
+): Promise<StripeEventClaimResult> => {
   const now = new Date();
   const lockExpiresAt = new Date(now.getTime() + STRIPE_EVENT_LOCK_MS);
 
@@ -179,7 +192,9 @@ const claimStripeEvent = async (event: Stripe.Event): Promise<StripeEventClaimRe
     }
   }
 
-  const existing = await ProcessedStripeEvent.findOne({ eventId: event.id }).exec();
+  const existing = await ProcessedStripeEvent.findOne({
+    eventId: event.id,
+  }).exec();
   if (!existing) {
     return { ok: true, action: "process", attempt: 1 };
   }
@@ -188,7 +203,10 @@ const claimStripeEvent = async (event: Stripe.Event): Promise<StripeEventClaimRe
     return { ok: true, action: "skip", reason: "already_processed" };
   }
 
-  if (existing.status === "processing" && existing.lockExpiresAt.getTime() > now.getTime()) {
+  if (
+    existing.status === "processing" &&
+    existing.lockExpiresAt.getTime() > now.getTime()
+  ) {
     return { ok: true, action: "skip", reason: "in_progress" };
   }
 
@@ -208,20 +226,35 @@ const claimStripeEvent = async (event: Stripe.Event): Promise<StripeEventClaimRe
   ).exec();
 
   if (claimed.modifiedCount > 0) {
-    const refreshed = await ProcessedStripeEvent.findOne({ eventId: event.id }).exec();
-    return { ok: true, action: "process", attempt: refreshed?.attempts ?? existing.attempts + 1 };
+    const refreshed = await ProcessedStripeEvent.findOne({
+      eventId: event.id,
+    }).exec();
+    return {
+      ok: true,
+      action: "process",
+      attempt: refreshed?.attempts ?? existing.attempts + 1,
+    };
   }
 
-  const latest = await ProcessedStripeEvent.findOne({ eventId: event.id }).exec();
+  const latest = await ProcessedStripeEvent.findOne({
+    eventId: event.id,
+  }).exec();
   if (latest?.status === "processed") {
     return { ok: true, action: "skip", reason: "already_processed" };
   }
 
-  if (latest?.status === "processing" && latest.lockExpiresAt.getTime() > now.getTime()) {
+  if (
+    latest?.status === "processing" &&
+    latest.lockExpiresAt.getTime() > now.getTime()
+  ) {
     return { ok: true, action: "skip", reason: "in_progress" };
   }
 
-  return { ok: true, action: "process", attempt: latest?.attempts ?? existing.attempts + 1 };
+  return {
+    ok: true,
+    action: "process",
+    attempt: latest?.attempts ?? existing.attempts + 1,
+  };
 };
 
 const markStripeEventProcessed = async (eventId: string): Promise<void> => {
@@ -240,7 +273,10 @@ const markStripeEventProcessed = async (eventId: string): Promise<void> => {
   ).exec();
 };
 
-const markStripeEventFailed = async (eventId: string, errorMessage: string): Promise<void> => {
+const markStripeEventFailed = async (
+  eventId: string,
+  errorMessage: string
+): Promise<void> => {
   await ProcessedStripeEvent.updateOne(
     { eventId },
     {
@@ -291,7 +327,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const claim = await claimStripeEvent(event);
   if (claim.ok === false) {
     console.error("Stripe webhook claim error:", claim.error);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 }
+    );
   }
 
   if (claim.action === "skip") {
@@ -350,7 +389,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           null;
 
         if (!customerEmail && customerId) {
-          const customer = await stripeConfig.stripe.customers.retrieve(customerId);
+          const customer =
+            await stripeConfig.stripe.customers.retrieve(customerId);
           if (!("deleted" in customer)) {
             customerEmail = customer.email ?? null;
           }
@@ -362,7 +402,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         });
 
         if (!user) {
-          throw new Error("Unable to resolve user for checkout.session.completed");
+          throw new Error(
+            "Unable to resolve user for checkout.session.completed"
+          );
         }
 
         updateUserToPaidAccess(user, { customerId, priceId: knownPriceId });
@@ -378,7 +420,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId =
-          typeof subscription.customer === "string" ? subscription.customer : null;
+          typeof subscription.customer === "string"
+            ? subscription.customer
+            : null;
         if (!customerId) {
           break;
         }
@@ -390,7 +434,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           break;
         }
 
-        const knownPriceId = resolveKnownPriceId(getSubscriptionPriceId(subscription));
+        const knownPriceId = resolveKnownPriceId(
+          getSubscriptionPriceId(subscription)
+        );
 
         if (hasActiveSubscriptionAccess(subscription.status)) {
           if (!knownPriceId) {
@@ -451,10 +497,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         const knownPriceId = resolveKnownPriceId(priceId);
         if (!knownPriceId) {
-          throw new Error(`Unknown or missing Stripe priceId for invoice ${stripeObject.id}`);
+          throw new Error(
+            `Unknown or missing Stripe priceId for invoice ${stripeObject.id}`
+          );
         }
         const customerId =
-          typeof stripeObject.customer === "string" ? stripeObject.customer : null;
+          typeof stripeObject.customer === "string"
+            ? stripeObject.customer
+            : null;
         if (!customerId) {
           break;
         }
@@ -486,7 +536,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const message = toErrorMessage(e);
     console.error("Stripe webhook processing error:", message);
     await markStripeEventFailed(event.id, message);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ received: true }, { status: 200 });

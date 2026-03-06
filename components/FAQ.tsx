@@ -40,7 +40,7 @@ const FaqItem = ({ item }: { item: FAQItemProps }) => {
   return (
     <li>
       <button
-        className="relative flex gap-2 items-center w-full py-5 text-base font-semibold text-left border-t md:text-lg border-base-content/10"
+        className="border-base-content/10 relative flex w-full items-center gap-2 border-t py-5 text-left text-base font-semibold md:text-lg"
         onClick={(e) => {
           e.preventDefault();
           setIsOpen(!isOpen);
@@ -48,12 +48,12 @@ const FaqItem = ({ item }: { item: FAQItemProps }) => {
         aria-expanded={isOpen}
       >
         <span
-          className={`flex-1 text-base-content ${isOpen ? "text-primary" : ""}`}
+          className={`text-base-content flex-1 ${isOpen ? "text-primary" : ""}`}
         >
           {item?.question}
         </span>
         <svg
-          className={`flex-shrink-0 w-4 h-4 ml-auto fill-current`}
+          className={`ml-auto h-4 w-4 flex-shrink-0 fill-current`}
           viewBox="0 0 16 16"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -62,7 +62,7 @@ const FaqItem = ({ item }: { item: FAQItemProps }) => {
             width="16"
             height="2"
             rx="1"
-            className={`transform origin-center transition duration-200 ease-out ${
+            className={`origin-center transform transition duration-200 ease-out ${
               isOpen && "rotate-180"
             }`}
           />
@@ -71,8 +71,8 @@ const FaqItem = ({ item }: { item: FAQItemProps }) => {
             width="16"
             height="2"
             rx="1"
-            className={`transform origin-center rotate-90 transition duration-200 ease-out ${
-              isOpen && "rotate-180 hidden"
+            className={`origin-center rotate-90 transform transition duration-200 ease-out ${
+              isOpen && "hidden rotate-180"
             }`}
           />
         </svg>
@@ -80,7 +80,7 @@ const FaqItem = ({ item }: { item: FAQItemProps }) => {
 
       <div
         ref={accordion}
-        className={`transition-all duration-300 ease-in-out opacity-80 overflow-hidden`}
+        className={`overflow-hidden opacity-80 transition-all duration-300 ease-in-out`}
         style={
           isOpen
             ? { maxHeight: accordion?.current?.scrollHeight, opacity: 1 }
@@ -96,10 +96,10 @@ const FaqItem = ({ item }: { item: FAQItemProps }) => {
 const FAQ = () => {
   return (
     <section className="bg-base-200" id="faq">
-      <div className="py-24 px-8 max-w-7xl mx-auto flex flex-col md:flex-row gap-12">
-        <div className="flex flex-col text-left basis-1/2">
-          <p className="inline-block font-semibold text-primary mb-4">FAQ</p>
-          <p className="sm:text-4xl text-3xl font-extrabold text-base-content">
+      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-8 py-24 md:flex-row">
+        <div className="flex basis-1/2 flex-col text-left">
+          <p className="text-primary mb-4 inline-block font-semibold">FAQ</p>
+          <p className="text-base-content text-3xl font-extrabold sm:text-4xl">
             Frequently Asked Questions
           </p>
         </div>

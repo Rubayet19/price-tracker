@@ -8,7 +8,7 @@ const Avatar = ({ article }: { article: articleType }) => {
     <Link
       href={`/blog/author/${article.author.slug}`}
       title={`Posts by ${article.author.name}`}
-      className="inline-flex items-center gap-2 group"
+      className="group inline-flex items-center gap-2"
       rel="author"
     >
       <span itemProp="author">
@@ -16,7 +16,7 @@ const Avatar = ({ article }: { article: articleType }) => {
           src={article.author.avatar}
           // alt={`Avatar of ${article.author.name}`}
           alt=""
-          className="w-7 h-7 rounded-full object-cover object-center"
+          className="h-7 w-7 rounded-full object-cover object-center"
           width={28}
           height={28}
         />

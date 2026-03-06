@@ -5,7 +5,7 @@
  *  - removes __v, createdAt, updatedAt, and any path that has private: true
  *  - replaces _id with id
  */
-import { Schema, Document } from 'mongoose';
+import { Schema, Document } from "mongoose";
 
 const deleteAtPath = (obj: any, path: string[], index: number) => {
   if (index === path.length - 1) {
@@ -16,11 +16,11 @@ const deleteAtPath = (obj: any, path: string[], index: number) => {
 };
 
 const toJSON = <T extends Document>(schema: Schema<T>) => {
-  schema.set('toJSON', {
+  schema.set("toJSON", {
     transform: function (doc, ret) {
       Object.keys(schema.paths).forEach((path) => {
         if (schema.paths[path].options && schema.paths[path].options.private) {
-          deleteAtPath(ret, path.split('.'), 0);
+          deleteAtPath(ret, path.split("."), 0);
         }
       });
 

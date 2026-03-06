@@ -9,20 +9,29 @@ import type {
 
 const getPlanRule = (planTier: PlanTier) => config.entitlements.plans[planTier];
 
-const getAllowedInsightSeverities = (gate: InsightSeverityGate): InsightSeverity[] => {
+const getAllowedInsightSeverities = (
+  gate: InsightSeverityGate
+): InsightSeverity[] => {
   return [...config.entitlements.severityGates[gate]];
 };
 
-export const resolvePlanTierFromPriceId = (priceId?: string | null): PlanTier | null => {
+export const resolvePlanTierFromPriceId = (
+  priceId?: string | null
+): PlanTier | null => {
   if (!priceId) {
     return null;
   }
 
-  const plan = config.stripe.plans.find((candidate) => candidate.priceId === priceId);
+  const plan = config.stripe.plans.find(
+    (candidate) => candidate.priceId === priceId
+  );
   return plan?.tier ?? null;
 };
 
-export const isTrialActive = (user: EntitlementUserLike, now: Date = new Date()): boolean => {
+export const isTrialActive = (
+  user: EntitlementUserLike,
+  now: Date = new Date()
+): boolean => {
   if (user.trialStatus !== "active" || !user.trialEndsAt) {
     return false;
   }
@@ -36,7 +45,8 @@ export const resolveEntitlements = (
 ): ResolvedEntitlements => {
   if (user.hasAccess) {
     const paidPlanTier =
-      resolvePlanTierFromPriceId(user.priceId) ?? config.entitlements.paidFallbackPlanTier;
+      resolvePlanTierFromPriceId(user.priceId) ??
+      config.entitlements.paidFallbackPlanTier;
     const paidPlanRule = getPlanRule(paidPlanTier);
 
     return {
@@ -46,7 +56,9 @@ export const resolveEntitlements = (
       planTier: paidPlanTier,
       competitorLimit: paidPlanRule.competitorLimit,
       insightSeverityGate: paidPlanRule.insightSeverityGate,
-      allowedInsightSeverities: getAllowedInsightSeverities(paidPlanRule.insightSeverityGate),
+      allowedInsightSeverities: getAllowedInsightSeverities(
+        paidPlanRule.insightSeverityGate
+      ),
       canReceiveWeeklyDigest: paidPlanRule.canReceiveWeeklyDigest,
       trialDays: config.entitlements.trialDays,
     };
@@ -63,7 +75,9 @@ export const resolveEntitlements = (
       planTier: trialPlanTier,
       competitorLimit: trialPlanRule.competitorLimit,
       insightSeverityGate: trialPlanRule.insightSeverityGate,
-      allowedInsightSeverities: getAllowedInsightSeverities(trialPlanRule.insightSeverityGate),
+      allowedInsightSeverities: getAllowedInsightSeverities(
+        trialPlanRule.insightSeverityGate
+      ),
       canReceiveWeeklyDigest: false,
       trialDays: config.entitlements.trialDays,
     };
@@ -93,9 +107,14 @@ export const canGenerateInsight = (
   entitlements: ResolvedEntitlements,
   severity: InsightSeverity
 ): boolean => {
-  return entitlements.hasAccess && entitlements.allowedInsightSeverities.includes(severity);
+  return (
+    entitlements.hasAccess &&
+    entitlements.allowedInsightSeverities.includes(severity)
+  );
 };
 
-export const canReceiveWeeklyDigest = (entitlements: ResolvedEntitlements): boolean => {
+export const canReceiveWeeklyDigest = (
+  entitlements: ResolvedEntitlements
+): boolean => {
   return entitlements.hasAccess && entitlements.canReceiveWeeklyDigest;
 };

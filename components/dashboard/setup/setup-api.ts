@@ -62,7 +62,10 @@ export interface CrawlCompanyApiResponse {
   };
 }
 
-const toErrorMessage = async (response: Response, fallbackMessage: string): Promise<string> => {
+const toErrorMessage = async (
+  response: Response,
+  fallbackMessage: string
+): Promise<string> => {
   try {
     const payload = (await response.json()) as JsonErrorPayload;
     if (typeof payload.error === "string" && payload.error.trim().length > 0) {
@@ -89,10 +92,15 @@ const createJsonOptions = (method: string, body?: unknown) => {
 export const saveSelfPricingProfile = async (
   payload: SelfPricingProfileData
 ): Promise<SelfPricingProfileData> => {
-  const response = await fetch("/api/self-pricing", createJsonOptions("PUT", payload));
+  const response = await fetch(
+    "/api/self-pricing",
+    createJsonOptions("PUT", payload)
+  );
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to save self pricing profile"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to save self pricing profile")
+    );
   }
 
   const data = (await response.json()) as { profile: SelfPricingProfileData };
@@ -106,7 +114,10 @@ export const createCompany = async (payload: {
   homepageUrl?: string;
   primaryPricingUrl?: string;
 }): Promise<CompanyApiResponse["company"]> => {
-  const response = await fetch("/api/companies", createJsonOptions("POST", payload));
+  const response = await fetch(
+    "/api/companies",
+    createJsonOptions("POST", payload)
+  );
 
   if (!response.ok) {
     throw new Error(await toErrorMessage(response, "Failed to create company"));
@@ -156,7 +167,9 @@ export const discoverPricingUrls = async (
   );
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to discover pricing URLs"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to discover pricing URLs")
+    );
   }
 
   return (await response.json()) as PricingDiscoveryApiResponse;
@@ -172,17 +185,26 @@ export const updatePrimaryPricingUrl = async (
   );
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to save the pricing URL"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to save the pricing URL")
+    );
   }
 
   return (await response.json()) as PrimaryPricingApiResponse;
 };
 
-export const crawlCompanyNow = async (companyId: string): Promise<CrawlCompanyApiResponse> => {
-  const response = await fetch(`/api/companies/${companyId}/crawl-now`, createJsonOptions("POST"));
+export const crawlCompanyNow = async (
+  companyId: string
+): Promise<CrawlCompanyApiResponse> => {
+  const response = await fetch(
+    `/api/companies/${companyId}/crawl-now`,
+    createJsonOptions("POST")
+  );
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to run the first crawl"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to run the first crawl")
+    );
   }
 
   return (await response.json()) as CrawlCompanyApiResponse;

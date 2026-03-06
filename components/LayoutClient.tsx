@@ -57,27 +57,27 @@ const ClientLayout = ({ children }: { children: ReactNode }) => {
     <>
       <SessionProvider>
         <PostHogProviderWrapper>
-        {/* Show a progress bar at the top when navigating between pages */}
-        <NextTopLoader color={config.colors.main} showSpinner={false} />
+          {/* Show a progress bar at the top when navigating between pages */}
+          <NextTopLoader color={config.colors.main} showSpinner={false} />
 
-        {/* Content inside app/page.js files  */}
-        {children}
+          {/* Content inside app/page.js files  */}
+          {children}
 
-        {/* Show Success/Error messages anywhere from the app with toast() */}
-        <Toaster
-          toastOptions={{
-            duration: 3000,
-          }}
-        />
+          {/* Show Success/Error messages anywhere from the app with toast() */}
+          <Toaster
+            toastOptions={{
+              duration: 3000,
+            }}
+          />
 
-        {/* Show a tooltip if any JSX element has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content="" */}
-        <Tooltip
-          id="tooltip"
-          className="z-[60] !opacity-100 max-w-sm shadow-lg"
-        />
+          {/* Show a tooltip if any JSX element has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content="" */}
+          <Tooltip
+            id="tooltip"
+            className="z-[60] max-w-sm !opacity-100 shadow-lg"
+          />
 
-        {/* Set Crisp customer chat support */}
-        <CrispChat />
+          {/* Set Crisp customer chat support */}
+          <CrispChat />
         </PostHogProviderWrapper>
       </SessionProvider>
     </>

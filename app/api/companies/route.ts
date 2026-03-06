@@ -26,7 +26,8 @@ const createCompanySchema = z
     if (!value.domain && !value.homepageUrl && !value.primaryPricingUrl) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Provide at least one of: domain, homepageUrl, primaryPricingUrl",
+        message:
+          "Provide at least one of: domain, homepageUrl, primaryPricingUrl",
         path: ["domain"],
       });
     }
@@ -51,7 +52,9 @@ const normalizeDomainInput = (value?: string): string | null => {
   }
 
   try {
-    const asUrl = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    const asUrl = new URL(
+      trimmed.includes("://") ? trimmed : `https://${trimmed}`
+    );
     const normalized = normalizeHostname(asUrl.hostname);
     return isValidDomain(normalized) ? normalized : null;
   } catch {
@@ -111,7 +114,10 @@ export async function GET() {
     return NextResponse.json({ companies });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to load companies" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load companies" },
+      { status: 500 }
+    );
   }
 }
 
@@ -126,7 +132,10 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON payload" },
+      { status: 400 }
+    );
   }
 
   const parsed = createCompanySchema.safeParse(body);
@@ -145,7 +154,10 @@ export async function POST(req: NextRequest) {
 
   const normalizedPricingUrl = normalizeUrlInput(parsed.data.primaryPricingUrl);
   if (parsed.data.primaryPricingUrl && !normalizedPricingUrl) {
-    return NextResponse.json({ error: "Invalid primaryPricingUrl" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid primaryPricingUrl" },
+      { status: 400 }
+    );
   }
 
   const domainFromInput = normalizeDomainInput(parsed.data.domain);
@@ -160,14 +172,20 @@ export async function POST(req: NextRequest) {
     ? normalizeHostname(new URL(normalizedPricingUrl).hostname)
     : null;
 
-  const normalizedDomain = domainFromInput ?? domainFromHomepage ?? domainFromPricing;
+  const normalizedDomain =
+    domainFromInput ?? domainFromHomepage ?? domainFromPricing;
 
   if (!normalizedDomain) {
-    return NextResponse.json({ error: "Unable to resolve company domain" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Unable to resolve company domain" },
+      { status: 400 }
+    );
   }
 
   if (normalizedHomepageUrl) {
-    const homepageHost = normalizeHostname(new URL(normalizedHomepageUrl).hostname);
+    const homepageHost = normalizeHostname(
+      new URL(normalizedHomepageUrl).hostname
+    );
     if (!isSubdomainOrSame(homepageHost, normalizedDomain)) {
       return NextResponse.json(
         { error: "homepageUrl domain does not match company domain" },
@@ -177,7 +195,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (normalizedPricingUrl) {
-    const pricingHost = normalizeHostname(new URL(normalizedPricingUrl).hostname);
+    const pricingHost = normalizeHostname(
+      new URL(normalizedPricingUrl).hostname
+    );
     if (!isSubdomainOrSame(pricingHost, normalizedDomain)) {
       return NextResponse.json(
         { error: "primaryPricingUrl domain does not match company domain" },
@@ -280,7 +300,10 @@ export async function POST(req: NextRequest) {
             reason: "self_company_already_exists",
           },
         });
-        return NextResponse.json({ error: "Self company already exists" }, { status: 409 });
+        return NextResponse.json(
+          { error: "Self company already exists" },
+          { status: 409 }
+        );
       }
     }
 
@@ -312,7 +335,11 @@ export async function POST(req: NextRequest) {
 
     let discoveredCandidates: IPricingUrlCandidate[] = [];
 
-    if (parsed.data.type === "competitor" && !normalizedPricingUrl && normalizedHomepageUrl) {
+    if (
+      parsed.data.type === "competitor" &&
+      !normalizedPricingUrl &&
+      normalizedHomepageUrl
+    ) {
       const discovery = await discoverPricingUrlsFromHomepage({
         homepageUrl: normalizedHomepageUrl,
         allowedDomain: normalizedDomain,
@@ -330,7 +357,10 @@ export async function POST(req: NextRequest) {
           },
         ]
       : [];
-    const pricingUrlCandidates = mergePricingUrlCandidates(userProvidedCandidates, discoveredCandidates);
+    const pricingUrlCandidates = mergePricingUrlCandidates(
+      userProvidedCandidates,
+      discoveredCandidates
+    );
 
     const company = await Company.create({
       userId,
@@ -381,6 +411,9 @@ export async function POST(req: NextRequest) {
         reason: error instanceof Error ? error.message : "unknown_error",
       },
     });
-    return NextResponse.json({ error: "Failed to create company" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create company" },
+      { status: 500 }
+    );
   }
 }

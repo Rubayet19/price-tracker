@@ -1,4 +1,7 @@
-import type { SelfPricingPlan, SelfPricingProfileData } from "@/types/self-pricing";
+import type {
+  SelfPricingPlan,
+  SelfPricingProfileData,
+} from "@/types/self-pricing";
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -39,9 +42,15 @@ const normalizePlan = (
   const legacySinglePrice = toNonNegativeNumberOrNull(value.price);
 
   const monthlyPrice =
-    monthlyExplicit ?? (annualExplicit === null && legacyBillingPeriod === "month" ? legacySinglePrice : null);
+    monthlyExplicit ??
+    (annualExplicit === null && legacyBillingPeriod === "month"
+      ? legacySinglePrice
+      : null);
   const annualPrice =
-    annualExplicit ?? (monthlyExplicit === null && legacyBillingPeriod === "year" ? legacySinglePrice : null);
+    annualExplicit ??
+    (monthlyExplicit === null && legacyBillingPeriod === "year"
+      ? legacySinglePrice
+      : null);
 
   if (monthlyPrice === null && annualPrice === null) {
     return null;
@@ -54,7 +63,9 @@ const normalizePlan = (
   };
 };
 
-export const normalizeSelfPricingProfile = (value: unknown): SelfPricingProfileData | null => {
+export const normalizeSelfPricingProfile = (
+  value: unknown
+): SelfPricingProfileData | null => {
   if (!isRecord(value)) {
     return null;
   }
@@ -68,6 +79,9 @@ export const normalizeSelfPricingProfile = (value: unknown): SelfPricingProfileD
   return {
     currency: toCurrency(value.currency),
     plans,
-    notes: typeof value.notes === "string" && value.notes.trim() ? value.notes.trim() : null,
+    notes:
+      typeof value.notes === "string" && value.notes.trim()
+        ? value.notes.trim()
+        : null,
   };
 };

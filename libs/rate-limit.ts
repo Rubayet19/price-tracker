@@ -52,7 +52,8 @@ export const enforceWriteRateLimit = async (
     { upsert: true, new: true }
   ).exec();
 
-  const isNewWindow = created.windowStartedAt.getTime() === now.getTime() && created.count === 1;
+  const isNewWindow =
+    created.windowStartedAt.getTime() === now.getTime() && created.count === 1;
   if (isNewWindow) {
     return createResult({
       allowed: true,
@@ -102,7 +103,9 @@ export const enforceWriteRateLimit = async (
   ).exec();
 
   if (incremented) {
-    const resetAt = new Date(incremented.windowStartedAt.getTime() + windowDurationMs);
+    const resetAt = new Date(
+      incremented.windowStartedAt.getTime() + windowDurationMs
+    );
     return createResult({
       allowed: true,
       limit: input.maxRequests,
@@ -124,7 +127,9 @@ export const enforceWriteRateLimit = async (
   }
 
   const elapsedMs = now.getTime() - current.windowStartedAt.getTime();
-  const resetAt = new Date(current.windowStartedAt.getTime() + windowDurationMs);
+  const resetAt = new Date(
+    current.windowStartedAt.getTime() + windowDurationMs
+  );
   const retryAfterSeconds = Math.ceil((windowDurationMs - elapsedMs) / 1000);
 
   return createResult({

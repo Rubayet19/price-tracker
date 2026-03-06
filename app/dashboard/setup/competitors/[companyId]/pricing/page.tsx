@@ -21,17 +21,25 @@ export default async function CompetitorPricingSetupPage({
     redirect(config.auth.loginUrl);
   }
 
-  const [{ companyId }, status] = await Promise.all([params, getSetupStatus(String(userId))]);
+  const [{ companyId }, status] = await Promise.all([
+    params,
+    getSetupStatus(String(userId)),
+  ]);
 
   if (status.isSetupComplete) {
     redirect("/dashboard");
   }
 
-  if (status.nextStep.step !== "competitor_pricing" || status.nextStep.companyId !== companyId) {
+  if (
+    status.nextStep.step !== "competitor_pricing" ||
+    status.nextStep.companyId !== companyId
+  ) {
     redirect(status.nextStep.href);
   }
 
-  const competitor = status.competitors.find((entry) => entry.companyId === companyId);
+  const competitor = status.competitors.find(
+    (entry) => entry.companyId === companyId
+  );
 
   if (!competitor) {
     redirect("/dashboard/setup");

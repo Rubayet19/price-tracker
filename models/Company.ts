@@ -3,7 +3,12 @@ import type { Document, Model, Types } from "mongoose";
 import toJSON from "./plugins/toJSON";
 
 export type CompanyType = "self" | "competitor";
-export type CompanyCrawlStatus = "idle" | "ok" | "blocked" | "manual_needed" | "error";
+export type CompanyCrawlStatus =
+  | "idle"
+  | "ok"
+  | "blocked"
+  | "manual_needed"
+  | "error";
 
 export interface IPricingUrlCandidate {
   url: string;

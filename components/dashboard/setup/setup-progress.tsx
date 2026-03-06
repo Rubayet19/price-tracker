@@ -37,12 +37,16 @@ const getStateLabel = (
   };
 };
 
-export default function SetupProgress({ currentStep, status }: SetupProgressProps) {
+export default function SetupProgress({
+  currentStep,
+  status,
+}: SetupProgressProps) {
   const items: StepItem[] = [
     {
       key: "self_pricing",
       title: "Your product",
-      description: "Add your homepage, optional pricing URL, positioning, and monthly/annual plans.",
+      description:
+        "Add your homepage, optional pricing URL, positioning, and monthly/annual plans.",
       complete: status.hasSelfPricing && status.hasSelfCompany,
     },
     {
@@ -77,16 +81,20 @@ export default function SetupProgress({ currentStep, status }: SetupProgressProp
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                <p className="text-xs font-semibold tracking-[0.22em] text-[#64748b] uppercase">
                   Step {index + 1}
                 </p>
-                <h3 className="mt-2 text-base font-bold text-[#0f172a]">{item.title}</h3>
+                <h3 className="mt-2 text-base font-bold text-[#0f172a]">
+                  {item.title}
+                </h3>
               </div>
               <Badge variant="outline" className={state.className}>
                 {state.label}
               </Badge>
             </div>
-            <p className="mt-3 text-sm leading-6 text-[#475569]">{item.description}</p>
+            <p className="mt-3 text-sm leading-6 text-[#475569]">
+              {item.description}
+            </p>
           </article>
         );
       })}

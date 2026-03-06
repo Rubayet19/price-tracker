@@ -1,6 +1,9 @@
 import DashboardOverviewContent from "@/components/dashboard/dashboard-overview-content";
 import { auth } from "@/libs/auth";
-import { requireAuthenticatedDashboardUserId, requireCompletedSetup } from "@/libs/setup";
+import {
+  requireAuthenticatedDashboardUserId,
+  requireCompletedSetup,
+} from "@/libs/setup";
 
 export default async function Page() {
   const session = await auth();

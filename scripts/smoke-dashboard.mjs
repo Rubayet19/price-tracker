@@ -31,7 +31,7 @@ const parseEnvFile = (contents) => {
     let value = trimmed.slice(separatorIndex + 1).trim();
 
     if (
-      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1);
@@ -50,7 +50,12 @@ const loadEnv = async () => {
   try {
     contents = await readFile(envPath, "utf8");
   } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
       return;
     }
 
@@ -103,7 +108,9 @@ const createSessionToken = async (userId) => {
   const sessionSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
 
   if (!sessionSecret) {
-    throw new Error("NEXTAUTH_SECRET or AUTH_SECRET is required for smoke test sessions");
+    throw new Error(
+      "NEXTAUTH_SECRET or AUTH_SECRET is required for smoke test sessions"
+    );
   }
 
   return encode({
@@ -138,7 +145,16 @@ const createSmokeUser = async (database) => {
 };
 
 const cleanupSmokeUser = async (database, userId) => {
-  const collections = ["users", "companies", "selfpricingprofiles", "snapshots", "diffs", "insights", "audits", "auditevents"];
+  const collections = [
+    "users",
+    "companies",
+    "selfpricingprofiles",
+    "snapshots",
+    "diffs",
+    "insights",
+    "audits",
+    "auditevents",
+  ];
 
   await Promise.all(
     collections.map(async (name) => {
@@ -170,10 +186,16 @@ const runBrowserFlow = async (sessionToken) => {
   const page = await context.newPage();
   page.setDefaultTimeout(120000);
 
-  await page.goto("/dashboard/changes", { waitUntil: "domcontentloaded", timeout: 120000 });
+  await page.goto("/dashboard/changes", {
+    waitUntil: "domcontentloaded",
+    timeout: 120000,
+  });
   await page.waitForURL("**/dashboard/setup/self-pricing**");
 
-  await page.goto("/dashboard", { waitUntil: "domcontentloaded", timeout: 120000 });
+  await page.goto("/dashboard", {
+    waitUntil: "domcontentloaded",
+    timeout: 120000,
+  });
   await page.waitForURL("**/dashboard/setup/self-pricing**");
 
   await page.getByLabel("Product name").fill("Price Tracker");
@@ -181,18 +203,27 @@ const runBrowserFlow = async (sessionToken) => {
   await page.getByLabel("Currency").fill("USD");
   await page.getByLabel("Plan name").first().fill("Starter");
   await page.getByLabel("Monthly price").first().fill("19");
-  await page.getByRole("button", { name: /save pricing and continue/i }).click();
+  await page
+    .getByRole("button", { name: /save pricing and continue/i })
+    .click();
   await page.waitForURL("**/dashboard/setup/trial");
 
   await page.getByRole("button", { name: /^start trial$/i }).click();
   await page.waitForURL("**/dashboard/setup/competitors");
 
   await page.getByLabel("Competitor name").fill("Smoke Competitor");
-  await page.getByLabel("Homepage URL").fill(`${BASE_URL}/smoke/competitor-home.html`);
-  await page.getByRole("button", { name: /^add competitor and continue$/i }).click();
+  await page
+    .getByLabel("Homepage URL")
+    .fill(`${BASE_URL}/smoke/competitor-home.html`);
+  await page
+    .getByRole("button", { name: /^add competitor and continue$/i })
+    .click();
   await page.waitForURL("**/dashboard/setup/competitors/**/pricing");
 
-  const candidateButton = page.locator("button").filter({ hasText: "competitor-pricing.html" }).first();
+  const candidateButton = page
+    .locator("button")
+    .filter({ hasText: "competitor-pricing.html" })
+    .first();
   if ((await candidateButton.count()) > 0) {
     await candidateButton.click();
   } else {
@@ -200,13 +231,18 @@ const runBrowserFlow = async (sessionToken) => {
       .getByLabel(/paste a manual pricing url/i)
       .fill(`${BASE_URL}/smoke/competitor-pricing.html`);
   }
-  await page.getByRole("button", { name: /confirm url and run first crawl/i }).click();
+  await page
+    .getByRole("button", { name: /confirm url and run first crawl/i })
+    .click();
   await page.waitForURL("**/dashboard/competitors");
 
   await page.getByRole("heading", { name: "Competitors" }).waitFor();
   await page.getByText("Smoke Competitor").waitFor();
 
-  await page.goto("/dashboard", { waitUntil: "domcontentloaded", timeout: 120000 });
+  await page.goto("/dashboard", {
+    waitUntil: "domcontentloaded",
+    timeout: 120000,
+  });
   await page.getByText("You vs Competitors").waitFor();
   await page.getByText("Starter").last().waitFor();
   await page.getByText("Pro").last().waitFor();
@@ -214,8 +250,14 @@ const runBrowserFlow = async (sessionToken) => {
   await page.getByText("$29").first().waitFor();
   await page.getByText("$79").first().waitFor();
   await page.getByText("$179").first().waitFor();
-  if ((await page.getByText("Enterprise power, without the enterprise price tag").count()) > 0) {
-    throw new Error("Comparison should not use the pricing page headline as a plan name");
+  if (
+    (await page
+      .getByText("Enterprise power, without the enterprise price tag")
+      .count()) > 0
+  ) {
+    throw new Error(
+      "Comparison should not use the pricing page headline as a plan name"
+    );
   }
   await page.getByRole("button", { name: "Annual" }).click();
   await page.getByText("Starter").last().waitFor();
@@ -225,7 +267,10 @@ const runBrowserFlow = async (sessionToken) => {
   await page.getByText("$69").first().waitFor();
   await page.getByText("$149").first().waitFor();
 
-  await page.goto("/dashboard/settings", { waitUntil: "domcontentloaded", timeout: 120000 });
+  await page.goto("/dashboard/settings", {
+    waitUntil: "domcontentloaded",
+    timeout: 120000,
+  });
   await page.getByRole("heading", { name: "Settings & Billing" }).waitFor();
 
   await browser.close();

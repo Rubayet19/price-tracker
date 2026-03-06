@@ -42,21 +42,21 @@ export default async function Category({
 
   return (
     <>
-      <section className="mt-12 mb-24 md:mb-32 max-w-3xl mx-auto text-center">
-        <h1 className="font-extrabold text-3xl lg:text-5xl tracking-tight mb-6 md:mb-12">
+      <section className="mx-auto mt-12 mb-24 max-w-3xl text-center md:mb-32">
+        <h1 className="mb-6 text-3xl font-extrabold tracking-tight md:mb-12 lg:text-5xl">
           {category.title}
         </h1>
-        <p className="md:text-lg opacity-80 max-w-xl mx-auto">
+        <p className="mx-auto max-w-xl opacity-80 md:text-lg">
           {category.description}
         </p>
       </section>
 
       <section className="mb-24">
-        <h2 className="font-bold text-2xl lg:text-4xl tracking-tight text-center mb-8 md:mb-12">
+        <h2 className="mb-8 text-center text-2xl font-bold tracking-tight md:mb-12 lg:text-4xl">
           Most recent articles in {category.title}
         </h2>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid gap-8 lg:grid-cols-2">
           {articlesInCategory.map((article) => (
             <CardArticle
               key={article.slug}
@@ -69,11 +69,11 @@ export default async function Category({
       </section>
 
       <section>
-        <h2 className="font-bold text-2xl lg:text-4xl tracking-tight text-center mb-8 md:mb-12">
+        <h2 className="mb-8 text-center text-2xl font-bold tracking-tight md:mb-12 lg:text-4xl">
           Other categories you might like
         </h2>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {categories
             .filter((c) => c.slug !== category.slug)
             .map((category) => (

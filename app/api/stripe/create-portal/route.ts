@@ -8,11 +8,15 @@ import config from "@/config";
 
 const ALLOWED_ORIGINS = [
   `https://${config.domainName}`,
-  ...(process.env.NODE_ENV === "development" ? ["http://localhost:3000", "http://localhost:3001"] : []),
+  ...(process.env.NODE_ENV === "development"
+    ? ["http://localhost:3000", "http://localhost:3001"]
+    : []),
 ];
 
 const isAllowedOrigin = (url: string): boolean => {
-  return ALLOWED_ORIGINS.some((origin) => url.startsWith(origin + "/") || url === origin);
+  return ALLOWED_ORIGINS.some(
+    (origin) => url.startsWith(origin + "/") || url === origin
+  );
 };
 
 const portalRequestSchema = z.object({
@@ -30,16 +34,25 @@ export async function POST(req: NextRequest) {
       try {
         body = await req.json();
       } catch {
-        return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid JSON payload" },
+          { status: 400 }
+        );
       }
 
       const parsed = portalRequestSchema.safeParse(body);
       if (!parsed.success) {
-        return NextResponse.json({ error: "Valid returnUrl is required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Valid returnUrl is required" },
+          { status: 400 }
+        );
       }
 
       if (!isAllowedOrigin(parsed.data.returnUrl)) {
-        return NextResponse.json({ error: "Invalid redirect URL" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid redirect URL" },
+          { status: 400 }
+        );
       }
 
       const { id } = session.user;

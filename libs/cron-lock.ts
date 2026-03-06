@@ -87,7 +87,10 @@ export const acquireCronLock = async (
     };
   }
 
-  const retryAfterMs = Math.max(existingLock.lockUntil.getTime() - now.getTime(), 0);
+  const retryAfterMs = Math.max(
+    existingLock.lockUntil.getTime() - now.getTime(),
+    0
+  );
 
   return {
     acquired: false,
@@ -97,7 +100,10 @@ export const acquireCronLock = async (
   };
 };
 
-export const releaseCronLock = async (key: string, ownerId: string): Promise<void> => {
+export const releaseCronLock = async (
+  key: string,
+  ownerId: string
+): Promise<void> => {
   await CronRunLock.updateOne(
     {
       key,

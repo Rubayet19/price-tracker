@@ -12,9 +12,21 @@ const MAX_PLANS = 20;
 
 const planSchema = z
   .object({
-  name: z.string().trim().min(1).max(120),
-    monthlyPrice: z.number().finite().min(0).max(MAX_PLAN_PRICE).nullable().optional(),
-    annualPrice: z.number().finite().min(0).max(MAX_PLAN_PRICE).nullable().optional(),
+    name: z.string().trim().min(1).max(120),
+    monthlyPrice: z
+      .number()
+      .finite()
+      .min(0)
+      .max(MAX_PLAN_PRICE)
+      .nullable()
+      .optional(),
+    annualPrice: z
+      .number()
+      .finite()
+      .min(0)
+      .max(MAX_PLAN_PRICE)
+      .nullable()
+      .optional(),
   })
   .superRefine((value, ctx) => {
     if (value.monthlyPrice == null && value.annualPrice == null) {
@@ -27,7 +39,12 @@ const planSchema = z
   });
 
 const selfPricingProfileSchema = z.object({
-  currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).default("USD"),
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/)
+    .default("USD"),
   plans: z.array(planSchema).min(1).max(MAX_PLANS),
   notes: z.string().trim().max(2000).optional(),
 });
@@ -43,11 +60,18 @@ export async function GET(): Promise<NextResponse> {
   try {
     await connectMongo();
 
-    const profile = await SelfPricingProfile.findOne({ userId: String(userId) });
-    return NextResponse.json({ profile: normalizeSelfPricingProfile(profile?.toObject() ?? null) });
+    const profile = await SelfPricingProfile.findOne({
+      userId: String(userId),
+    });
+    return NextResponse.json({
+      profile: normalizeSelfPricingProfile(profile?.toObject() ?? null),
+    });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to load self pricing profile" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load self pricing profile" },
+      { status: 500 }
+    );
   }
 }
 
@@ -85,7 +109,10 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON payload" },
+      { status: 400 }
+    );
   }
 
   const parsed = selfPricingProfileSchema.safeParse(body);
@@ -141,7 +168,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    return NextResponse.json({ profile: normalizeSelfPricingProfile(profile?.toObject() ?? null) });
+    return NextResponse.json({
+      profile: normalizeSelfPricingProfile(profile?.toObject() ?? null),
+    });
   } catch (error) {
     console.error(error);
     await logAuditEvent({
@@ -154,6 +183,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         reason: error instanceof Error ? error.message : "unknown_error",
       },
     });
-    return NextResponse.json({ error: "Failed to save self pricing profile" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to save self pricing profile" },
+      { status: 500 }
+    );
   }
 }

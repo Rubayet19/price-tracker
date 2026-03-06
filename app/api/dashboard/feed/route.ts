@@ -3,7 +3,10 @@ import { type PipelineStage, Types } from "mongoose";
 import { z } from "zod";
 import connectMongo from "@/libs/mongoose";
 import { auth } from "@/libs/auth";
-import DiffModel, { type DiffSeverity, type DiffVerificationState } from "@/models/Diff";
+import DiffModel, {
+  type DiffSeverity,
+  type DiffVerificationState,
+} from "@/models/Diff";
 import type { InsightSeverityGate } from "@/models/Insight";
 
 const feedQuerySchema = z.object({
@@ -49,7 +52,10 @@ interface ParsedCursor {
 }
 
 const encodeCursor = (detectedAt: Date, id: Types.ObjectId): string => {
-  const payload = JSON.stringify({ detectedAt: detectedAt.toISOString(), id: id.toString() });
+  const payload = JSON.stringify({
+    detectedAt: detectedAt.toISOString(),
+    id: id.toString(),
+  });
   return Buffer.from(payload, "utf8").toString("base64url");
 };
 
@@ -61,9 +67,15 @@ const parseCursor = (cursor: string): ParsedCursor | null => {
 
   try {
     const decoded = Buffer.from(trimmed, "base64url").toString("utf8");
-    const parsed = JSON.parse(decoded) as { detectedAt?: unknown; id?: unknown };
+    const parsed = JSON.parse(decoded) as {
+      detectedAt?: unknown;
+      id?: unknown;
+    };
 
-    if (typeof parsed.detectedAt !== "string" || typeof parsed.id !== "string") {
+    if (
+      typeof parsed.detectedAt !== "string" ||
+      typeof parsed.id !== "string"
+    ) {
       return null;
     }
 
@@ -88,10 +100,14 @@ const parseCursor = (cursor: string): ParsedCursor | null => {
   }
 };
 
-const parseQuery = (request: NextRequest): { success: true; data: FeedQuery } | {
-  success: false;
-  response: NextResponse;
-} => {
+const parseQuery = (
+  request: NextRequest
+):
+  | { success: true; data: FeedQuery }
+  | {
+      success: false;
+      response: NextResponse;
+    } => {
   const { searchParams } = new URL(request.url);
 
   const parsed = feedQuerySchema.safeParse({
@@ -132,7 +148,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const parsedCursor = cursor ? parseCursor(cursor) : null;
   if (cursor && !parsedCursor) {
     return NextResponse.json(
-      { error: "Invalid cursor. Use the cursor value returned by this endpoint." },
+      {
+        error:
+          "Invalid cursor. Use the cursor value returned by this endpoint.",
+      },
       { status: 400 }
     );
   }
@@ -157,7 +176,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (parsedCursor.id) {
         matchStage.$or = [
           { detectedAt: { $lt: parsedCursor.detectedAt } },
-          { detectedAt: parsedCursor.detectedAt, _id: { $lt: parsedCursor.id } },
+          {
+            detectedAt: parsedCursor.detectedAt,
+            _id: { $lt: parsedCursor.id },
+          },
         ];
       } else {
         matchStage.detectedAt = { $lt: parsedCursor.detectedAt };
@@ -237,7 +259,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     ];
 
-    const rows = await DiffModel.aggregate<DashboardFeedRowRaw>(pipeline).exec();
+    const rows =
+      await DiffModel.aggregate<DashboardFeedRowRaw>(pipeline).exec();
     const hasMore = rows.length > limit;
     const selectedRows = hasMore ? rows.slice(0, limit) : rows;
     const nextCursor =
@@ -281,6 +304,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to load dashboard feed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load dashboard feed" },
+      { status: 500 }
+    );
   }
 }

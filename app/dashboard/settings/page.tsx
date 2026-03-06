@@ -23,7 +23,13 @@ export default async function DashboardSettingsPage() {
       .exec(),
     Company.findOne({ userId: String(userId), type: "self" })
       .select({ name: 1, domain: 1, homepageUrl: 1, primaryPricingUrl: 1 })
-      .lean<{ _id: string; name: string; domain: string; homepageUrl?: string; primaryPricingUrl?: string } | null>()
+      .lean<{
+        _id: string;
+        name: string;
+        domain: string;
+        homepageUrl?: string;
+        primaryPricingUrl?: string;
+      } | null>()
       .exec(),
   ]);
 
@@ -38,5 +44,10 @@ export default async function DashboardSettingsPage() {
       }
     : null;
 
-  return <DashboardSettingsContent selfPricingProfile={selfPricingProfile} selfCompany={selfCompany} />;
+  return (
+    <DashboardSettingsContent
+      selfPricingProfile={selfPricingProfile}
+      selfCompany={selfCompany}
+    />
+  );
 }

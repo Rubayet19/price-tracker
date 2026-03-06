@@ -8,32 +8,32 @@ import logo from "@/app/icon.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-base-200 border-t border-base-content/10">
-      <div className="max-w-7xl mx-auto px-8 py-24">
-        <div className=" flex lg:items-start md:flex-row md:flex-nowrap flex-wrap flex-col">
-          <div className="w-64 flex-shrink-0 md:mx-0 mx-auto text-center md:text-left">
+    <footer className="bg-base-200 border-base-content/10 border-t">
+      <div className="mx-auto max-w-7xl px-8 py-24">
+        <div className="flex flex-col flex-wrap md:flex-row md:flex-nowrap lg:items-start">
+          <div className="mx-auto w-64 flex-shrink-0 text-center md:mx-0 md:text-left">
             <Link
               href="/#"
               aria-current="page"
-              className="flex gap-2 justify-center md:justify-start items-center"
+              className="flex items-center justify-center gap-2 md:justify-start"
             >
               <Image
                 src={logo}
                 alt={`${config.appName} logo`}
                 priority={true}
-                className="w-6 h-6"
+                className="h-6 w-6"
                 width={24}
                 height={24}
               />
-              <strong className="font-extrabold tracking-tight text-base md:text-lg">
+              <strong className="text-base font-extrabold tracking-tight md:text-lg">
                 {config.appName}
               </strong>
             </Link>
 
-            <p className="mt-3 text-sm text-base-content/80">
+            <p className="text-base-content/80 mt-3 text-sm">
               {config.appDescription}
             </p>
-            <p className="mt-3 text-sm text-base-content/60">
+            <p className="text-base-content/60 mt-3 text-sm">
               Copyright © {new Date().getFullYear()} - All rights reserved
             </p>
 
@@ -41,7 +41,7 @@ const Footer = () => {
               href="https://shipfa.st/?ref=shipfast_badge"
               title="Go to ShipFast"
               target="_blank"
-              className="mt-4 inline-block cursor-pointer rounded bg-neutral px-2 py-1 text-sm text-neutral-content ring-1 ring-base-content/10 duration-200 hover:ring-neutral"
+              className="bg-neutral text-neutral-content ring-base-content/10 hover:ring-neutral mt-4 inline-block cursor-pointer rounded px-2 py-1 text-sm ring-1 duration-200"
             >
               <div className="flex items-center gap-1">
                 <span className="opacity-90">Built with</span>
@@ -64,13 +64,13 @@ const Footer = () => {
               </div>
             </a>
           </div>
-          <div className="flex-grow flex flex-wrap justify-center -mb-10 md:mt-0 mt-10 text-center">
-            <div className="lg:w-1/3 md:w-1/2 w-full px-4">
-              <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
+          <div className="mt-10 -mb-10 flex flex-grow flex-wrap justify-center text-center md:mt-0">
+            <div className="w-full px-4 md:w-1/2 lg:w-1/3">
+              <div className="footer-title text-base-content mb-3 text-sm font-semibold tracking-widest md:text-left">
                 LINKS
               </div>
 
-              <div className="flex flex-col justify-center items-center md:items-start gap-2 mb-10 text-sm">
+              <div className="mb-10 flex flex-col items-center justify-center gap-2 text-sm md:items-start">
                 {config.resend.supportEmail && (
                   <a
                     href={`mailto:${config.resend.supportEmail}`}
@@ -93,12 +93,12 @@ const Footer = () => {
               </div>
             </div>
 
-            <div className="lg:w-1/3 md:w-1/2 w-full px-4">
-              <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
+            <div className="w-full px-4 md:w-1/2 lg:w-1/3">
+              <div className="footer-title text-base-content mb-3 text-sm font-semibold tracking-widest md:text-left">
                 LEGAL
               </div>
 
-              <div className="flex flex-col justify-center items-center md:items-start gap-2 mb-10 text-sm">
+              <div className="mb-10 flex flex-col items-center justify-center gap-2 text-sm md:items-start">
                 <Link href="/tos" className="link link-hover">
                   Terms of services
                 </Link>

@@ -7,7 +7,10 @@ import { ArrowUpRight, Lock, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { loadDashboardOverview } from "@/components/dashboard/dashboard-api";
 import { createCompany } from "@/components/dashboard/setup/setup-api";
-import { canAddCompetitorFromOverview, getDashboardAccessNotice } from "@/libs/dashboard-entitlement-state";
+import {
+  canAddCompetitorFromOverview,
+  getDashboardAccessNotice,
+} from "@/libs/dashboard-entitlement-state";
 import type { DashboardOverviewResponse } from "@/types/dashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +40,9 @@ export default function AddCompetitorSheet() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [form, setForm] = useState<AddCompetitorForm>(INITIAL_FORM);
-  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
+  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(
+    null
+  );
   const [isLoadingOverview, setIsLoadingOverview] = useState<boolean>(true);
 
   const loadOverview = useCallback(async (): Promise<void> => {
@@ -69,7 +74,10 @@ export default function AddCompetitorSheet() {
     };
   }, [loadOverview]);
 
-  const accessNotice = useMemo(() => getDashboardAccessNotice(overview), [overview]);
+  const accessNotice = useMemo(
+    () => getDashboardAccessNotice(overview),
+    [overview]
+  );
   const canAddCompetitor = canAddCompetitorFromOverview(overview);
 
   const onSubmit = async (): Promise<void> => {
@@ -94,7 +102,8 @@ export default function AddCompetitorSheet() {
       router.push(`/dashboard/competitors/${company.id}`);
       router.refresh();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to add competitor";
+      const message =
+        error instanceof Error ? error.message : "Failed to add competitor";
       toast.error(message);
       await loadOverview();
     } finally {
@@ -126,7 +135,11 @@ export default function AddCompetitorSheet() {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button className="bg-[#0f172a] text-white hover:bg-[#1e293b]">
-          {accessNotice ? <Lock className="size-4" /> : <Plus className="size-4" />}
+          {accessNotice ? (
+            <Lock className="size-4" />
+          ) : (
+            <Plus className="size-4" />
+          )}
           {buttonLabel}
         </Button>
       </SheetTrigger>
@@ -140,7 +153,9 @@ export default function AddCompetitorSheet() {
 
             <div className="space-y-4 px-4">
               <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748b]">Current workspace</p>
+                <p className="text-xs font-semibold tracking-[0.2em] text-[#64748b] uppercase">
+                  Current workspace
+                </p>
                 <p className="mt-3 text-sm text-[#475569]">
                   {overview
                     ? `${overview.companyCounts.competitor} of ${overview.entitlements.competitorLimit} competitor slots in use`
@@ -148,7 +163,10 @@ export default function AddCompetitorSheet() {
                 </p>
                 {overview?.trial.endsAt ? (
                   <p className="mt-2 text-sm text-[#475569]">
-                    Trial end: {new Date(overview.trial.endsAt).toLocaleDateString("en-US")}
+                    Trial end:{" "}
+                    {new Date(overview.trial.endsAt).toLocaleDateString(
+                      "en-US"
+                    )}
                   </p>
                 ) : null}
               </div>
@@ -158,7 +176,10 @@ export default function AddCompetitorSheet() {
               <Button asChild variant="outline">
                 <Link href="/dashboard/competitors">Review competitors</Link>
               </Button>
-              <Button asChild className="bg-[#0f172a] text-white hover:bg-[#1e293b]">
+              <Button
+                asChild
+                className="bg-[#0f172a] text-white hover:bg-[#1e293b]"
+              >
                 <Link href={accessNotice.ctaHref}>
                   {accessNotice.ctaLabel}
                   <ArrowUpRight className="size-4" />
@@ -168,12 +189,13 @@ export default function AddCompetitorSheet() {
           </>
         ) : (
           <>
-              <SheetHeader>
-                <SheetTitle>Add competitor</SheetTitle>
-                <SheetDescription>
-                  Add a competitor homepage to discover the pricing page and start daily monitoring.
-                </SheetDescription>
-              </SheetHeader>
+            <SheetHeader>
+              <SheetTitle>Add competitor</SheetTitle>
+              <SheetDescription>
+                Add a competitor homepage to discover the pricing page and start
+                daily monitoring.
+              </SheetDescription>
+            </SheetHeader>
 
             <div className="space-y-4 px-4">
               <div className="space-y-2">
@@ -181,7 +203,12 @@ export default function AddCompetitorSheet() {
                 <Input
                   id="competitor-name"
                   value={form.name}
-                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
                   placeholder="Competitor name"
                 />
               </div>
@@ -192,14 +219,18 @@ export default function AddCompetitorSheet() {
                   id="competitor-homepage"
                   value={form.homepageUrl}
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, homepageUrl: event.target.value }))
+                    setForm((current) => ({
+                      ...current,
+                      homepageUrl: event.target.value,
+                    }))
                   }
                   placeholder="https://example.com"
                   inputMode="url"
                 />
                 <p className="text-sm text-[#64748b]">
-                  Use the homepage only. Price Tracker derives the domain automatically, discovers
-                  likely pricing pages, and checks the saved source daily.
+                  Use the homepage only. Price Tracker derives the domain
+                  automatically, discovers likely pricing pages, and checks the
+                  saved source daily.
                 </p>
               </div>
             </div>
@@ -209,7 +240,9 @@ export default function AddCompetitorSheet() {
                 onClick={() => {
                   void onSubmit();
                 }}
-                disabled={isSubmitting || !form.name.trim() || !form.homepageUrl.trim()}
+                disabled={
+                  isSubmitting || !form.name.trim() || !form.homepageUrl.trim()
+                }
                 className="bg-[#0f766e] text-white hover:bg-[#115e59]"
               >
                 {isSubmitting ? "Adding..." : "Add competitor and continue"}

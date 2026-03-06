@@ -22,6 +22,7 @@ No unit test framework — only smoke tests in `scripts/smoke-dashboard.mjs`.
 Competitor pricing intelligence SaaS: Next.js 15 App Router, MongoDB/Mongoose, NextAuth v5, Stripe, Resend (email), OpenAI. Deployed on Vercel Hobby.
 
 **Directory layout:**
+
 - `app/` — Routes and API handlers
 - `components/` — UI (feature-grouped: `dashboard/`, `dashboard/setup/`, `landing/`)
 - `libs/` — Services (crawler pipeline, auth, entitlements, stripe, llm, resend)
@@ -31,18 +32,19 @@ Competitor pricing intelligence SaaS: Next.js 15 App Router, MongoDB/Mongoose, N
 
 ## Key Models
 
-| Model | Purpose |
-|-------|---------|
-| `User` | Auth + Stripe state (`customerId`, `priceId`, `hasAccess`, `trialStatus`, `trialStartedAt`, `trialEndsAt`) |
-| `Company` | Self or competitor with crawl scheduling (`nextCrawlAt`, `crawlLeaseUntil`, `lastCrawlStatus`, `contentHash`) |
-| `Snapshot` | Pricing payload with `captureMethod`, `confidence`, `isVerified` |
-| `Diff` | Snapshot diff with `severity`, `verificationState`, `planChanges` |
-| `Insight` | LLM recommendation (summary, strategic options, thingsToCheck, watchOutFor, watchList) gated by severity |
-| `SelfPricingProfile` | User's manually entered pricing |
+| Model                | Purpose                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `User`               | Auth + Stripe state (`customerId`, `priceId`, `hasAccess`, `trialStatus`, `trialStartedAt`, `trialEndsAt`)    |
+| `Company`            | Self or competitor with crawl scheduling (`nextCrawlAt`, `crawlLeaseUntil`, `lastCrawlStatus`, `contentHash`) |
+| `Snapshot`           | Pricing payload with `captureMethod`, `confidence`, `isVerified`                                              |
+| `Diff`               | Snapshot diff with `severity`, `verificationState`, `planChanges`                                             |
+| `Insight`            | LLM recommendation (summary, strategic options, thingsToCheck, watchOutFor, watchList) gated by severity      |
+| `SelfPricingProfile` | User's manually entered pricing                                                                               |
 
 ## Entitlements
 
 `libs/entitlements.ts` is the single source of truth. Access is either:
+
 - **Trial** (`trialStatus: active`, not expired) → Starter limits
 - **Paid** (`hasAccess: true`) → tier from `priceId` mapping in `config.ts`
 

@@ -1,8 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, ArrowRight, ChevronRight, RefreshCw, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
-import { loadDashboardComparison, loadDashboardFeed, loadDashboardOverview } from "@/components/dashboard/dashboard-api";
+import {
+  AlertCircle,
+  ArrowRight,
+  ChevronRight,
+  RefreshCw,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+import {
+  loadDashboardComparison,
+  loadDashboardFeed,
+  loadDashboardOverview,
+} from "@/components/dashboard/dashboard-api";
 import DashboardComparisonSection from "@/components/dashboard/dashboard-comparison-section";
 import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
 import type {
@@ -13,7 +25,13 @@ import type {
 } from "@/types/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { SelfPricingProfileData } from "@/types/self-pricing";
 
 const INITIAL_FILTERS: FeedFilters = {
@@ -25,8 +43,13 @@ const getTodayKey = (value: Date): string => {
   return value.toISOString().slice(0, 10);
 };
 
-const isActiveTracking = (competitor: DashboardComparisonCompetitor): boolean => {
-  return competitor.trust.lastCrawlStatus === "ok" || competitor.trust.lastCrawlStatus === "idle";
+const isActiveTracking = (
+  competitor: DashboardComparisonCompetitor
+): boolean => {
+  return (
+    competitor.trust.lastCrawlStatus === "ok" ||
+    competitor.trust.lastCrawlStatus === "idle"
+  );
 };
 
 interface LatestChangePricePreview {
@@ -38,28 +61,43 @@ interface LatestChangePricePreview {
   amount?: number;
 }
 
-const getLatestChangePricePreview = (normalizedDiff: Record<string, unknown>): LatestChangePricePreview | null => {
+const getLatestChangePricePreview = (
+  normalizedDiff: Record<string, unknown>
+): LatestChangePricePreview | null => {
   // Prefer plan-level changes
   const planChangesRaw = normalizedDiff.planChanges;
   if (Array.isArray(planChangesRaw)) {
     for (const entry of planChangesRaw) {
-      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry))
+        continue;
       const pc = entry as Record<string, unknown>;
-      const planName = typeof pc.planName === "string" ? pc.planName : undefined;
+      const planName =
+        typeof pc.planName === "string" ? pc.planName : undefined;
       const type = typeof pc.type === "string" ? pc.type : "updated";
 
       if (type === "updated") {
-        const prev = typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
-        const curr = typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
-        const delta = typeof pc.deltaPercent === "number" ? pc.deltaPercent : undefined;
+        const prev =
+          typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
+        const curr =
+          typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
+        const delta =
+          typeof pc.deltaPercent === "number" ? pc.deltaPercent : undefined;
         if (prev !== undefined && curr !== undefined) {
-          return { type: "updated", planName, from: prev, to: curr, deltaPercent: delta };
+          return {
+            type: "updated",
+            planName,
+            from: prev,
+            to: curr,
+            deltaPercent: delta,
+          };
         }
       } else if (type === "added") {
-        const amount = typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
+        const amount =
+          typeof pc.currentAmount === "number" ? pc.currentAmount : undefined;
         if (amount !== undefined) return { type: "added", planName, amount };
       } else if (type === "removed") {
-        const amount = typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
+        const amount =
+          typeof pc.previousAmount === "number" ? pc.previousAmount : undefined;
         if (amount !== undefined) return { type: "removed", planName, amount };
       }
     }
@@ -70,15 +108,21 @@ const getLatestChangePricePreview = (normalizedDiff: Record<string, unknown>): L
   if (!Array.isArray(priceChangesRaw)) return null;
 
   for (const entry of priceChangesRaw) {
-    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry))
+      continue;
     const bucket = entry as Record<string, unknown>;
-    const updated = Array.isArray(bucket.updatedAmounts) ? bucket.updatedAmounts : [];
+    const updated = Array.isArray(bucket.updatedAmounts)
+      ? bucket.updatedAmounts
+      : [];
     for (const u of updated) {
       if (typeof u !== "object" || u === null || Array.isArray(u)) continue;
       const ub = u as Record<string, unknown>;
-      const prev = typeof ub.previousAmount === "number" ? ub.previousAmount : undefined;
-      const curr = typeof ub.currentAmount === "number" ? ub.currentAmount : undefined;
-      const delta = typeof ub.deltaPercent === "number" ? ub.deltaPercent : undefined;
+      const prev =
+        typeof ub.previousAmount === "number" ? ub.previousAmount : undefined;
+      const curr =
+        typeof ub.currentAmount === "number" ? ub.currentAmount : undefined;
+      const delta =
+        typeof ub.deltaPercent === "number" ? ub.deltaPercent : undefined;
       if (prev !== undefined && curr !== undefined) {
         return { type: "updated", from: prev, to: curr, deltaPercent: delta };
       }
@@ -124,7 +168,8 @@ const getMoveClassificationLabel = (row: DashboardFeedRow): string | null => {
 const getInsightSummary = (row: DashboardFeedRow): string | null => {
   const rec = row.latestInsight?.recommendation;
   if (!rec) return null;
-  if (typeof rec.summary === "string" && rec.summary.length > 0) return rec.summary;
+  if (typeof rec.summary === "string" && rec.summary.length > 0)
+    return rec.summary;
   return null;
 };
 
@@ -132,58 +177,87 @@ function LatestChangeCard({ row }: { row: DashboardFeedRow }) {
   const priceChange = getLatestChangePricePreview(row.normalizedDiff);
   const classificationLabel = getMoveClassificationLabel(row);
   const summary = getInsightSummary(row);
-  const classificationColor = classificationLabel ? CLASSIFICATION_COLORS[classificationLabel] ?? "border-slate-200 bg-slate-50 text-slate-600" : null;
+  const classificationColor = classificationLabel
+    ? (CLASSIFICATION_COLORS[classificationLabel] ??
+      "border-slate-200 bg-slate-50 text-slate-600")
+    : null;
 
   return (
-    <Card className="border-[#0f172a]/10 bg-white/95 col-span-1 md:col-span-2 xl:col-span-1">
+    <Card className="col-span-1 border-[#0f172a]/10 bg-white/95 md:col-span-2 xl:col-span-1">
       <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
         <div className="min-w-0">
           <CardDescription className="flex items-center gap-1.5">
             <Sparkles className="size-3.5 text-[#4338ca]" />
             Latest Change
           </CardDescription>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-sm font-semibold text-[#0f172a] truncate">{row.company.name}</span>
-            <span className="text-xs text-[#94a3b8]">{formatRelativeTime(row.detectedAt)}</span>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="truncate text-sm font-semibold text-[#0f172a]">
+              {row.company.name}
+            </span>
+            <span className="text-xs text-[#94a3b8]">
+              {formatRelativeTime(row.detectedAt)}
+            </span>
           </div>
         </div>
-        <Button asChild variant="outline" size="sm" className="shrink-0 h-7 text-xs">
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="h-7 shrink-0 text-xs"
+        >
           <a href="/dashboard/changes">
             View all
-            <ChevronRight className="size-3 ml-0.5" />
+            <ChevronRight className="ml-0.5 size-3" />
           </a>
         </Button>
       </CardHeader>
-      <CardContent className="pt-0 space-y-2.5">
+      <CardContent className="space-y-2.5 pt-0">
         {/* Price change preview */}
         {priceChange && (
           <div className="flex items-center gap-1.5 text-sm">
             {priceChange.planName && (
-              <span className="font-semibold text-[#0f172a]">{priceChange.planName}</span>
+              <span className="font-semibold text-[#0f172a]">
+                {priceChange.planName}
+              </span>
             )}
-            {priceChange.type === "updated" && priceChange.from !== undefined && priceChange.to !== undefined && (
-              <>
-                {priceChange.to > priceChange.from ? (
-                  <TrendingUp className="size-3.5 text-red-500" />
-                ) : (
-                  <TrendingDown className="size-3.5 text-emerald-600" />
-                )}
-                <span className="font-mono text-[#334155]">${priceChange.from}</span>
-                <ArrowRight className="size-3 text-[#94a3b8]" />
-                <span className="font-mono font-semibold text-[#0f172a]">${priceChange.to}</span>
-                {priceChange.deltaPercent !== undefined && (
-                  <span className={`text-xs font-semibold ${priceChange.to > priceChange.from ? "text-red-600" : "text-emerald-600"}`}>
-                    {priceChange.to > priceChange.from ? "+" : "-"}{Math.abs(priceChange.deltaPercent).toFixed(0)}%
+            {priceChange.type === "updated" &&
+              priceChange.from !== undefined &&
+              priceChange.to !== undefined && (
+                <>
+                  {priceChange.to > priceChange.from ? (
+                    <TrendingUp className="size-3.5 text-red-500" />
+                  ) : (
+                    <TrendingDown className="size-3.5 text-emerald-600" />
+                  )}
+                  <span className="font-mono text-[#334155]">
+                    ${priceChange.from}
                   </span>
-                )}
-              </>
-            )}
-            {priceChange.type === "added" && priceChange.amount !== undefined && (
-              <span className="text-emerald-700 font-medium">+ ${priceChange.amount} new tier</span>
-            )}
-            {priceChange.type === "removed" && priceChange.amount !== undefined && (
-              <span className="text-red-600 font-medium">- ${priceChange.amount} removed</span>
-            )}
+                  <ArrowRight className="size-3 text-[#94a3b8]" />
+                  <span className="font-mono font-semibold text-[#0f172a]">
+                    ${priceChange.to}
+                  </span>
+                  {priceChange.deltaPercent !== undefined && (
+                    <span
+                      className={`text-xs font-semibold ${priceChange.to > priceChange.from ? "text-red-600" : "text-emerald-600"}`}
+                    >
+                      {priceChange.to > priceChange.from ? "+" : "-"}
+                      {Math.abs(priceChange.deltaPercent).toFixed(0)}%
+                    </span>
+                  )}
+                </>
+              )}
+            {priceChange.type === "added" &&
+              priceChange.amount !== undefined && (
+                <span className="font-medium text-emerald-700">
+                  + ${priceChange.amount} new tier
+                </span>
+              )}
+            {priceChange.type === "removed" &&
+              priceChange.amount !== undefined && (
+                <span className="font-medium text-red-600">
+                  - ${priceChange.amount} removed
+                </span>
+              )}
           </div>
         )}
 
@@ -196,11 +270,15 @@ function LatestChangeCard({ row }: { row: DashboardFeedRow }) {
 
         {/* Summary snippet */}
         {summary && (
-          <p className="text-xs text-[#475569] leading-relaxed line-clamp-2">{summary}</p>
+          <p className="line-clamp-2 text-xs leading-relaxed text-[#475569]">
+            {summary}
+          </p>
         )}
 
         {!priceChange && !summary && (
-          <p className="text-sm text-[#64748b]">Pricing structure change detected</p>
+          <p className="text-sm text-[#64748b]">
+            Pricing structure change detected
+          </p>
         )}
       </CardContent>
     </Card>
@@ -208,9 +286,14 @@ function LatestChangeCard({ row }: { row: DashboardFeedRow }) {
 }
 
 export default function DashboardOverviewContent() {
-  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
-  const [competitors, setCompetitors] = useState<DashboardComparisonCompetitor[]>([]);
-  const [selfPricingProfile, setSelfPricingProfile] = useState<SelfPricingProfileData | null>(null);
+  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(
+    null
+  );
+  const [competitors, setCompetitors] = useState<
+    DashboardComparisonCompetitor[]
+  >([]);
+  const [selfPricingProfile, setSelfPricingProfile] =
+    useState<SelfPricingProfileData | null>(null);
   const [recentRows, setRecentRows] = useState<DashboardFeedRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -220,18 +303,22 @@ export default function DashboardOverviewContent() {
     setError(null);
 
     try {
-      const [overviewResponse, comparisonResponse, feedResponse] = await Promise.all([
-        loadDashboardOverview(),
-        loadDashboardComparison(),
-        loadDashboardFeed(INITIAL_FILTERS, { limit: 30 }),
-      ]);
+      const [overviewResponse, comparisonResponse, feedResponse] =
+        await Promise.all([
+          loadDashboardOverview(),
+          loadDashboardComparison(),
+          loadDashboardFeed(INITIAL_FILTERS, { limit: 30 }),
+        ]);
 
       setOverview(overviewResponse);
       setCompetitors(comparisonResponse.competitors);
       setSelfPricingProfile(comparisonResponse.selfPricingProfile);
       setRecentRows(feedResponse.rows.slice(0, 6));
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : "Failed to load dashboard";
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : "Failed to load dashboard";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -254,11 +341,14 @@ export default function DashboardOverviewContent() {
     };
   }, [loadOverviewData]);
 
-  const totalCompetitors = overview?.companyCounts.competitor ?? competitors.length;
+  const totalCompetitors =
+    overview?.companyCounts.competitor ?? competitors.length;
   const activeTracking = competitors.filter(isActiveTracking).length;
   const changedToday = useMemo(() => {
     const todayKey = getTodayKey(new Date());
-    return recentRows.filter((row) => getTodayKey(new Date(row.detectedAt)) === todayKey).length;
+    return recentRows.filter(
+      (row) => getTodayKey(new Date(row.detectedAt)) === todayKey
+    ).length;
   }, [recentRows]);
 
   const latestRow = recentRows.length > 0 ? recentRows[0] : null;
@@ -270,8 +360,12 @@ export default function DashboardOverviewContent() {
   return (
     <section className="space-y-6 px-4 py-5 lg:px-6">
       <div>
-        <h1 className="text-4xl font-black tracking-tight text-[#0f172a]">Dashboard</h1>
-        <p className="mt-2 text-base text-[#475569]">Monitor competitors and track pricing changes.</p>
+        <h1 className="text-4xl font-black tracking-tight text-[#0f172a]">
+          Dashboard
+        </h1>
+        <p className="mt-2 text-base text-[#475569]">
+          Monitor competitors and track pricing changes.
+        </p>
       </div>
 
       {error ? (
@@ -280,7 +374,11 @@ export default function DashboardOverviewContent() {
             <AlertCircle className="size-4" />
             {error}
           </p>
-          <Button variant="outline" size="sm" onClick={() => void loadOverviewData()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void loadOverviewData()}
+          >
             <RefreshCw className="size-3.5" />
             Retry
           </Button>
@@ -293,25 +391,37 @@ export default function DashboardOverviewContent() {
         <Card className="border-[#0f172a]/10 bg-white/95">
           <CardHeader>
             <CardDescription>Total Competitors</CardDescription>
-            <CardTitle className="text-4xl font-black">{isLoading ? "—" : totalCompetitors}</CardTitle>
+            <CardTitle className="text-4xl font-black">
+              {isLoading ? "—" : totalCompetitors}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-sm text-[#64748b]">Tracked websites</CardContent>
+          <CardContent className="pt-0 text-sm text-[#64748b]">
+            Tracked websites
+          </CardContent>
         </Card>
 
         <Card className="border-[#0f172a]/10 bg-white/95">
           <CardHeader>
             <CardDescription>Active Tracking</CardDescription>
-            <CardTitle className="text-4xl font-black">{isLoading ? "—" : activeTracking}</CardTitle>
+            <CardTitle className="text-4xl font-black">
+              {isLoading ? "—" : activeTracking}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-sm text-[#64748b]">Currently monitoring</CardContent>
+          <CardContent className="pt-0 text-sm text-[#64748b]">
+            Currently monitoring
+          </CardContent>
         </Card>
 
         <Card className="border-[#0f172a]/10 bg-white/95">
           <CardHeader>
             <CardDescription>Changed Today</CardDescription>
-            <CardTitle className="text-4xl font-black">{isLoading ? "—" : changedToday}</CardTitle>
+            <CardTitle className="text-4xl font-black">
+              {isLoading ? "—" : changedToday}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-sm text-[#64748b]">Website updates</CardContent>
+          <CardContent className="pt-0 text-sm text-[#64748b]">
+            Website updates
+          </CardContent>
         </Card>
 
         {/* Latest Change card replaces Needs Attention */}
@@ -321,7 +431,9 @@ export default function DashboardOverviewContent() {
               <CardDescription>Latest Change</CardDescription>
               <CardTitle className="text-4xl font-black">—</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 text-sm text-[#64748b]">Loading...</CardContent>
+            <CardContent className="pt-0 text-sm text-[#64748b]">
+              Loading...
+            </CardContent>
           </Card>
         ) : latestRow ? (
           <LatestChangeCard row={latestRow} />
@@ -335,7 +447,12 @@ export default function DashboardOverviewContent() {
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-sm text-[#64748b]">No changes detected yet.</p>
-              <Button asChild variant="outline" size="sm" className="mt-3 h-7 text-xs">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="mt-3 h-7 text-xs"
+              >
                 <a href="/dashboard/changes">View feed</a>
               </Button>
             </CardContent>
@@ -350,7 +467,8 @@ export default function DashboardOverviewContent() {
 
       {!canAddCompetitor && overview ? (
         <p className="text-sm text-[#c2410c]">
-          You have reached your plan limit ({overview.entitlements.competitorLimit} competitors).
+          You have reached your plan limit (
+          {overview.entitlements.competitorLimit} competitors).
         </p>
       ) : null}
     </section>

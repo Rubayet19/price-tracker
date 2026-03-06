@@ -15,7 +15,13 @@ import type { DashboardComparisonCompetitor } from "@/types/dashboard";
 import type { SelfPricingProfileData } from "@/types/self-pricing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface DashboardComparisonSectionProps {
   competitors: DashboardComparisonCompetitor[];
@@ -27,7 +33,10 @@ const CADENCE_OPTIONS: Array<{ value: ComparisonCadence; label: string }> = [
   { value: "year", label: "Annual" },
 ];
 
-const cadenceSuffix = (cadence: ComparisonCadence, isPerMonth?: boolean): string => {
+const cadenceSuffix = (
+  cadence: ComparisonCadence,
+  isPerMonth?: boolean
+): string => {
   if (cadence === "month") return "/mo";
   return isPerMonth ? "/mo" : "/yr";
 };
@@ -50,7 +59,9 @@ const formatCheckedAt = (value: string | null): string => {
   });
 };
 
-const getSourceStatusLabel = (status: DashboardComparisonCompetitor["trust"]["lastCrawlStatus"]): string => {
+const getSourceStatusLabel = (
+  status: DashboardComparisonCompetitor["trust"]["lastCrawlStatus"]
+): string => {
   if (status === "blocked") {
     return "Blocked";
   }
@@ -90,7 +101,9 @@ const getConfidenceLabel = (value: number | null): string => {
   return "Low";
 };
 
-const getDefaultCadence = (competitors: DashboardComparisonCompetitor[]): ComparisonCadence => {
+const getDefaultCadence = (
+  competitors: DashboardComparisonCompetitor[]
+): ComparisonCadence => {
   let hasMonthly = false;
   let hasAnnual = false;
 
@@ -107,7 +120,9 @@ export default function DashboardComparisonSection({
   competitors,
   selfPricingProfile,
 }: DashboardComparisonSectionProps) {
-  const [cadence, setCadence] = useState<ComparisonCadence>(() => getDefaultCadence(competitors));
+  const [cadence, setCadence] = useState<ComparisonCadence>(() =>
+    getDefaultCadence(competitors)
+  );
 
   const selfPrices = useMemo(
     () => getSelfComparisonPrices(selfPricingProfile, cadence),
@@ -122,8 +137,9 @@ export default function DashboardComparisonSection({
             You vs Competitors
           </CardTitle>
           <CardDescription className="mt-2 max-w-3xl text-sm leading-6 text-[#475569]">
-            Compare your current pricing baseline against the latest detected competitor prices.
-            This first version compares by price position, not tier-name matching.
+            Compare your current pricing baseline against the latest detected
+            competitor prices. This first version compares by price position,
+            not tier-name matching.
           </CardDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -156,11 +172,26 @@ export default function DashboardComparisonSection({
           </div>
         ) : (
           competitors.map((competitor) => {
-            const competitorPrices = getCompetitorComparisonPrices(competitor, cadence);
-            const unavailableReason = getCompetitorComparisonUnavailableReason(competitor, cadence);
-            const summary = summarizeCompetitorComparison(competitor, competitorPrices, selfPrices, cadence);
-            const sourceStatusLabel = getSourceStatusLabel(competitor.trust.lastCrawlStatus);
-            const confidenceLabel = getConfidenceLabel(competitor.trust.latestConfidence);
+            const competitorPrices = getCompetitorComparisonPrices(
+              competitor,
+              cadence
+            );
+            const unavailableReason = getCompetitorComparisonUnavailableReason(
+              competitor,
+              cadence
+            );
+            const summary = summarizeCompetitorComparison(
+              competitor,
+              competitorPrices,
+              selfPrices,
+              cadence
+            );
+            const sourceStatusLabel = getSourceStatusLabel(
+              competitor.trust.lastCrawlStatus
+            );
+            const confidenceLabel = getConfidenceLabel(
+              competitor.trust.latestConfidence
+            );
 
             return (
               <article
@@ -173,15 +204,22 @@ export default function DashboardComparisonSection({
                       <h3 className="truncate text-lg font-bold tracking-tight text-[#0f172a]">
                         {competitor.name}
                       </h3>
-                      <Badge variant="outline" className={getSourceStatusClass(sourceStatusLabel)}>
+                      <Badge
+                        variant="outline"
+                        className={getSourceStatusClass(sourceStatusLabel)}
+                      >
                         Source: {sourceStatusLabel}
                       </Badge>
-                      <Badge variant="outline" className="border-[#0f766e]/25 bg-[#f0fdfa] text-[#115e59]">
+                      <Badge
+                        variant="outline"
+                        className="border-[#0f766e]/25 bg-[#f0fdfa] text-[#115e59]"
+                      >
                         Confidence: {confidenceLabel}
                       </Badge>
                     </div>
                     <p className="mt-1 text-sm text-[#64748b]">
-                      Last checked: {formatCheckedAt(competitor.trust.lastCrawlAt)}
+                      Last checked:{" "}
+                      {formatCheckedAt(competitor.trust.lastCrawlAt)}
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm">
@@ -194,13 +232,14 @@ export default function DashboardComparisonSection({
 
                 <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr]">
                   <div className="rounded-2xl border border-[#0f172a]/10 bg-white p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748b]">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-[#64748b] uppercase">
                       Your {cadence === "month" ? "monthly" : "annual"} pricing
                     </p>
                     <div className="mt-3 space-y-2">
                       {selfPrices.length === 0 ? (
                         <p className="text-sm text-[#64748b]">
-                          No {cadence === "month" ? "monthly" : "annual"} prices configured yet.
+                          No {cadence === "month" ? "monthly" : "annual"} prices
+                          configured yet.
                         </p>
                       ) : (
                         selfPrices.map((plan) => (
@@ -208,9 +247,12 @@ export default function DashboardComparisonSection({
                             key={`${plan.name}-${cadence}`}
                             className="flex items-center justify-between gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2"
                           >
-                            <span className="font-medium text-[#0f172a]">{plan.name}</span>
+                            <span className="font-medium text-[#0f172a]">
+                              {plan.name}
+                            </span>
                             <span className="text-sm text-[#334155]">
-                              {formatCurrencyAmount(plan.currency, plan.amount)}{cadenceSuffix(cadence)}
+                              {formatCurrencyAmount(plan.currency, plan.amount)}
+                              {cadenceSuffix(cadence)}
                             </span>
                           </div>
                         ))
@@ -219,8 +261,9 @@ export default function DashboardComparisonSection({
                   </div>
 
                   <div className="rounded-2xl border border-[#0f172a]/10 bg-white p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748b]">
-                      Competitor detected {cadence === "month" ? "monthly" : "annual"} pricing
+                    <p className="text-xs font-semibold tracking-[0.16em] text-[#64748b] uppercase">
+                      Competitor detected{" "}
+                      {cadence === "month" ? "monthly" : "annual"} pricing
                     </p>
                     <div className="mt-3 space-y-2">
                       {competitorPrices.length === 0 ? (
@@ -234,7 +277,9 @@ export default function DashboardComparisonSection({
                             key={`${price.label}-${price.currency}-${price.minAmount}-${price.maxAmount}`}
                             className="flex items-center justify-between gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2"
                           >
-                            <span className="font-medium text-[#0f172a]">{price.label}</span>
+                            <span className="font-medium text-[#0f172a]">
+                              {price.label}
+                            </span>
                             <span className="text-sm text-[#334155]">
                               {price.minAmount === price.maxAmount
                                 ? `${formatCurrencyAmount(price.currency, price.minAmount)}${cadenceSuffix(cadence, price.annualPriceIsPerMonth)}`
@@ -248,10 +293,12 @@ export default function DashboardComparisonSection({
                 </div>
 
                 <div className="mt-4 rounded-2xl border border-[#0f766e]/15 bg-[#f0fdfa] px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0f766e]">
+                  <p className="text-xs font-semibold tracking-[0.16em] text-[#0f766e] uppercase">
                     Comparison summary
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-[#134e4a]">{summary}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#134e4a]">
+                    {summary}
+                  </p>
                 </div>
 
                 {competitor.trust.lastCrawlError ? (

@@ -37,13 +37,13 @@ const ButtonSignin = ({
           <Image
             src={session.user?.image}
             alt={session.user?.name || "Account"}
-            className="w-6 h-6 rounded-full shrink-0"
+            className="h-6 w-6 shrink-0 rounded-full"
             referrerPolicy="no-referrer"
             width={24}
             height={24}
           />
         ) : (
-          <span className="w-6 h-6 bg-base-300 flex justify-center items-center rounded-full shrink-0">
+          <span className="bg-base-300 flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
             {session.user?.name?.charAt(0) || session.user?.email?.charAt(0)}
           </span>
         )}

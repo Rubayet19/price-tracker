@@ -104,10 +104,13 @@ const insightSchema = new mongoose.Schema<IInsight>(
 insightSchema.index({ companyId: 1, generatedAt: -1 });
 insightSchema.index({ diffId: 1 });
 
-const insightToJSONPlugin = toJSON as unknown as Parameters<typeof insightSchema.plugin>[0];
+const insightToJSONPlugin = toJSON as unknown as Parameters<
+  typeof insightSchema.plugin
+>[0];
 insightSchema.plugin(insightToJSONPlugin);
 
 const InsightModel =
-  (mongoose.models.Insight as Model<IInsight>) || mongoose.model<IInsight>("Insight", insightSchema);
+  (mongoose.models.Insight as Model<IInsight>) ||
+  mongoose.model<IInsight>("Insight", insightSchema);
 
 export default InsightModel;

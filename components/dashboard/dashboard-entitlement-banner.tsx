@@ -41,7 +41,11 @@ export default function DashboardEntitlementBanner({
             isWarning ? "text-[#b45309]" : "text-[#0f172a]"
           )}
         >
-          {notice.kind === "limit" ? <Lock className="size-4" /> : <AlertTriangle className="size-4" />}
+          {notice.kind === "limit" ? (
+            <Lock className="size-4" />
+          ) : (
+            <AlertTriangle className="size-4" />
+          )}
           {notice.title}
         </p>
         <p className="text-sm text-[#475569]">{notice.description}</p>

@@ -47,7 +47,10 @@ const updateCompanySchema = z.object({
   homepageUrl: z.string().trim().optional(),
 });
 
-export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext
+): Promise<NextResponse> {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -64,7 +67,10 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON payload" },
+      { status: 400 }
+    );
   }
 
   const parsed = updateCompanySchema.safeParse(body);
@@ -77,10 +83,15 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 
   const { name, homepageUrl: rawHomepageUrl } = parsed.data;
   if (!name && !rawHomepageUrl) {
-    return NextResponse.json({ error: "Provide at least one of: name, homepageUrl" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Provide at least one of: name, homepageUrl" },
+      { status: 400 }
+    );
   }
 
-  const normalizedHomepageUrl = rawHomepageUrl ? normalizeUrlInput(rawHomepageUrl) : undefined;
+  const normalizedHomepageUrl = rawHomepageUrl
+    ? normalizeUrlInput(rawHomepageUrl)
+    : undefined;
   if (rawHomepageUrl && !normalizedHomepageUrl) {
     return NextResponse.json({ error: "Invalid homepageUrl" }, { status: 400 });
   }
@@ -95,12 +106,21 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
-        { error: "Too many update requests", retryAfterSeconds: rateLimit.retryAfterSeconds },
-        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+        {
+          error: "Too many update requests",
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        }
       );
     }
 
-    const company = await Company.findOne({ _id: companyId, userId: String(userId) });
+    const company = await Company.findOne({
+      _id: companyId,
+      userId: String(userId),
+    });
     if (!company) {
       await logAuditEvent({
         userId: String(userId),
@@ -118,9 +138,14 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     let domainChanged = false;
 
     if (normalizedHomepageUrl) {
-      const newDomain = normalizeHostname(new URL(normalizedHomepageUrl).hostname);
+      const newDomain = normalizeHostname(
+        new URL(normalizedHomepageUrl).hostname
+      );
       if (!isValidDomain(newDomain)) {
-        return NextResponse.json({ error: "Invalid domain from homepageUrl" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid domain from homepageUrl" },
+          { status: 400 }
+        );
       }
 
       if (newDomain !== previousDomain) {
@@ -198,13 +223,21 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       resourceType: "company",
       resourceId: companyId,
       status: "failure",
-      metadata: { reason: error instanceof Error ? error.message : "unknown_error" },
+      metadata: {
+        reason: error instanceof Error ? error.message : "unknown_error",
+      },
     });
-    return NextResponse.json({ error: "Failed to update company" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update company" },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(_: Request, context: RouteContext): Promise<NextResponse> {
+export async function DELETE(
+  _: Request,
+  context: RouteContext
+): Promise<NextResponse> {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -281,11 +314,13 @@ export async function DELETE(_: Request, context: RouteContext): Promise<NextRes
       );
     }
 
-    const [deletedSnapshots, deletedDiffs, deletedInsights] = await Promise.all([
-      Snapshot.deleteMany({ userId: company.userId, companyId: company._id }),
-      Diff.deleteMany({ userId: company.userId, companyId: company._id }),
-      Insight.deleteMany({ userId: company.userId, companyId: company._id }),
-    ]);
+    const [deletedSnapshots, deletedDiffs, deletedInsights] = await Promise.all(
+      [
+        Snapshot.deleteMany({ userId: company.userId, companyId: company._id }),
+        Diff.deleteMany({ userId: company.userId, companyId: company._id }),
+        Insight.deleteMany({ userId: company.userId, companyId: company._id }),
+      ]
+    );
 
     await Company.deleteOne({ _id: company._id, userId: company.userId });
 
@@ -336,6 +371,9 @@ export async function DELETE(_: Request, context: RouteContext): Promise<NextRes
       },
     });
 
-    return NextResponse.json({ error: "Failed to delete competitor" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete competitor" },
+      { status: 500 }
+    );
   }
 }

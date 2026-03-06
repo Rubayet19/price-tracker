@@ -103,7 +103,9 @@ const sanitizeMetadata = (
   return sanitized;
 };
 
-const toObjectId = (value: string | Types.ObjectId | null | undefined): Types.ObjectId | null => {
+const toObjectId = (
+  value: string | Types.ObjectId | null | undefined
+): Types.ObjectId | null => {
   if (!value) {
     return null;
   }
@@ -136,7 +138,10 @@ export const logAuditEvent = async (input: AuditEventInput): Promise<void> => {
       metadata,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown audit event logging error";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unknown audit event logging error";
     console.error("Failed to persist audit event:", message);
   }
 };

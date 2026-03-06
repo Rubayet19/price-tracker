@@ -59,7 +59,9 @@ export interface CrawlExtractionFailure extends ExtractionBase {
   error: string;
 }
 
-export type CrawlExtractionResult = CrawlExtractionSuccess | CrawlExtractionFailure;
+export type CrawlExtractionResult =
+  | CrawlExtractionSuccess
+  | CrawlExtractionFailure;
 
 const findMetaContent = (html: string, name: string): string | null => {
   const pattern = new RegExp(
@@ -116,7 +118,9 @@ const mapPeriod = (token: string | undefined): PricePeriod => {
     return "month";
   }
 
-  if (["year", "yearly", "annual", "annually", "yr", "y"].includes(normalized)) {
+  if (
+    ["year", "yearly", "annual", "annually", "yr", "y"].includes(normalized)
+  ) {
     return "year";
   }
 
@@ -131,7 +135,9 @@ const inferPeriodFromContext = (context: string): PricePeriod => {
   const lowered = context.toLowerCase();
 
   if (
-    /(per user\/month|per month|\/month|\/mo|billed monthly|monthly plan|monthly)/.test(lowered)
+    /(per user\/month|per month|\/month|\/mo|billed monthly|monthly plan|monthly)/.test(
+      lowered
+    )
   ) {
     return "month";
   }
@@ -180,16 +186,30 @@ const extractPriceMentions = (text: string): NormalizedPricePoint[] => {
       Math.max(0, matchIndex - 60),
       Math.min(text.length, matchIndex + matchText.length + 60)
     );
-    const inferredPeriod = periodToken ? mapPeriod(periodToken) : inferPeriodFromContext(context);
-    const contextAmounts = [...context.matchAll(/(?:\b(?:USD|EUR|GBP|CAD|AUD|JPY)\b\s*|[€£$¥])\s*(\d{1,4}(?:,\d{3})*(?:\.\d{1,2})?)/gi)]
-      .map((contextMatch) => Number.parseFloat((contextMatch[1] ?? "").replace(/,/g, "")))
-      .filter((contextAmount) => Number.isFinite(contextAmount) && contextAmount > 0);
+    const inferredPeriod = periodToken
+      ? mapPeriod(periodToken)
+      : inferPeriodFromContext(context);
+    const contextAmounts = [
+      ...context.matchAll(
+        /(?:\b(?:USD|EUR|GBP|CAD|AUD|JPY)\b\s*|[€£$¥])\s*(\d{1,4}(?:,\d{3})*(?:\.\d{1,2})?)/gi
+      ),
+    ]
+      .map((contextMatch) =>
+        Number.parseFloat((contextMatch[1] ?? "").replace(/,/g, ""))
+      )
+      .filter(
+        (contextAmount) => Number.isFinite(contextAmount) && contextAmount > 0
+      );
     const hasPairedPriceContext = contextAmounts.length >= 2;
-    const lowestContextAmount = hasPairedPriceContext ? Math.min(...contextAmounts) : null;
+    const lowestContextAmount = hasPairedPriceContext
+      ? Math.min(...contextAmounts)
+      : null;
     const shouldPreferLowestPairedPrice =
       hasPairedPriceContext &&
       lowestContextAmount !== null &&
-      (inferredPeriod === "one_time" || inferredPeriod === "month" || inferredPeriod === "year");
+      (inferredPeriod === "one_time" ||
+        inferredPeriod === "month" ||
+        inferredPeriod === "year");
 
     if (
       Number.isFinite(amount) &&
@@ -201,7 +221,9 @@ const extractPriceMentions = (text: string): NormalizedPricePoint[] => {
       !(inferredPeriod === "unknown" && hasNoisyPriceContext(context)) &&
       !(shouldPreferLowestPairedPrice && amount !== lowestContextAmount)
     ) {
-      const currency = codeToken ? codeToken.toUpperCase() : mapCurrency(symbolToken ?? "$");
+      const currency = codeToken
+        ? codeToken.toUpperCase()
+        : mapCurrency(symbolToken ?? "$");
       prices.push({
         amount,
         currency,
@@ -215,7 +237,10 @@ const extractPriceMentions = (text: string): NormalizedPricePoint[] => {
   return prices;
 };
 
-const extractSignalMentions = (text: string, signals: readonly string[]): string[] => {
+const extractSignalMentions = (
+  text: string,
+  signals: readonly string[]
+): string[] => {
   const lowered = text.toLowerCase();
   const matches: string[] = [];
 
@@ -228,7 +253,9 @@ const extractSignalMentions = (text: string, signals: readonly string[]): string
   return matches;
 };
 
-const extractPricingCardsFromHtml = (html: string): NormalizedExtractedPlan[] => {
+const extractPricingCardsFromHtml = (
+  html: string
+): NormalizedExtractedPlan[] => {
   // Strip scripts, styles, noscript while keeping HTML structure
   let cleanHtml = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ");
   cleanHtml = cleanHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ");
@@ -258,14 +285,22 @@ const extractPricingCardsFromHtml = (html: string): NormalizedExtractedPlan[] =>
   let headingMatch;
   while ((headingMatch = headingPattern.exec(cleanHtml)) !== null) {
     const rawContent = headingMatch[2] ?? "";
-    const headingText = rawContent.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const headingText = rawContent
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
     // Strict plan name filters (aligned with Playwright isLikelyPlanName)
     if (!headingText || headingText.length > 28) continue;
     if (headingText.split(/\s+/).length > 4) continue;
     if (!/[a-z]/i.test(headingText)) continue;
     if (/[.,:!?]/.test(headingText) || /\d/.test(headingText)) continue;
-    if (/pricing|compare|faq|features|trusted by|money-back|save up to|most popular|intro price|best value|limited time|per month|billed|trial/i.test(headingText)) continue;
+    if (
+      /pricing|compare|faq|features|trusted by|money-back|save up to|most popular|intro price|best value|limited time|per month|billed|trial/i.test(
+        headingText
+      )
+    )
+      continue;
 
     // Look for a price with period indicator within 500 chars after this heading
     const searchStart = headingMatch.index + headingMatch[0].length;
@@ -279,7 +314,12 @@ const extractPricingCardsFromHtml = (html: string): NormalizedExtractedPlan[] =>
     if (/<h[1-5]\b/i.test(searchWindow.slice(0, distanceToPrice))) continue;
 
     const amount = Number.parseFloat((priceMatch[2] ?? "").replace(/,/g, ""));
-    if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_REASONABLE_PRICE_AMOUNT) continue;
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > MAX_REASONABLE_PRICE_AMOUNT
+    )
+      continue;
 
     const currency = mapCurrency(priceMatch[1] ?? "$");
     const period = mapPeriod(priceMatch[3]);
@@ -296,13 +336,20 @@ const extractPricingCardsFromHtml = (html: string): NormalizedExtractedPlan[] =>
 };
 
 const extractPlanNames = (html: string): string[] => {
-  const matches = [...html.matchAll(/<(h1|h2|h3|h4|h5)[^>]*>([\s\S]*?)<\/\1>/gi)];
+  const matches = [
+    ...html.matchAll(/<(h1|h2|h3|h4|h5)[^>]*>([\s\S]*?)<\/\1>/gi),
+  ];
 
   return matches
     .map((match) => stripHtmlToText(match[2] ?? ""))
     .map((value) => value.trim())
     .filter((value) => value.length > 0 && value.length <= 48)
-    .filter((value) => !/pricing|compare|faq|features|trusted by|money-back|save up to/i.test(value))
+    .filter(
+      (value) =>
+        !/pricing|compare|faq|features|trusted by|money-back|save up to/i.test(
+          value
+        )
+    )
     .filter((value) => /[a-z]/i.test(value))
     .filter((value) => value.split(/\s+/).length <= 4);
 };
@@ -379,7 +426,10 @@ const getConfidence = (
 
 const hasInteractiveCadenceSignals = (text: string): boolean => {
   const lowered = text.toLowerCase();
-  return lowered.includes("monthly") && (lowered.includes("yearly") || lowered.includes("annual"));
+  return (
+    lowered.includes("monthly") &&
+    (lowered.includes("yearly") || lowered.includes("annual"))
+  );
 };
 
 const hasImplausiblePriceSpread = (prices: NormalizedPricePoint[]): boolean => {
@@ -387,7 +437,9 @@ const hasImplausiblePriceSpread = (prices: NormalizedPricePoint[]): boolean => {
     return false;
   }
 
-  const amounts = prices.map((price) => price.amount).sort((left, right) => left - right);
+  const amounts = prices
+    .map((price) => price.amount)
+    .sort((left, right) => left - right);
   const min = amounts[0];
   const max = amounts[amounts.length - 1];
 
@@ -478,7 +530,9 @@ const fetchStaticHtml = async (url: string): Promise<StaticFetchResult> => {
   }
 };
 
-const classifyFetchFailure = (result: StaticFetchFailure): CrawlExtractionFailure => {
+const classifyFetchFailure = (
+  result: StaticFetchFailure
+): CrawlExtractionFailure => {
   if (BLOCKED_HTTP_STATUSES.has(result.status)) {
     return {
       status: "blocked",
@@ -508,7 +562,9 @@ const classifyFetchFailure = (result: StaticFetchFailure): CrawlExtractionFailur
   };
 };
 
-export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlExtractionResult> => {
+export const fetchAndExtractPricing = async (
+  sourceUrl: string
+): Promise<CrawlExtractionResult> => {
   const normalizedSourceUrl = normalizeUrl(sourceUrl);
   if (!normalizedSourceUrl) {
     return {
@@ -562,12 +618,24 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
   const normalizedHashInput = normalizeHtmlForHash(fetched.html);
 
   const pricingText = stripHtmlToText(fetched.html);
-  const blockedSignals = extractSignalMentions(pricingText, BLOCKED_TEXT_SIGNALS);
+  const blockedSignals = extractSignalMentions(
+    pricingText,
+    BLOCKED_TEXT_SIGNALS
+  );
 
   const priceMentions = extractPriceMentions(pricingText);
-  const pricingSignals = extractSignalMentions(pricingText, PRICING_TEXT_SIGNALS);
-  const customPricingHints = extractSignalMentions(pricingText, CUSTOM_PRICING_SIGNALS);
-  const oneTimePricingHints = extractSignalMentions(pricingText, ONE_TIME_PRICING_SIGNALS);
+  const pricingSignals = extractSignalMentions(
+    pricingText,
+    PRICING_TEXT_SIGNALS
+  );
+  const customPricingHints = extractSignalMentions(
+    pricingText,
+    CUSTOM_PRICING_SIGNALS
+  );
+  const oneTimePricingHints = extractSignalMentions(
+    pricingText,
+    ONE_TIME_PRICING_SIGNALS
+  );
   const planNames = extractPlanNames(fetched.html);
 
   const staticFoundNothing =
@@ -646,7 +714,10 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
   let finalConfidence = confidence;
   let captureMethod: SnapshotCaptureMethod = "static";
   let contentHash = createContentHash(normalizedHashInput);
-  let isVerified = confidence >= VERIFIED_CONFIDENCE_THRESHOLD && payload.priceMentions.length > 0 && payload.planNames.length > 0;
+  let isVerified =
+    confidence >= VERIFIED_CONFIDENCE_THRESHOLD &&
+    payload.priceMentions.length > 0 &&
+    payload.planNames.length > 0;
 
   if (
     shouldUsePlaywrightFallback({
@@ -663,8 +734,10 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
       if (
         playwrightResult &&
         ((playwrightResult.pricingPayload.extractedPlans?.length ?? 0) >= 2 ||
-          playwrightResult.pricingPayload.planNames.length > staticPayload.planNames.length ||
-          (playwrightResult.pricingPayload.priceMentions.length >= staticPayload.priceMentions.length &&
+          playwrightResult.pricingPayload.planNames.length >
+            staticPayload.planNames.length ||
+          (playwrightResult.pricingPayload.priceMentions.length >=
+            staticPayload.priceMentions.length &&
             playwrightResult.confidence >= finalConfidence))
       ) {
         payload = playwrightResult.pricingPayload;
@@ -677,7 +750,9 @@ export const fetchAndExtractPricing = async (sourceUrl: string): Promise<CrawlEx
           playwrightResult.pricingPayload.planNames.length > 0;
       }
     } catch (playwrightError) {
-      console.error("Playwright fallback failed during confidence-based upgrade");
+      console.error(
+        "Playwright fallback failed during confidence-based upgrade"
+      );
     }
   }
 

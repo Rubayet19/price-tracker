@@ -84,9 +84,13 @@ diffSchema.index({ userId: 1, detectedAt: -1 });
 diffSchema.index({ userId: 1, severity: 1, detectedAt: -1 });
 diffSchema.index({ userId: 1, verificationState: 1, detectedAt: -1 });
 
-const diffToJSONPlugin = toJSON as unknown as Parameters<typeof diffSchema.plugin>[0];
+const diffToJSONPlugin = toJSON as unknown as Parameters<
+  typeof diffSchema.plugin
+>[0];
 diffSchema.plugin(diffToJSONPlugin);
 
-const DiffModel = (mongoose.models.Diff as Model<IDiff>) || mongoose.model<IDiff>("Diff", diffSchema);
+const DiffModel =
+  (mongoose.models.Diff as Model<IDiff>) ||
+  mongoose.model<IDiff>("Diff", diffSchema);
 
 export default DiffModel;

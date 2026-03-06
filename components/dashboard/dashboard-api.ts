@@ -40,7 +40,10 @@ export function invalidateDashboardCache(): void {
 
 /* ------------------------------------------------------------------ */
 
-const toErrorMessage = async (response: Response, fallbackMessage: string): Promise<string> => {
+const toErrorMessage = async (
+  response: Response,
+  fallbackMessage: string
+): Promise<string> => {
   try {
     const payload = (await response.json()) as { error?: unknown };
     if (typeof payload.error === "string" && payload.error.trim().length > 0) {
@@ -76,61 +79,74 @@ const createFeedQuery = (
   return params.toString();
 };
 
-export const loadDashboardOverview = async (): Promise<DashboardOverviewResponse> => {
-  const cacheKey = "overview";
-  const cached = getCached<DashboardOverviewResponse>(cacheKey);
-  if (cached) return cached;
+export const loadDashboardOverview =
+  async (): Promise<DashboardOverviewResponse> => {
+    const cacheKey = "overview";
+    const cached = getCached<DashboardOverviewResponse>(cacheKey);
+    if (cached) return cached;
 
-  const response = await fetch("/api/dashboard/overview", {
-    method: "GET",
-    cache: "no-store",
-  });
+    const response = await fetch("/api/dashboard/overview", {
+      method: "GET",
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to load dashboard overview"));
-  }
+    if (!response.ok) {
+      throw new Error(
+        await toErrorMessage(response, "Failed to load dashboard overview")
+      );
+    }
 
-  const data = (await response.json()) as DashboardOverviewResponse;
-  setCache(cacheKey, data);
-  return data;
-};
+    const data = (await response.json()) as DashboardOverviewResponse;
+    setCache(cacheKey, data);
+    return data;
+  };
 
 export const loadDashboardFeed = async (
   filters: FeedFilters,
   options?: { cursor?: string | null; limit?: number }
 ): Promise<DashboardFeedResponse> => {
-  const response = await fetch(`/api/dashboard/feed?${createFeedQuery(filters, options)}`, {
-    method: "GET",
-    cache: "no-store",
-  });
+  const response = await fetch(
+    `/api/dashboard/feed?${createFeedQuery(filters, options)}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    }
+  );
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to load dashboard feed"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to load dashboard feed")
+    );
   }
 
   return (await response.json()) as DashboardFeedResponse;
 };
 
-export const loadDashboardComparison = async (): Promise<DashboardComparisonResponse> => {
-  const cacheKey = "comparison";
-  const cached = getCached<DashboardComparisonResponse>(cacheKey);
-  if (cached) return cached;
+export const loadDashboardComparison =
+  async (): Promise<DashboardComparisonResponse> => {
+    const cacheKey = "comparison";
+    const cached = getCached<DashboardComparisonResponse>(cacheKey);
+    if (cached) return cached;
 
-  const response = await fetch("/api/dashboard/comparison", {
-    method: "GET",
-    cache: "no-store",
-  });
+    const response = await fetch("/api/dashboard/comparison", {
+      method: "GET",
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to load dashboard comparison"));
-  }
+    if (!response.ok) {
+      throw new Error(
+        await toErrorMessage(response, "Failed to load dashboard comparison")
+      );
+    }
 
-  const data = (await response.json()) as DashboardComparisonResponse;
-  setCache(cacheKey, data);
-  return data;
-};
+    const data = (await response.json()) as DashboardComparisonResponse;
+    setCache(cacheKey, data);
+    return data;
+  };
 
-export const createBillingPortalSession = async (returnUrl: string): Promise<string> => {
+export const createBillingPortalSession = async (
+  returnUrl: string
+): Promise<string> => {
   const response = await fetch("/api/stripe/create-portal", {
     method: "POST",
     cache: "no-store",
@@ -141,7 +157,9 @@ export const createBillingPortalSession = async (returnUrl: string): Promise<str
   });
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to open billing portal"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to open billing portal")
+    );
   }
 
   const payload = (await response.json()) as { url: string };
@@ -186,7 +204,9 @@ export interface RunCompetitorCrawlResponse {
   };
 }
 
-export const runCompetitorCrawl = async (companyId: string): Promise<RunCompetitorCrawlResponse> => {
+export const runCompetitorCrawl = async (
+  companyId: string
+): Promise<RunCompetitorCrawlResponse> => {
   const response = await fetch(`/api/companies/${companyId}/crawl-now`, {
     method: "POST",
     cache: "no-store",
@@ -200,7 +220,9 @@ export const runCompetitorCrawl = async (companyId: string): Promise<RunCompetit
   return (await response.json()) as RunCompetitorCrawlResponse;
 };
 
-export const retryCompetitorCrawl = async (companyId: string): Promise<void> => {
+export const retryCompetitorCrawl = async (
+  companyId: string
+): Promise<void> => {
   const response = await fetch(`/api/companies/${companyId}/retry-crawl`, {
     method: "POST",
     cache: "no-store",
@@ -226,7 +248,9 @@ export const discoverCompetitorPricing = async (
   });
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to discover pricing URLs"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to discover pricing URLs")
+    );
   }
 
   return (await response.json()) as {
@@ -253,7 +277,9 @@ export const updateCompetitorPrimaryPricing = async (
   });
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to save pricing source"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to save pricing source")
+    );
   }
 
   invalidateDashboardCache();
@@ -270,7 +296,9 @@ export const deleteCompetitor = async (companyId: string): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to delete competitor"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to delete competitor")
+    );
   }
 
   invalidateDashboardCache();
@@ -297,7 +325,9 @@ export const updateCompetitorDetails = async (
   });
 
   if (!response.ok) {
-    throw new Error(await toErrorMessage(response, "Failed to update competitor details"));
+    throw new Error(
+      await toErrorMessage(response, "Failed to update competitor details")
+    );
   }
 
   invalidateDashboardCache();

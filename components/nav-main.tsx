@@ -47,7 +47,10 @@ export function NavMain({
                   isActive={isActive}
                   className="h-10 gap-3 px-3 text-[0.95rem] font-medium [&>svg]:size-[18px]"
                 >
-                  <Link href={item.url} aria-current={isActive ? "page" : undefined}>
+                  <Link
+                    href={item.url}
+                    aria-current={isActive ? "page" : undefined}
+                  >
                     {item.icon ? <item.icon aria-hidden="true" /> : null}
                     <span>{item.title}</span>
                   </Link>

@@ -4,10 +4,19 @@ export type PlanTier = (typeof PLAN_TIERS)[number];
 export const ACCESS_SOURCES = ["none", "trial", "paid"] as const;
 export type AccessSource = (typeof ACCESS_SOURCES)[number];
 
-export const ACCESS_STATES = ["inactive", "trial_active", "paid_active"] as const;
+export const ACCESS_STATES = [
+  "inactive",
+  "trial_active",
+  "paid_active",
+] as const;
 export type AccessState = (typeof ACCESS_STATES)[number];
 
-export const TRIAL_STATUSES = ["not_started", "active", "expired", "converted"] as const;
+export const TRIAL_STATUSES = [
+  "not_started",
+  "active",
+  "expired",
+  "converted",
+] as const;
 export type TrialStatus = (typeof TRIAL_STATUSES)[number];
 
 export const INSIGHT_SEVERITIES = ["low", "medium", "high"] as const;

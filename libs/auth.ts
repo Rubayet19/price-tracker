@@ -7,7 +7,8 @@ import connectMongo from "./mongo";
 
 const nextAuthUrl = process.env.NEXTAUTH_URL ?? "";
 const isLocalAuthHost =
-  nextAuthUrl.startsWith("http://localhost") || nextAuthUrl.startsWith("http://127.0.0.1");
+  nextAuthUrl.startsWith("http://localhost") ||
+  nextAuthUrl.startsWith("http://127.0.0.1");
 const isLocalTestHost = nextAuthUrl.startsWith("http://localtest.me");
 
 export const authOptions = {

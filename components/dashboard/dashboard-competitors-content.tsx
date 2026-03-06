@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, CircleAlert, ExternalLink, Globe, RefreshCw, RotateCcw, Search, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  CircleAlert,
+  ExternalLink,
+  Globe,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import CompetitorManagementSheet from "@/components/dashboard/competitor-management-sheet";
 import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
@@ -11,10 +20,19 @@ import {
   retryCompetitorCrawl,
   runCompetitorCrawl,
 } from "@/components/dashboard/dashboard-api";
-import type { DashboardComparisonCompetitor, DashboardOverviewResponse } from "@/types/dashboard";
+import type {
+  DashboardComparisonCompetitor,
+  DashboardOverviewResponse,
+} from "@/types/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const formatDate = (value: string | null): string => {
   if (!value) {
@@ -34,8 +52,13 @@ const formatDate = (value: string | null): string => {
   });
 };
 
-const toStatusBadgeClass = (competitor: DashboardComparisonCompetitor): string => {
-  if (competitor.trust.blockedOrManualNeeded || competitor.trust.lastCrawlStatus === "error") {
+const toStatusBadgeClass = (
+  competitor: DashboardComparisonCompetitor
+): string => {
+  if (
+    competitor.trust.blockedOrManualNeeded ||
+    competitor.trust.lastCrawlStatus === "error"
+  ) {
     return "border-[#ea580c]/35 bg-[#fff7ed] text-[#c2410c]";
   }
 
@@ -78,7 +101,9 @@ const getPriority = (competitor: DashboardComparisonCompetitor): number => {
   return 5;
 };
 
-const summarizeSnapshot = (competitor: DashboardComparisonCompetitor): string | null => {
+const summarizeSnapshot = (
+  competitor: DashboardComparisonCompetitor
+): string | null => {
   const snapshot = competitor.latestSnapshot;
   if (!snapshot) {
     return null;
@@ -109,12 +134,17 @@ const summarizeSnapshot = (competitor: DashboardComparisonCompetitor): string | 
 };
 
 export default function DashboardCompetitorsContent() {
-  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(null);
-  const [competitors, setCompetitors] = useState<DashboardComparisonCompetitor[]>([]);
+  const [overview, setOverview] = useState<DashboardOverviewResponse | null>(
+    null
+  );
+  const [competitors, setCompetitors] = useState<
+    DashboardComparisonCompetitor[]
+  >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
-  const [selectedCompetitor, setSelectedCompetitor] = useState<DashboardComparisonCompetitor | null>(null);
+  const [selectedCompetitor, setSelectedCompetitor] =
+    useState<DashboardComparisonCompetitor | null>(null);
 
   const loadCompetitors = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -128,7 +158,10 @@ export default function DashboardCompetitorsContent() {
       setOverview(overviewResponse);
       setCompetitors(comparisonResponse.competitors);
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : "Failed to load competitors";
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : "Failed to load competitors";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -163,7 +196,10 @@ export default function DashboardCompetitorsContent() {
           : `Crawl finished with status: ${response.result.status.replaceAll("_", " ")}`
       );
     } catch (crawlError) {
-      const message = crawlError instanceof Error ? crawlError.message : "Failed to run crawl";
+      const message =
+        crawlError instanceof Error
+          ? crawlError.message
+          : "Failed to run crawl";
       toast.error(message);
     } finally {
       setActiveCompanyId(null);
@@ -178,7 +214,10 @@ export default function DashboardCompetitorsContent() {
       await loadCompetitors();
       toast.success("Crawl retried");
     } catch (retryError) {
-      const message = retryError instanceof Error ? retryError.message : "Failed to retry crawl";
+      const message =
+        retryError instanceof Error
+          ? retryError.message
+          : "Failed to retry crawl";
       toast.error(message);
     } finally {
       setActiveCompanyId(null);
@@ -222,21 +261,27 @@ export default function DashboardCompetitorsContent() {
   }, [competitors]);
 
   const missingPricingCount = useMemo(() => {
-    return competitors.filter((competitor) => !competitor.primaryPricingUrl).length;
+    return competitors.filter((competitor) => !competitor.primaryPricingUrl)
+      .length;
   }, [competitors]);
 
   const activeTrackingCount = useMemo(() => {
     return competitors.filter(
       (competitor) =>
-        competitor.trust.lastCrawlStatus === "ok" || competitor.trust.lastCrawlStatus === "idle"
+        competitor.trust.lastCrawlStatus === "ok" ||
+        competitor.trust.lastCrawlStatus === "idle"
     ).length;
   }, [competitors]);
 
   return (
     <section className="space-y-5 px-4 py-5 lg:px-6">
       <header className="space-y-1">
-        <h1 className="text-3xl font-black tracking-tight text-[#0f172a]">Competitors</h1>
-        <p className="text-sm text-[#475569]">All tracked competitor sources and crawl status.</p>
+        <h1 className="text-3xl font-black tracking-tight text-[#0f172a]">
+          Competitors
+        </h1>
+        <p className="text-sm text-[#475569]">
+          All tracked competitor sources and crawl status.
+        </p>
       </header>
 
       <DashboardEntitlementBanner overview={overview} />
@@ -245,7 +290,9 @@ export default function DashboardCompetitorsContent() {
         <Card className="border-[#0f172a]/10 bg-white/95">
           <CardHeader className="gap-1">
             <CardDescription>Needs attention</CardDescription>
-            <CardTitle className="text-3xl font-black">{isLoading ? "—" : needsAttentionCount}</CardTitle>
+            <CardTitle className="text-3xl font-black">
+              {isLoading ? "—" : needsAttentionCount}
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-sm text-[#64748b]">
             Error, blocked, or manual-review competitors first.
@@ -254,7 +301,9 @@ export default function DashboardCompetitorsContent() {
         <Card className="border-[#0f172a]/10 bg-white/95">
           <CardHeader className="gap-1">
             <CardDescription>Pricing not confirmed</CardDescription>
-            <CardTitle className="text-3xl font-black">{isLoading ? "—" : missingPricingCount}</CardTitle>
+            <CardTitle className="text-3xl font-black">
+              {isLoading ? "—" : missingPricingCount}
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-sm text-[#64748b]">
             Competitors that still need a trusted pricing source.
@@ -263,7 +312,9 @@ export default function DashboardCompetitorsContent() {
         <Card className="border-[#0f172a]/10 bg-white/95">
           <CardHeader className="gap-1">
             <CardDescription>Active tracking</CardDescription>
-            <CardTitle className="text-3xl font-black">{isLoading ? "—" : activeTrackingCount}</CardTitle>
+            <CardTitle className="text-3xl font-black">
+              {isLoading ? "—" : activeTrackingCount}
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 text-sm text-[#64748b]">
             Competitors ready for scheduled monitoring.
@@ -274,10 +325,18 @@ export default function DashboardCompetitorsContent() {
       <Card className="border-[#0f172a]/10 bg-white/95">
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-xl font-black tracking-tight">Tracked competitor list</CardTitle>
-            <CardDescription>{limitLabel || "Loading plan limits..."}</CardDescription>
+            <CardTitle className="text-xl font-black tracking-tight">
+              Tracked competitor list
+            </CardTitle>
+            <CardDescription>
+              {limitLabel || "Loading plan limits..."}
+            </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => void loadCompetitors()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void loadCompetitors()}
+          >
             <RefreshCw className="size-3.5" />
             Refresh
           </Button>
@@ -307,7 +366,9 @@ export default function DashboardCompetitorsContent() {
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-lg font-bold text-[#0f172a]">{competitor.name}</p>
+                      <p className="truncate text-lg font-bold text-[#0f172a]">
+                        {competitor.name}
+                      </p>
                       {!competitor.primaryPricingUrl ? (
                         <Badge
                           variant="outline"
@@ -323,7 +384,7 @@ export default function DashboardCompetitorsContent() {
                     </p>
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       <div className="rounded-xl border border-white bg-white/80 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748b]">
+                        <p className="text-xs font-semibold tracking-[0.2em] text-[#64748b] uppercase">
                           Pricing source
                         </p>
                         {competitor.primaryPricingUrl ? (
@@ -331,22 +392,25 @@ export default function DashboardCompetitorsContent() {
                             href={competitor.primaryPricingUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-2 inline-flex items-center gap-1 break-all text-sm font-medium text-[#0f766e] hover:underline"
+                            className="mt-2 inline-flex items-center gap-1 text-sm font-medium break-all text-[#0f766e] hover:underline"
                           >
                             {competitor.primaryPricingUrl}
                             <ExternalLink className="size-3.5" />
                           </a>
                         ) : (
-                          <p className="mt-2 text-sm text-[#92400e]">No primary pricing URL selected.</p>
+                          <p className="mt-2 text-sm text-[#92400e]">
+                            No primary pricing URL selected.
+                          </p>
                         )}
                       </div>
 
                       <div className="rounded-xl border border-white bg-white/80 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748b]">
+                        <p className="text-xs font-semibold tracking-[0.2em] text-[#64748b] uppercase">
                           Trust details
                         </p>
                         <p className="mt-2 text-sm text-[#0f172a]">
-                          Last checked: {formatDate(competitor.trust.lastCrawlAt)}
+                          Last checked:{" "}
+                          {formatDate(competitor.trust.lastCrawlAt)}
                         </p>
                         <p className="mt-1 text-sm text-[#64748b]">
                           {typeof competitor.trust.latestConfidence === "number"
@@ -356,11 +420,12 @@ export default function DashboardCompetitorsContent() {
                       </div>
 
                       <div className="rounded-xl border border-white bg-white/80 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748b]">
+                        <p className="text-xs font-semibold tracking-[0.2em] text-[#64748b] uppercase">
                           Latest snapshot
                         </p>
                         <p className="mt-2 text-sm text-[#0f172a]">
-                          {summarizeSnapshot(competitor) ?? "No extracted pricing snapshot yet."}
+                          {summarizeSnapshot(competitor) ??
+                            "No extracted pricing snapshot yet."}
                         </p>
                       </div>
                     </div>
@@ -373,7 +438,10 @@ export default function DashboardCompetitorsContent() {
                   </div>
 
                   <div className="flex min-w-[220px] flex-col gap-3">
-                    <Badge variant="outline" className={toStatusBadgeClass(competitor)}>
+                    <Badge
+                      variant="outline"
+                      className={toStatusBadgeClass(competitor)}
+                    >
                       {toStatusLabel(competitor)}
                     </Badge>
                     <Button
@@ -397,9 +465,9 @@ export default function DashboardCompetitorsContent() {
                       <RefreshCw className="size-4" />
                       Crawl now
                     </Button>
-                    {(competitor.trust.lastCrawlStatus === "error" ||
-                      competitor.trust.lastCrawlStatus === "blocked" ||
-                      competitor.trust.lastCrawlStatus === "manual_needed") ? (
+                    {competitor.trust.lastCrawlStatus === "error" ||
+                    competitor.trust.lastCrawlStatus === "blocked" ||
+                    competitor.trust.lastCrawlStatus === "manual_needed" ? (
                       <Button
                         onClick={() => {
                           void handleRetryCrawl(competitor.companyId);
