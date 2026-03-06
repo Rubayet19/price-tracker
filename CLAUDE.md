@@ -1,10 +1,9 @@
 # CLAUDE.md
 
-Product context and locked decisions: @PROJECT_CONTEXT.md
-
 ## Required Skills
 
 Invoke `/vercel-react-best-practices` for any Next.js, React, App Router, server/client component, data fetching, routing, rendering, metadata, performance, or bundling work.
+Invoke `/stripe-best-practices` for any Stripe integration, payment, billing, or webhook work.
 
 ## Commands
 
@@ -67,3 +66,14 @@ Plan tiers and limits are defined in `config.ts` — do not duplicate them elsew
 ## Environment Variables
 
 Required for production: `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GOOGLE_ID`, `GOOGLE_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `OPENAI_API_KEY`, `RESEND_API_KEY`.
+
+## Current Status
+
+Product is functionally complete. Remaining work is launch hardening, deployment validation, and polish.
+
+## Current Priority Queue
+
+- Validate production environment values before deployment.
+- Run a final manual QA pass on main product flows: sign-in, setup, add competitor, billing/settings, crawl retry, and dashboard empty/error states.
+- Confirm Stripe live-mode configuration matches `config.ts` plan mapping and billing portal is enabled.
+- Pass user's own pricing (SelfPricingProfile) to the LLM for more contextual competitor-vs-self insights.
