@@ -23,6 +23,7 @@
     "@mdx-js/react": "^2.3.0",
     "@next/mdx": "^15.4.6",
     "@posthog/react": "^1.8.2",
+    "@sentry/nextjs": "^10.42.0",
     "@tabler/icons-react": "^3.37.1",
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.11.0",

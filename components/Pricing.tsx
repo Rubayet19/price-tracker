@@ -89,10 +89,10 @@ const Pricing = () => {
                   </ul>
                 )}
                 <div className="space-y-2">
-                  <ButtonCheckout priceId={plan.priceId} />
+                  <ButtonCheckout priceId={plan.priceId} mode="subscription" />
 
                   <p className="text-base-content/80 relative flex items-center justify-center gap-2 text-center text-sm font-medium">
-                    Pay once. Access forever.
+                    Cancel anytime. No long-term commitment.
                   </p>
                 </div>
               </div>
