@@ -64,6 +64,11 @@ Plan tiers and limits are defined in `config.ts` — do not duplicate them elsew
 - Low-confidence extractions must not produce verified diffs or insights.
 - Sentry is configured via `@sentry/nextjs` — config files: `instrumentation-client.ts` (client), `sentry.server.config.ts` (server), `sentry.edge.config.ts` (edge), `instrumentation.ts` (registration hook), `app/global-error.tsx` (React error boundary). `next.config.js` is wrapped with `withSentryConfig()`. Tunnel route at `/monitoring` proxies events to bypass ad blockers.
 
+## MCP Servers
+
+- **MongoDB MCP** is available in this project. Use it to query, inspect, and debug MongoDB collections directly instead of writing throwaway scripts or API routes. Useful for verifying data state, checking user records, debugging crawl results, and validating webhook-written fields.
+- **Stripe MCP** is available in this project. Use it to inspect Stripe resources (customers, subscriptions, invoices, products, prices), debug webhook issues, verify billing state, and search Stripe documentation directly.
+
 ## Environment Variables
 
 Required for production: `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `GOOGLE_ID`, `GOOGLE_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `OPENAI_API_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.

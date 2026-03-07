@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   IconCreditCard,
   IconDotsVertical,
   IconLogout,
   IconUserCircle,
 } from "@tabler/icons-react";
+import toast from "react-hot-toast";
 import { signOut, useSession } from "next-auth/react";
+import { createBillingPortalSession } from "@/components/dashboard/dashboard-api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -43,12 +47,28 @@ const getInitials = (name?: string | null, email?: string | null): string => {
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { data: session } = useSession();
+  const router = useRouter();
+  const [isOpeningPortal, setIsOpeningPortal] = useState<boolean>(false);
 
   const userName = session?.user?.name ?? "Account";
   const userEmail = session?.user?.email ?? "Signed in";
 
   const handleSignOut = (): void => {
     void signOut({ callbackUrl: "/" });
+  };
+
+  const handleBillingPortal = async (): Promise<void> => {
+    setIsOpeningPortal(true);
+
+    try {
+      const url = await createBillingPortalSession(window.location.href);
+      window.location.href = url;
+    } catch {
+      toast.error("No billing account yet. Redirecting to settings.");
+      router.push("/dashboard/settings");
+    } finally {
+      setIsOpeningPortal(false);
+    }
   };
 
   return (
@@ -108,11 +128,12 @@ export function NavUser() {
                   Settings
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">
-                  <IconCreditCard />
-                  Billing & Plan
-                </Link>
+              <DropdownMenuItem
+                disabled={isOpeningPortal}
+                onClick={() => void handleBillingPortal()}
+              >
+                <IconCreditCard />
+                {isOpeningPortal ? "Opening..." : "Billing & Plan"}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
