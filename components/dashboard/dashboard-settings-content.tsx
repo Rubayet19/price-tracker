@@ -28,23 +28,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const formatDate = (value: string | null): string => {
-  if (!value) {
-    return "—";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
-
 interface DashboardSettingsContentProps {
   selfPricingProfile: SelfPricingProfileData | null;
   selfCompany: SetupSelfCompany | null;
@@ -157,8 +140,7 @@ export default function DashboardSettingsContent({
           Settings & Billing
         </h1>
         <p className="text-sm text-[#475569]">
-          Manage plan access, billing actions, and the entitlement state used
-          across the dashboard.
+          Manage your plan, billing, and product pricing details.
         </p>
       </header>
 
@@ -176,83 +158,24 @@ export default function DashboardSettingsContent({
         </div>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="border-[#0f172a]/10 bg-white/95">
-          <CardHeader>
-            <CardTitle className="text-xl font-black tracking-tight text-[#0f172a]">
-              Current access
-            </CardTitle>
-            <CardDescription>
-              The current plan, trial state, and billing account readiness.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-              <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
-                Plan status
-              </p>
-              <p className="mt-2 text-xl font-black text-[#0f172a]">
-                {isLoading ? "—" : currentPlanLabel}
-              </p>
-              <p className="mt-1 text-sm text-[#64748b]">
-                {overview
-                  ? `${overview.companyCounts.competitor}/${overview.entitlements.competitorLimit} competitor slots used`
-                  : "Loading current plan usage..."}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-              <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
-                Trial end
-              </p>
-              <p className="mt-2 text-xl font-black text-[#0f172a]">
-                {isLoading ? "—" : formatDate(overview?.trial.endsAt ?? null)}
-              </p>
-              <p className="mt-1 text-sm text-[#64748b]">
-                {overview?.trial.status === "active"
-                  ? "Trial access is currently active."
-                  : "No active trial countdown."}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-              <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
-                Billing account
-              </p>
-              <p className="mt-2 text-xl font-black text-[#0f172a]">
+      <Card className="border-[#0f172a]/10 bg-white/95">
+        <CardHeader>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-black tracking-tight text-[#0f172a]">
+                Plans
+              </CardTitle>
+              <CardDescription>
                 {isLoading
-                  ? "—"
-                  : overview?.billing.hasCustomerId
-                    ? "Ready"
-                    : "Not created"}
-              </p>
-              <p className="mt-1 text-sm text-[#64748b]">
-                {overview?.billing.hasCustomerId
-                  ? "Stripe billing portal is available for this account."
-                  : "The billing portal becomes available after the first successful checkout."}
-              </p>
+                  ? "Loading plan details..."
+                  : `${currentPlanLabel} · ${overview ? `${overview.companyCounts.competitor}/${overview.entitlements.competitorLimit} competitor slots used` : ""}`}
+              </CardDescription>
             </div>
-
-            <div className="rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
-              <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
-                Digest eligibility
-              </p>
-              <p className="mt-2 text-xl font-black text-[#0f172a]">
-                {isLoading
-                  ? "—"
-                  : overview?.entitlements.canReceiveWeeklyDigest
-                    ? "Enabled"
-                    : "Not included"}
-              </p>
-              <p className="mt-1 text-sm text-[#64748b]">
-                Weekly digest is available on paid plans.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 sm:col-span-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 disabled={
                   !overview?.billing.hasCustomerId || activeAction !== null
                 }
@@ -260,133 +183,118 @@ export default function DashboardSettingsContent({
                 className="bg-white"
               >
                 <CreditCard className="size-4" />
-                {activeAction === "portal"
-                  ? "Opening..."
-                  : "Open billing portal"}
+                {activeAction === "portal" ? "Opening..." : "Billing portal"}
               </Button>
-              <Button asChild variant="outline" className="bg-white">
+              <Button asChild variant="outline" size="sm" className="bg-white">
                 <a
                   href={`mailto:${config.resend.supportEmail ?? "support@example.com"}`}
                 >
                   <LifeBuoy className="size-4" />
-                  Contact support
+                  Support
                 </a>
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          {config.stripe.plans.map((plan) => {
+            const isCurrentPrice = currentPriceId === plan.priceId;
+            const isCurrentTier = currentTier === plan.tier;
+            const isTrialTier =
+              overview?.entitlements.accessSource === "trial" &&
+              plan.tier === "starter";
+            const action = plan.tier === "pro" ? "pro" : "starter";
 
-        <Card className="border-[#0f172a]/10 bg-white/95">
-          <CardHeader>
-            <CardTitle className="text-xl font-black tracking-tight text-[#0f172a]">
-              Plans
-            </CardTitle>
-            <CardDescription>
-              Upgrade or start a paid plan without leaving the dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {config.stripe.plans.map((plan) => {
-              const isCurrentPrice = currentPriceId === plan.priceId;
-              const isCurrentTier = currentTier === plan.tier;
-              const isTrialTier =
-                overview?.entitlements.accessSource === "trial" &&
-                plan.tier === "starter";
-              const action = plan.tier === "pro" ? "pro" : "starter";
-
-              return (
-                <article
-                  key={plan.priceId}
-                  className={`rounded-2xl border p-5 ${
-                    plan.isFeatured
-                      ? "border-[#0f766e]/30 bg-[#f0fdfa]"
-                      : "border-[#e2e8f0] bg-[#f8fafc]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-black text-[#0f172a]">
-                        {plan.name}
-                      </p>
-                      <p className="mt-1 text-sm text-[#475569]">
-                        {plan.description}
-                      </p>
-                    </div>
-                    {isCurrentPrice || isTrialTier ? (
-                      <Badge
-                        variant="outline"
-                        className="border-[#0f766e]/30 bg-white text-[#0f766e]"
-                      >
-                        {isTrialTier ? "Current trial" : "Current plan"}
-                      </Badge>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-5">
-                    <p className="text-3xl font-black text-[#0f172a]">
-                      ${plan.price}
+            return (
+              <article
+                key={plan.priceId}
+                className={`rounded-2xl border p-5 ${
+                  plan.isFeatured
+                    ? "border-[#0f766e]/30 bg-[#f0fdfa]"
+                    : "border-[#e2e8f0] bg-[#f8fafc]"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-black text-[#0f172a]">
+                      {plan.name}
                     </p>
-                    <p className="mt-1 text-sm text-[#64748b]">per month</p>
+                    <p className="mt-1 text-sm text-[#475569]">
+                      {plan.description}
+                    </p>
                   </div>
+                  {isCurrentPrice || isTrialTier ? (
+                    <Badge
+                      variant="outline"
+                      className="border-[#0f766e]/30 bg-white text-[#0f766e]"
+                    >
+                      {isTrialTier ? "Current trial" : "Current plan"}
+                    </Badge>
+                  ) : null}
+                </div>
 
-                  <ul className="mt-5 space-y-2 text-sm text-[#334155]">
-                    {plan.features.map((feature) => (
-                      <li
-                        key={feature.name}
-                        className="inline-flex items-start gap-2"
-                      >
-                        <ShieldCheck className="mt-0.5 size-4 text-[#0f766e]" />
-                        <span>{feature.name}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="mt-5">
+                  <p className="text-3xl font-black text-[#0f172a]">
+                    ${plan.price}
+                  </p>
+                  <p className="mt-1 text-sm text-[#64748b]">per month</p>
+                </div>
 
-                  <div className="mt-6">
-                    {isCurrentPrice ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={
-                          activeAction !== null ||
-                          !overview?.billing.hasCustomerId
-                        }
-                        onClick={() => void handleManageBilling()}
-                        className="w-full bg-white"
-                      >
-                        {activeAction === "portal"
-                          ? "Opening..."
-                          : "Manage billing"}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        className="w-full bg-[#0f172a] text-white hover:bg-[#1e293b]"
-                        disabled={
-                          activeAction !== null ||
-                          (isCurrentTier &&
-                            overview?.entitlements.accessSource === "paid")
-                        }
-                        onClick={() =>
-                          void handleCheckout(plan.priceId, action)
-                        }
-                      >
-                        {activeAction === action
-                          ? "Opening checkout..."
-                          : isCurrentTier
-                            ? "Current plan"
-                            : `Choose ${plan.name}`}
-                        {!isCurrentTier ? (
-                          <ArrowUpRight className="size-4" />
-                        ) : null}
-                      </Button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </CardContent>
-        </Card>
-      </div>
+                <ul className="mt-5 space-y-2 text-sm text-[#334155]">
+                  {plan.features.map((feature) => (
+                    <li
+                      key={feature.name}
+                      className="inline-flex items-start gap-2"
+                    >
+                      <ShieldCheck className="mt-0.5 size-4 text-[#0f766e]" />
+                      <span>{feature.name}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-6">
+                  {isCurrentPrice ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={
+                        activeAction !== null ||
+                        !overview?.billing.hasCustomerId
+                      }
+                      onClick={() => void handleManageBilling()}
+                      className="w-full bg-white"
+                    >
+                      {activeAction === "portal"
+                        ? "Opening..."
+                        : "Manage billing"}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      className="w-full bg-[#0f172a] text-white hover:bg-[#1e293b]"
+                      disabled={
+                        activeAction !== null ||
+                        (isCurrentTier &&
+                          overview?.entitlements.accessSource === "paid")
+                      }
+                      onClick={() => void handleCheckout(plan.priceId, action)}
+                    >
+                      {activeAction === action
+                        ? "Opening checkout..."
+                        : isCurrentTier
+                          ? "Current plan"
+                          : `Choose ${plan.name}`}
+                      {!isCurrentTier ? (
+                        <ArrowUpRight className="size-4" />
+                      ) : null}
+                    </Button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </CardContent>
+      </Card>
 
       <SelfPricingSetupForm
         existingProfile={selfPricingProfile}

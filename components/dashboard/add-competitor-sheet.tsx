@@ -79,8 +79,6 @@ export default function AddCompetitorSheet() {
     [overview]
   );
   const canAddCompetitor = canAddCompetitorFromOverview(overview);
-  const needsUpgrade =
-    accessNotice?.kind === "upgrade" || accessNotice?.kind === "inactive";
 
   const onSubmit = async (): Promise<void> => {
     if (!canAddCompetitor) {
@@ -122,27 +120,8 @@ export default function AddCompetitorSheet() {
       return "Add Competitor";
     }
 
-    if (accessNotice.kind === "inactive") {
-      return "Upgrade to Continue";
-    }
-
-    if (accessNotice.kind === "upgrade") {
-      return "Upgrade for More";
-    }
-
     return "Competitor Limit Reached";
   })();
-
-  if (needsUpgrade) {
-    return (
-      <Button asChild className="bg-[#0f172a] text-white hover:bg-[#1e293b]">
-        <Link href="/dashboard/settings">
-          <ArrowUpRight className="size-4" />
-          {buttonLabel}
-        </Link>
-      </Button>
-    );
-  }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
