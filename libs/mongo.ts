@@ -1,42 +1,41 @@
-import { MongoClient } from "mongodb";
+// This approach is taken from https://github.com/vercel/next.js/tree/canary/examples/with-mongodb
+// and https://authjs.dev/getting-started/adapters/mongodb
+//
+// Exports a module-scoped MongoClient for the NextAuth MongoDBAdapter.
+// The client is NOT pre-connected — the MongoDB driver auto-connects on first use,
+// which is critical for Vercel serverless cold starts (avoids module-level timeout).
 
-// This lib is use just to connect to the database in next-auth.
-// We don't use it anywhere else in the API routes—we use mongoose.js instead (to be able to use models)
-// See /libs/nextauth.js file.
+import { MongoClient, ServerApiVersion } from "mongodb";
 
-declare global {
-  // eslint-disable-next-line no-unused-vars
-  var _mongoClientPromise: Promise<MongoClient> | undefined;
+if (!process.env.MONGODB_URI) {
+  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
 }
 
 const uri = process.env.MONGODB_URI;
 const options = {
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
-  maxPoolSize: 10,
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
 };
 
-let client: MongoClient | undefined;
-let clientPromise: Promise<MongoClient> | undefined;
+let client: MongoClient;
 
-if (!uri) {
-  console.group("⚠️ MONGODB_URI missing from .env");
-  console.error(
-    "It's not mandatory but a database is required for Magic Links."
-  );
-  console.error(
-    "If you don't need it, remove the code from /libs/next-auth.js (see connectMongo())"
-  );
-  console.groupEnd();
-} else if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
+if (process.env.NODE_ENV === "development") {
+  // In development mode, use a global variable so that the value
+  // is preserved across module reloads caused by HMR (Hot Module Replacement).
+  const globalWithMongo = global as typeof globalThis & {
+    _mongoClient?: MongoClient;
+  };
+
+  if (!globalWithMongo._mongoClient) {
+    globalWithMongo._mongoClient = new MongoClient(uri, options);
   }
-  clientPromise = global._mongoClientPromise;
+  client = globalWithMongo._mongoClient;
 } else {
+  // In production mode, it's best to not use a global variable.
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
 }
 
-export default clientPromise;
+export default client;

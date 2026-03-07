@@ -38,6 +38,7 @@ import Company, {
 } from "@/models/Company";
 import Diff from "@/models/Diff";
 import Insight from "@/models/Insight";
+import SelfPricingProfile from "@/models/SelfPricingProfile";
 import SnapshotModel, { type Snapshot } from "@/models/Snapshot";
 import User from "@/models/User";
 
@@ -432,16 +433,20 @@ const processCompany = async (
       };
     }
 
-    const user = await User.findById(company.userId)
-      .select({
-        hasAccess: 1,
-        priceId: 1,
-        trialStatus: 1,
-        trialStartedAt: 1,
-        trialEndsAt: 1,
-      })
-      .lean<InsightEligibleUser>()
-      .exec();
+    const [user, selfPricingDoc] = await Promise.all([
+      User.findById(company.userId)
+        .select({
+          hasAccess: 1,
+          priceId: 1,
+          trialStatus: 1,
+          trialStartedAt: 1,
+          trialEndsAt: 1,
+        })
+        .lean<InsightEligibleUser>(),
+      SelfPricingProfile.findOne({ userId: company.userId })
+        .select({ currency: 1, plans: 1 })
+        .lean(),
+    ]);
 
     if (!user) {
       finalStatus = "error";
@@ -572,6 +577,9 @@ const processCompany = async (
           severity: diff.severity,
           verificationState: diff.verificationState,
           normalizedDiff: diff.normalizedDiff,
+          selfPricing: selfPricingDoc
+            ? { currency: selfPricingDoc.currency, plans: selfPricingDoc.plans }
+            : null,
           now,
         });
 

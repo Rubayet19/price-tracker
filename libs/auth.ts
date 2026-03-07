@@ -3,7 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
-import connectMongo from "./mongo";
+import client from "./mongo";
 
 const nextAuthUrl = process.env.NEXTAUTH_URL ?? "";
 const isLocalAuthHost =
@@ -11,16 +11,13 @@ const isLocalAuthHost =
   nextAuthUrl.startsWith("http://127.0.0.1");
 const isLocalTestHost = nextAuthUrl.startsWith("http://localtest.me");
 
-export const authOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  trustHost:
-    process.env.AUTH_TRUST_HOST === "true" ||
-    isLocalAuthHost ||
-    isLocalTestHost,
-  providers: [
+const providers = [];
+
+if (process.env.GOOGLE_ID && process.env.GOOGLE_SECRET) {
+  providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_ID!,
-      clientSecret: process.env.GOOGLE_SECRET!,
+      clientId: process.env.GOOGLE_ID,
+      clientSecret: process.env.GOOGLE_SECRET,
       profile(profile) {
         return {
           id: profile.sub,
@@ -30,24 +27,32 @@ export const authOptions = {
           createdAt: new Date(),
         };
       },
-    }),
-    ...(connectMongo
-      ? [
-          EmailProvider({
-            server: {
-              host: "smtp.resend.com",
-              port: 465,
-              auth: {
-                user: "resend",
-                pass: process.env.RESEND_API_KEY,
-              },
-            },
-            from: config.resend.fromNoReply,
-          }),
-        ]
-      : []),
-  ],
-  ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
+    })
+  );
+}
+
+providers.push(
+  EmailProvider({
+    server: {
+      host: "smtp.resend.com",
+      port: 465,
+      auth: {
+        user: "resend",
+        pass: process.env.RESEND_API_KEY,
+      },
+    },
+    from: config.resend.fromNoReply,
+  })
+);
+
+export const authOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost:
+    process.env.AUTH_TRUST_HOST === "true" ||
+    isLocalAuthHost ||
+    isLocalTestHost,
+  providers,
+  adapter: MongoDBAdapter(client),
   callbacks: {
     session: async ({ session, token }: any) => {
       if (session?.user) {

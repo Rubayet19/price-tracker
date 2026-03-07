@@ -7,7 +7,7 @@ const config = {
   appDescription:
     "Track competitor pricing, verify pricing changes, and act faster with clear pricing intelligence.",
   // REQUIRED (no https://, not trailing slash at the end, just the naked domain)
-  domainName: "price-tracker.vercel.app",
+  domainName: "price-tracker-nu-seven.vercel.app",
   crisp: {
     // Crisp website ID. IF YOU DON'T USE CRISP: just remove this => Then add a support email in this config file (resend.supportEmail) otherwise customer support won't work.
     id: "",

@@ -77,7 +77,7 @@ export const PRICING_URL_DISCOVERY_MIN_PRIMARY_GAP = 0.08;
 
 export const CRAWL_REQUEST_HEADERS: Readonly<Record<string, string>> = {
   "user-agent":
-    "Mozilla/5.0 (compatible; PriceTrackerBot/1.0; +https://price-tracker.vercel.app/bot)",
+    "Mozilla/5.0 (compatible; PriceTrackerBot/1.0; +https://price-tracker-nu-seven.vercel.app/bot)",
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "accept-language": "en-US,en;q=0.8",
   "cache-control": "no-cache",

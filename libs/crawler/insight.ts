@@ -10,6 +10,7 @@ import type {
   StrategicRisk,
   StrategyType,
 } from "@/types/insight";
+import type { SelfPricingProfileData } from "@/types/self-pricing";
 import type { Types } from "mongoose";
 
 export interface InsightEligibleUser {
@@ -35,6 +36,7 @@ export interface InsightBuildInput {
   severity: DiffSeverity;
   verificationState: DiffVerificationState;
   normalizedDiff: Record<string, unknown>;
+  selfPricing?: SelfPricingProfileData | null;
   now: Date;
 }
 
@@ -291,7 +293,8 @@ Rules:
 - Actions must be specific and doable this week, not vague advice.
 - thingsToCheck: 2-4 specific investigation items a founder can act on today.
 - watchOutFor: 2-3 concrete risk signals tied to this specific change.
-- watchList: 1-2 items maximum.`;
+- watchList: 1-2 items maximum.
+- If the user's own pricing is provided, reference specific price comparisons (e.g. "their new $39/mo plan undercuts your Starter at $49/mo") and tailor strategic options to the user's position.`;
 
 const buildPlanChangeDetails = (
   normalizedDiff: Record<string, unknown>
@@ -393,6 +396,25 @@ const buildPriceChangeDetails = (
   return lines.length > 0 ? "Exact price changes:\n" + lines.join("\n") : "";
 };
 
+const buildSelfPricingContext = (
+  selfPricing: SelfPricingProfileData | null | undefined
+): string => {
+  if (!selfPricing || selfPricing.plans.length === 0) return "";
+
+  const lines: string[] = [`Your pricing (${selfPricing.currency}):`];
+
+  for (const plan of selfPricing.plans) {
+    const prices: string[] = [];
+    if (plan.monthlyPrice !== null) prices.push(`$${plan.monthlyPrice}/mo`);
+    if (plan.annualPrice !== null) prices.push(`$${plan.annualPrice}/yr`);
+    if (prices.length > 0) {
+      lines.push(`  ${plan.name}: ${prices.join(", ")}`);
+    }
+  }
+
+  return lines.length > 1 ? lines.join("\n") : "";
+};
+
 const buildUserPrompt = (
   input: InsightBuildInput,
   summary: PriceChangeSummary,
@@ -400,6 +422,7 @@ const buildUserPrompt = (
 ): string => {
   const planDetails = buildPlanChangeDetails(input.normalizedDiff);
   const priceDetails = buildPriceChangeDetails(input.normalizedDiff);
+  const selfPricingContext = buildSelfPricingContext(input.selfPricing);
 
   const lines: string[] = [
     `Competitor: ${input.companyName}`,
@@ -415,6 +438,10 @@ const buildUserPrompt = (
 
   if (priceDetails) {
     lines.push(priceDetails);
+  }
+
+  if (selfPricingContext) {
+    lines.push(selfPricingContext);
   }
 
   return lines.join("\n");

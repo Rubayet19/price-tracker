@@ -6,6 +6,7 @@ import { buildInsightFromDiff } from "@/libs/crawler/insight";
 import DiffModel from "@/models/Diff";
 import InsightModel from "@/models/Insight";
 import CompanyModel from "@/models/Company";
+import SelfPricingProfile from "@/models/SelfPricingProfile";
 import UserModel from "@/models/User";
 
 // One-off endpoint to regenerate the latest insight with the updated LLM prompt.
@@ -34,10 +35,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Diff not found" }, { status: 404 });
   }
 
-  // Load company and user
-  const [company, user] = await Promise.all([
+  // Load company, user, and self-pricing profile
+  const [company, user, selfPricingDoc] = await Promise.all([
     CompanyModel.findById(diff.companyId).lean(),
     UserModel.findById(diff.userId).lean(),
+    SelfPricingProfile.findOne({ userId: diff.userId })
+      .select({ currency: 1, plans: 1 })
+      .lean(),
   ]);
 
   if (!company || !user) {
@@ -66,6 +70,9 @@ export async function POST(req: NextRequest) {
     severity: diff.severity,
     verificationState: diff.verificationState,
     normalizedDiff: diff.normalizedDiff,
+    selfPricing: selfPricingDoc
+      ? { currency: selfPricingDoc.currency, plans: selfPricingDoc.plans }
+      : null,
     now,
   });
 
