@@ -37,6 +37,7 @@ interface DashboardFeedRowRaw {
     lastCrawlAt?: Date;
     lastCrawlStatus: "idle" | "ok" | "blocked" | "manual_needed" | "error";
     latestConfidence?: number;
+    primaryPricingUrl?: string;
   };
   latestInsight?: {
     _id: Types.ObjectId;
@@ -253,6 +254,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             lastCrawlAt: "$company.lastCrawlAt",
             lastCrawlStatus: "$company.lastCrawlStatus",
             latestConfidence: "$company.latestConfidence",
+            primaryPricingUrl: "$company.primaryPricingUrl",
           },
           latestInsight: 1,
         },
@@ -286,6 +288,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           lastCrawlStatus: row.company.lastCrawlStatus,
           lastCrawlAt: row.company.lastCrawlAt ?? null,
           latestConfidence: row.company.latestConfidence ?? null,
+          primaryPricingUrl: row.company.primaryPricingUrl ?? null,
         },
         latestInsight: row.latestInsight
           ? {

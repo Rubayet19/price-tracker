@@ -301,18 +301,28 @@ const FeedCard = memo(function FeedCard({
               <span className="text-[15px] font-semibold text-[#0f172a]">
                 {row.company.name}
               </span>
-              <span className="text-xs text-[#94a3b8]">
-                {row.company.domain}
-              </span>
               <a
                 href={`https://${row.company.domain}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-0.5 text-xs text-[#0f766e] hover:text-[#115e59] hover:underline"
+                className="inline-flex items-center gap-1 text-xs text-[#94a3b8] hover:text-[#0f766e] hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
+                {row.company.domain}
                 <ExternalLink className="size-3" />
               </a>
+              {row.company.primaryPricingUrl && (
+                <a
+                  href={row.company.primaryPricingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-0.5 text-xs text-[#0f766e] hover:text-[#115e59] hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Pricing source
+                  <ExternalLink className="size-3" />
+                </a>
+              )}
             </div>
           </div>
         </div>

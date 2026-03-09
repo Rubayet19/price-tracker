@@ -59,6 +59,7 @@ export interface DashboardFeedRow {
     lastCrawlStatus: DashboardCrawlStatus;
     lastCrawlAt: string | null;
     latestConfidence: number | null;
+    primaryPricingUrl: string | null;
   };
   latestInsight: {
     insightId: string;

@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ArrowRight,
   ChevronRight,
+  ExternalLink,
   RefreshCw,
   Sparkles,
   TrendingDown,
@@ -190,14 +191,12 @@ function LatestChangeCard({ row }: { row: DashboardFeedRow }) {
             <Sparkles className="size-3.5 text-[#4338ca]" />
             Latest Change
           </CardDescription>
-          <div className="mt-1 flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-[#0f172a]">
-              {row.company.name}
-            </span>
-            <span className="text-xs text-[#94a3b8]">
-              {formatRelativeTime(row.detectedAt)}
-            </span>
-          </div>
+          <p className="mt-1 truncate text-sm font-semibold text-[#0f172a]">
+            {row.company.name}
+          </p>
+          <p className="mt-0.5 text-xs text-[#94a3b8]">
+            {formatRelativeTime(row.detectedAt)}
+          </p>
         </div>
         <Button
           asChild
@@ -273,6 +272,19 @@ function LatestChangeCard({ row }: { row: DashboardFeedRow }) {
           <p className="line-clamp-2 text-xs leading-relaxed text-[#475569]">
             {summary}
           </p>
+        )}
+
+        {/* Pricing source link */}
+        {row.company.primaryPricingUrl && (
+          <a
+            href={row.company.primaryPricingUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-[#0f766e] hover:text-[#115e59] hover:underline"
+          >
+            Pricing source
+            <ExternalLink className="size-3" />
+          </a>
         )}
 
         {!priceChange && !summary && (

@@ -34,16 +34,16 @@ const benefits: Benefit[] = [
       "Price Tracker separates meaningful pricing changes from cosmetic edits so your team can respond faster and with confidence.",
   },
   {
-    eyebrow: "Built for clarity",
-    title: "Every change includes confidence and check time",
+    eyebrow: "AI-powered decisions",
+    title: "Get strategic recommendations, not just raw diffs",
     description:
-      "Trust cues are visible by design: confidence score, verification state, and last checked timestamp are always attached to each update.",
+      "Every significant change triggers AI-generated insights with strategic options, things to check, and risks to watch out for — so you know what to do, not just what changed.",
   },
   {
-    eyebrow: "Action-ready",
-    title: "Focus your response on high-impact changes",
+    eyebrow: "Competitor vs. you",
+    title: "See how every change stacks up against your own pricing",
     description:
-      "Severity labels make prioritization immediate so product, sales, and growth teams act on what matters first.",
+      "Enter your own pricing context and Price Tracker compares competitor moves against your plans, highlighting where you gain or lose ground.",
   },
 ];
 
@@ -72,9 +72,9 @@ const workflow: WorkflowStep[] = [
 
 const trustStats: TrustStat[] = [
   {
-    value: "10-15m",
-    label: "batch crawl cadence",
-    note: "Frequent short runs avoid stale snapshots.",
+    value: "Daily",
+    label: "automated checks",
+    note: "Every competitor is checked daily so you never miss a move.",
   },
   {
     value: "7 days",
@@ -108,11 +108,6 @@ const faqs: FaqItem[] = [
     question: "Can I see when the last check happened?",
     answer:
       "Yes. Change records are paired with checked-at and confidence metadata so teams can evaluate freshness and trust at a glance.",
-  },
-  {
-    question: "Is checkout handled securely?",
-    answer:
-      "Yes. Plan purchases use Stripe Checkout. Subscription access is synchronized from verified webhook events.",
   },
 ];
 
@@ -462,7 +457,7 @@ export default function LandingPage() {
                       ${plan.price}
                     </span>
                     <span className="pb-1 text-sm font-semibold tracking-[0.12em] text-[#64748b] uppercase">
-                      USD
+                      USD / month
                     </span>
                   </div>
 
