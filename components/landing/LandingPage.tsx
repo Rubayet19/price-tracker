@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import config from "@/config";
 import ButtonSignin from "@/components/ButtonSignin";
 import ButtonCheckout from "@/components/ButtonCheckout";
@@ -193,99 +192,57 @@ export default function LandingPage() {
 
       {/* ── Hero ───────────────────────────────────────────────── */}
       <main id="top">
-        <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-20 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-28">
-          <div>
-            <span className={badgeClasses}>
+        <section className="mx-auto w-full max-w-6xl px-5 pt-16 pb-20 md:px-8 lg:pt-24 lg:pb-28">
+          {/* Text block — centered */}
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0f766e]/15 bg-[#0f766e]/[0.06] px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f766e]">
+              <span className="inline-block size-1.5 rounded-full bg-[#0f766e]" />
               Competitor Pricing Intelligence
             </span>
-            <h1 className="mt-5 text-4xl font-black tracking-tight text-balance text-[#0f172a] sm:text-5xl lg:text-6xl">
+
+            <h1 className="mt-6 text-[2.25rem] font-extrabold leading-[1.15] tracking-tight text-[#0f172a] sm:text-5xl">
               Know when competitors change their pricing.{" "}
               <span className="text-[#0f766e]">Before your customers do.</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-[#334155]">
+
+            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[#475569]">
               Track competitor pricing pages automatically. Get daily AI-powered
               insights on price changes, new tiers, and feature updates — so you
               never miss a competitive shift.
             </p>
 
-            <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <ButtonSignin
-                text="Sign in to start trial"
-                extraStyle="!rounded-full !border-[#0f766e] !bg-[#0f766e] !px-6 !text-white hover:!bg-[#115e59]"
+                text="Start free trial"
+                extraStyle="!rounded-full !border-[#0f766e] !bg-[#0f766e] !px-7 !py-3 !text-sm !font-semibold !text-white hover:!bg-[#115e59] !shadow-[0_1px_2px_rgba(0,0,0,0.08),0_4px_12px_rgba(15,118,110,0.25)]"
               />
               <Link
                 href="#pricing"
-                className="inline-flex items-center justify-center rounded-full border border-[#0f172a]/20 px-6 py-3 text-sm font-semibold text-[#0f172a] transition-colors hover:border-[#0f766e] hover:text-[#0f766e] focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
+                className="inline-flex items-center justify-center rounded-full border border-[#0f172a]/15 bg-white px-7 py-3 text-sm font-semibold text-[#0f172a] shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:border-[#0f766e]/30 hover:text-[#0f766e] focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
               >
                 View plans
               </Link>
             </div>
 
-            <p className="mt-4 text-sm text-[#475569]">
-              No credit card required. 7-day free trial with full access.
+            <p className="mt-4 text-xs tracking-wide text-[#94a3b8]">
+              No credit card required · 7-day free trial
             </p>
           </div>
 
-          <div className="relative">
-            <div className="absolute -top-6 -left-8 h-16 w-16 rounded-full bg-[#0f766e]/20 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
-            <div className="absolute right-2 -bottom-8 h-24 w-24 rounded-full bg-[#14b8a6]/15 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
+          {/* Video — full-width showcase */}
+          <div className="relative mx-auto mt-14 max-w-5xl lg:mt-16">
+            {/* Ambient glow behind the video */}
+            <div className="pointer-events-none absolute -inset-4 -z-10 rounded-3xl bg-[radial-gradient(ellipse_at_center,rgba(15,118,110,0.1),transparent_70%)] blur-2xl" />
 
-            <div
-              className={`relative overflow-hidden rounded-2xl border border-[#0f172a]/10 bg-white ${heroShadow}`}
-            >
-              <Image
-                src="/images/price-tracker-hero.jpg"
-                alt="Price Tracker dashboard context on a laptop with workspace details"
-                width={1536}
-                height={1024}
-                priority
-                sizes="(min-width: 1024px) 48vw, 100vw"
-                className="h-auto w-full object-cover"
+            <div className="overflow-hidden rounded-xl border border-[#0f172a]/[0.08] bg-[#0f172a]/[0.02] shadow-[0_8px_40px_-12px_rgba(2,6,23,0.15),0_2px_8px_-2px_rgba(2,6,23,0.06)] ring-1 ring-white/60">
+              <video
+                src="/price-tracker.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="aspect-video w-full"
               />
-
-              <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0f172a]/40 to-transparent" />
-
-              <div className="relative m-4 rounded-xl border border-white/40 bg-white/92 p-4 shadow-lg backdrop-blur sm:absolute sm:right-6 sm:bottom-6 sm:left-6 sm:m-0 sm:p-5">
-                <div>
-                  <p className="text-xs font-semibold tracking-[0.16em] text-[#0f766e] uppercase">
-                    Live change feed
-                  </p>
-                  <p className="mt-1 text-base font-bold text-[#0f172a]">
-                    Today&apos;s verified movements
-                  </p>
-                </div>
-
-                <ul
-                  className="mt-3 space-y-2"
-                  aria-label="Sample pricing changes"
-                >
-                  <li className="rounded-lg border border-[#0f172a]/10 bg-[#f7f6f3] px-3 py-2.5">
-                    <p className="text-xs font-semibold text-[#0f172a]">
-                      Rival A raised Pro from $39 to $49
-                    </p>
-                    <p className="mt-0.5 text-xs text-[#475569]">
-                      Severity: High · Checked 8 minutes ago
-                    </p>
-                  </li>
-                  <li className="rounded-lg border border-[#0f172a]/10 bg-[#f7f6f3] px-3 py-2.5">
-                    <p className="text-xs font-semibold text-[#0f172a]">
-                      Rival B moved trial from 14 to 7 days
-                    </p>
-                    <p className="mt-0.5 text-xs text-[#475569]">
-                      Severity: Medium · Checked 22 minutes ago
-                    </p>
-                  </li>
-                </ul>
-
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-xs font-medium text-[#334155]">
-                    Only verified changes shown
-                  </p>
-                  <span className="inline-flex items-center rounded-full bg-[#f0fdfa] px-2.5 py-1 text-xs font-semibold text-[#0f766e]">
-                    98% confidence
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </section>

@@ -349,7 +349,7 @@ export default function SelfPricingSetupForm({
         <div className="space-y-3">
           {plans.map((plan, index) => (
             <div
-              key={`${index}-${plan.name}`}
+              key={index}
               className="rounded-xl border border-[#e2e8f0] bg-[#fafbfc] p-4"
             >
               <div className="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_140px_140px_auto]">
