@@ -6,6 +6,12 @@
 @plugin "daisyui" {
   themes: light --default;
 }
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: #0f766e;
+  --color-primary-content: #ffffff;
+}
 
 @theme {
   --font-display: "Satoshi", "sans-serif";

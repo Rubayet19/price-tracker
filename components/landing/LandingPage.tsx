@@ -35,7 +35,7 @@ const benefits: Benefit[] = [
   },
   {
     eyebrow: "AI-powered decisions",
-    title: "Get strategic recommendations, not just raw diffs",
+    title: "Get strategic recommendations, not just data dumps",
     description:
       "Every significant change triggers AI-generated insights with strategic options, things to check, and risks to watch out for — so you know what to do, not just what changed.",
   },
@@ -59,14 +59,14 @@ const workflow: WorkflowStep[] = [
       "Price Tracker finds likely pricing pages and lets you override URLs for edge cases, ensuring reliable monitoring targets.",
   },
   {
-    title: "3. Run daily checks with confidence gates",
+    title: "3. Get checked automatically, every day",
     description:
-      "Static-first crawling keeps checks fast, while fallback extraction only runs when needed to stay efficient and dependable.",
+      "Price Tracker monitors each competitor daily, flags what actually changed, and skips the noise — so you only see what matters.",
   },
   {
-    title: "4. Review verified changes and decide",
+    title: "4. Review changes and decide with confidence",
     description:
-      "Get structured diffs, verification state, and severity so your team can make pricing decisions without guesswork.",
+      "See exactly what changed, how severe it is, and get AI-powered recommendations so your team can make pricing decisions without guesswork.",
   },
 ];
 
@@ -100,28 +100,37 @@ const faqs: FaqItem[] = [
       "Starter supports up to 3 competitors and Pro supports up to 10 competitors.",
   },
   {
-    question: "What happens if a page is blocked or unclear?",
+    question: "What happens if a pricing page is blocked or unclear?",
     answer:
-      "Price Tracker marks the source as blocked or manual-needed and avoids showing high-confidence claims when certainty is low.",
+      "Price Tracker flags it clearly and won't report changes it isn't confident about. You'll see exactly which competitors need attention.",
   },
   {
     question: "Can I see when the last check happened?",
     answer:
-      "Yes. Change records are paired with checked-at and confidence metadata so teams can evaluate freshness and trust at a glance.",
+      "Yes. Every change shows when it was last checked and how confident the detection is, so you always know how fresh your data is.",
   },
 ];
 
+/* ── Design tokens (kept as constants for consistency) ──────────── */
+
 const badgeClasses =
-  "inline-flex items-center rounded-full border border-[#0f766e]/25 bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#0f766e]";
+  "inline-flex items-center rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#0f766e]";
 
 const linkClasses =
   "rounded-full px-3 py-2 text-sm font-medium text-[#334155] transition-colors motion-reduce:transition-none hover:text-[#0f766e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2";
 
+const cardShadow =
+  "shadow-[0_2px_16px_-2px_rgba(2,6,23,0.06),0_4px_32px_-8px_rgba(2,6,23,0.1)]";
+
+const heroShadow = "shadow-[0_12px_48px_-12px_rgba(2,6,23,0.25)]";
+
 export default function LandingPage() {
   return (
     <div className="relative isolate overflow-hidden bg-[#f7f6f3] text-[#0f172a]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(70%_70%_at_20%_10%,rgba(15,118,110,0.22),transparent_65%),radial-gradient(65%_65%_at_82%_8%,rgba(234,88,12,0.22),transparent_70%)]" />
+      {/* Background gradient — teal tones */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(70%_70%_at_20%_10%,rgba(15,118,110,0.18),transparent_65%),radial-gradient(65%_65%_at_82%_8%,rgba(20,184,166,0.14),transparent_70%)]" />
 
+      {/* ── Header ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 border-b border-[#0f172a]/10 bg-[#f7f6f3]/95 backdrop-blur">
         <nav
           aria-label="Primary"
@@ -182,22 +191,21 @@ export default function LandingPage() {
         </div>
       </header>
 
+      {/* ── Hero ───────────────────────────────────────────────── */}
       <main id="top">
-        <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-14 pb-16 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pt-20 lg:pb-24">
+        <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-20 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-28">
           <div>
             <span className={badgeClasses}>
               Competitor Pricing Intelligence
             </span>
             <h1 className="mt-5 text-4xl font-black tracking-tight text-balance text-[#0f172a] sm:text-5xl lg:text-6xl">
-              Stop guessing on competitor pricing.
-              <span className="block text-[#0f766e]">
-                Respond with verified signals.
-              </span>
+              Know when competitors change their pricing.{" "}
+              <span className="text-[#0f766e]">Before your customers do.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-[#334155]">
-              Price Tracker monitors competitor pricing pages, detects
-              meaningful changes, and surfaces confidence-backed diffs so your
-              team can act faster.
+              Track competitor pricing pages automatically. Get daily AI-powered
+              insights on price changes, new tiers, and feature updates — so you
+              never miss a competitive shift.
             </p>
 
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -214,16 +222,17 @@ export default function LandingPage() {
             </div>
 
             <p className="mt-4 text-sm text-[#475569]">
-              No card required for trial. Weekly digest emails are sent to
-              paying users only.
+              No credit card required. 7-day free trial with full access.
             </p>
           </div>
 
           <div className="relative">
             <div className="absolute -top-6 -left-8 h-16 w-16 rounded-full bg-[#0f766e]/20 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
-            <div className="absolute right-2 -bottom-8 h-24 w-24 rounded-full bg-[#ea580c]/20 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
+            <div className="absolute right-2 -bottom-8 h-24 w-24 rounded-full bg-[#14b8a6]/15 blur-2xl motion-safe:animate-pulse motion-reduce:animate-none" />
 
-            <div className="relative overflow-hidden rounded-3xl border border-[#0f172a]/10 bg-white shadow-[0_20px_60px_-30px_rgba(2,6,23,0.45)]">
+            <div
+              className={`relative overflow-hidden rounded-2xl border border-[#0f172a]/10 bg-white ${heroShadow}`}
+            >
               <Image
                 src="/images/price-tracker-hero.jpg"
                 alt="Price Tracker dashboard context on a laptop with workspace details"
@@ -236,9 +245,9 @@ export default function LandingPage() {
 
               <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0f172a]/40 to-transparent" />
 
-              <div className="relative m-4 rounded-2xl border border-white/45 bg-white/92 p-4 shadow-lg backdrop-blur sm:absolute sm:right-6 sm:bottom-6 sm:left-6 sm:m-0 sm:p-5">
+              <div className="relative m-4 rounded-xl border border-white/40 bg-white/92 p-4 shadow-lg backdrop-blur sm:absolute sm:right-6 sm:bottom-6 sm:left-6 sm:m-0 sm:p-5">
                 <div>
-                  <p className="text-xs font-semibold tracking-[0.18em] text-[#0f766e] uppercase">
+                  <p className="text-xs font-semibold tracking-[0.16em] text-[#0f766e] uppercase">
                     Live change feed
                   </p>
                   <p className="mt-1 text-base font-bold text-[#0f172a]">
@@ -250,7 +259,7 @@ export default function LandingPage() {
                   className="mt-3 space-y-2"
                   aria-label="Sample pricing changes"
                 >
-                  <li className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2.5">
+                  <li className="rounded-lg border border-[#0f172a]/10 bg-[#f7f6f3] px-3 py-2.5">
                     <p className="text-xs font-semibold text-[#0f172a]">
                       Rival A raised Pro from $39 to $49
                     </p>
@@ -258,7 +267,7 @@ export default function LandingPage() {
                       Severity: High · Checked 8 minutes ago
                     </p>
                   </li>
-                  <li className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2.5">
+                  <li className="rounded-lg border border-[#0f172a]/10 bg-[#f7f6f3] px-3 py-2.5">
                     <p className="text-xs font-semibold text-[#0f172a]">
                       Rival B moved trial from 14 to 7 days
                     </p>
@@ -270,9 +279,9 @@ export default function LandingPage() {
 
                 <div className="mt-3 flex items-center justify-between">
                   <p className="text-xs font-medium text-[#334155]">
-                    Confidence-tagged updates only
+                    Only verified changes shown
                   </p>
-                  <span className="inline-flex items-center rounded-full bg-[#dcfce7] px-2.5 py-1 text-xs font-semibold text-[#166534]">
+                  <span className="inline-flex items-center rounded-full bg-[#f0fdfa] px-2.5 py-1 text-xs font-semibold text-[#0f766e]">
                     98% confidence
                   </span>
                 </div>
@@ -281,12 +290,13 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── Benefits ──────────────────────────────────────────── */}
         <section
           id="benefits"
           aria-labelledby="benefits-title"
-          className="mx-auto w-full max-w-6xl px-5 pb-16 md:px-8 lg:pb-24"
+          className="mx-auto w-full max-w-6xl px-5 pb-20 md:px-8 lg:pb-28"
         >
-          <div className="mb-9">
+          <div className="mb-10">
             <p className={badgeClasses}>Value</p>
             <h2
               id="benefits-title"
@@ -300,9 +310,9 @@ export default function LandingPage() {
             {benefits.map((item) => (
               <article
                 key={item.title}
-                className="rounded-2xl border border-[#0f172a]/10 bg-white/90 p-6 shadow-[0_14px_30px_-24px_rgba(2,6,23,0.75)]"
+                className={`rounded-2xl border border-[#0f172a]/10 bg-white p-6 ${cardShadow}`}
               >
-                <p className="text-xs font-semibold tracking-[0.14em] text-[#0f766e] uppercase">
+                <p className="text-xs font-semibold tracking-[0.16em] text-[#0f766e] uppercase">
                   {item.eyebrow}
                 </p>
                 <h3 className="mt-3 text-xl font-bold text-[#0f172a]">
@@ -316,13 +326,14 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── Workflow ──────────────────────────────────────────── */}
         <section
           id="workflow"
           aria-labelledby="workflow-title"
-          className="bg-[#0f172a] py-16 text-white lg:py-20"
+          className="bg-[#0f172a] py-20 text-white lg:py-28"
         >
           <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
-            <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-[#99f6e4] uppercase">
+            <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold tracking-[0.16em] text-[#99f6e4] uppercase">
               Workflow
             </p>
             <h2
@@ -332,14 +343,14 @@ export default function LandingPage() {
               From setup to signal in four practical steps
             </h2>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="mt-10 grid gap-5 md:grid-cols-2">
               {workflow.map((step) => (
                 <article
                   key={step.title}
-                  className="rounded-2xl border border-white/15 bg-white/[0.03] p-5"
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"
                 >
                   <h3 className="text-lg font-bold text-white">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                  <p className="mt-2 text-sm leading-relaxed text-[#cbd5e1]">
                     {step.description}
                   </p>
                 </article>
@@ -348,9 +359,10 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── Trust ─────────────────────────────────────────────── */}
         <section
           aria-labelledby="trust-title"
-          className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 lg:py-24"
+          className="mx-auto w-full max-w-6xl px-5 py-20 md:px-8 lg:py-28"
         >
           <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-start">
             <div>
@@ -371,25 +383,25 @@ export default function LandingPage() {
                 <span className="rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 font-medium text-[#0f766e]">
                   Verified vs unverified separation
                 </span>
-                <span className="rounded-full border border-[#ea580c]/20 bg-[#ea580c]/10 px-3 py-1 font-medium text-[#9a3412]">
-                  Static-first crawling
+                <span className="rounded-full border border-[#14b8a6]/20 bg-[#14b8a6]/10 px-3 py-1 font-medium text-[#0f766e]">
+                  Lightweight daily checks
                 </span>
-                <span className="rounded-full border border-[#0f172a]/15 bg-white px-3 py-1 font-medium text-[#334155]">
-                  Hash-gated extraction
+                <span className="rounded-full border border-[#0f172a]/10 bg-white px-3 py-1 font-medium text-[#334155]">
+                  Change-only alerts
                 </span>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+            <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-1">
               {trustStats.map((stat) => (
                 <article
                   key={stat.label}
-                  className="rounded-2xl border border-[#0f172a]/10 bg-white p-5 shadow-[0_14px_30px_-24px_rgba(2,6,23,0.65)]"
+                  className={`rounded-2xl border border-[#0f172a]/10 bg-white p-5 ${cardShadow}`}
                 >
                   <p className="text-3xl font-black tracking-tight text-[#0f172a]">
                     {stat.value}
                   </p>
-                  <p className="mt-1 text-sm font-semibold tracking-[0.12em] text-[#0f766e] uppercase">
+                  <p className="mt-1 text-sm font-semibold tracking-[0.16em] text-[#0f766e] uppercase">
                     {stat.label}
                   </p>
                   <p className="mt-2 text-sm text-[#475569]">{stat.note}</p>
@@ -399,10 +411,11 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── Pricing ──────────────────────────────────────────── */}
         <section
           id="pricing"
           aria-labelledby="pricing-title"
-          className="border-y border-[#0f172a]/10 bg-white/70 py-16 lg:py-20"
+          className="border-y border-[#0f172a]/10 bg-white/70 py-20 lg:py-28"
         >
           <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
             <div className="max-w-3xl">
@@ -414,18 +427,18 @@ export default function LandingPage() {
                 Choose your competitor coverage
               </h2>
               <p className="mt-3 text-base text-[#475569]">
-                Plans are wired to Stripe Checkout. Pick the one matching your
-                monitoring scope, then activate instantly.
+                Simple pricing, no surprises. Pick the plan that matches your
+                team size and start tracking today.
               </p>
             </div>
 
-            <div className="mt-8 grid gap-5 lg:grid-cols-2">
+            <div className="mt-10 grid gap-5 lg:grid-cols-2">
               {config.stripe.plans.map((plan) => (
                 <article
                   key={plan.priceId}
-                  className={`rounded-3xl border p-6 shadow-[0_14px_30px_-24px_rgba(2,6,23,0.7)] ${
+                  className={`rounded-2xl border p-6 ${cardShadow} ${
                     plan.isFeatured
-                      ? "border-[#0f766e]/40 bg-gradient-to-b from-white to-[#f0fdfa]"
+                      ? "border-[#0f766e]/20 bg-gradient-to-b from-white to-[#f0fdfa]"
                       : "border-[#0f172a]/10 bg-white"
                   }`}
                 >
@@ -441,7 +454,7 @@ export default function LandingPage() {
                       ) : null}
                     </div>
                     {plan.isFeatured ? (
-                      <span className="rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold tracking-[0.1em] text-[#0f766e] uppercase">
+                      <span className="rounded-full border border-[#0f766e]/20 bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold tracking-[0.16em] text-[#0f766e] uppercase">
                         Most Popular
                       </span>
                     ) : null}
@@ -456,7 +469,7 @@ export default function LandingPage() {
                     <span className="text-5xl font-black tracking-tight text-[#0f172a]">
                       ${plan.price}
                     </span>
-                    <span className="pb-1 text-sm font-semibold tracking-[0.12em] text-[#64748b] uppercase">
+                    <span className="pb-1 text-sm font-semibold tracking-[0.14em] text-[#64748b] uppercase">
                       USD / month
                     </span>
                   </div>
@@ -482,7 +495,7 @@ export default function LandingPage() {
                   <div className="mt-6">
                     <ButtonCheckout priceId={plan.priceId} />
                     <p className="mt-2 text-center text-xs text-[#64748b]">
-                      Secure Stripe checkout
+                      Secure checkout
                     </p>
                   </div>
                 </article>
@@ -491,12 +504,13 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── FAQ ───────────────────────────────────────────────── */}
         <section
           id="faq"
           aria-labelledby="faq-title"
-          className="mx-auto w-full max-w-5xl px-5 py-16 md:px-8 lg:py-24"
+          className="mx-auto w-full max-w-5xl px-5 py-20 md:px-8 lg:py-28"
         >
-          <div className="mb-8">
+          <div className="mb-10">
             <p className={badgeClasses}>FAQ</p>
             <h2
               id="faq-title"
@@ -510,7 +524,7 @@ export default function LandingPage() {
             {faqs.map((faq) => (
               <details
                 key={faq.question}
-                className="group rounded-2xl border border-[#0f172a]/10 bg-white p-5 open:border-[#0f766e]/35"
+                className="group rounded-2xl border border-[#0f172a]/10 bg-white p-5 open:border-[#0f766e]/20"
               >
                 <summary className="cursor-pointer list-none pr-6 text-left text-base font-semibold text-[#0f172a] focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 focus-visible:outline-none">
                   {faq.question}
@@ -523,18 +537,21 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── CTA + Footer ─────────────────────────────────────── */}
         <section className="px-5 pb-20 md:px-8">
-          <div className="mx-auto w-full max-w-6xl rounded-3xl border border-[#0f172a]/10 bg-[#0f172a] px-6 py-12 text-white shadow-[0_20px_60px_-28px_rgba(2,6,23,0.9)] sm:px-10">
-            <p className="text-xs font-semibold tracking-[0.18em] text-[#99f6e4] uppercase">
+          <div
+            className={`mx-auto w-full max-w-6xl rounded-2xl border border-[#0f172a]/10 bg-[#0f172a] px-6 py-12 text-white sm:px-10 ${heroShadow}`}
+          >
+            <p className="text-xs font-semibold tracking-[0.16em] text-[#99f6e4] uppercase">
               Ready to monitor smarter?
             </p>
             <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
               Launch Price Tracker and catch the next competitor move before it
               catches you.
             </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-300">
-              Start your trial, connect your first competitors, and get
-              confidence-tagged pricing updates in your dashboard.
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#cbd5e1]">
+              Start your free trial, add your first competitors, and get daily
+              pricing updates delivered straight to your dashboard.
             </p>
 
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -544,7 +561,7 @@ export default function LandingPage() {
               />
               <Link
                 href="#pricing"
-                className="inline-flex items-center justify-center rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white transition-colors hover:border-[#99f6e4] hover:text-[#99f6e4] focus-visible:ring-2 focus-visible:ring-[#99f6e4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a] focus-visible:outline-none motion-reduce:transition-none"
+                className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition-colors hover:border-[#99f6e4] hover:text-[#99f6e4] focus-visible:ring-2 focus-visible:ring-[#99f6e4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a] focus-visible:outline-none motion-reduce:transition-none"
               >
                 Compare plans
               </Link>
