@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import config from "@/config";
 import ButtonSignin from "@/components/ButtonSignin";
 import ButtonCheckout from "@/components/ButtonCheckout";
@@ -280,6 +281,83 @@ export default function LandingPage() {
                 </p>
               </article>
             ))}
+          </div>
+        </section>
+
+        {/* ── Product showcase ─────────────────────────────────── */}
+        <section
+          aria-labelledby="showcase-title"
+          className="border-y border-[#0f172a]/[0.06] bg-white/60 py-20 lg:py-28"
+        >
+          <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+            <div className="mb-12 max-w-2xl">
+              <p className="inline-flex items-center gap-1.5 rounded-full border border-[#0f766e]/15 bg-[#0f766e]/[0.06] px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f766e]">
+                <span className="inline-block size-1.5 rounded-full bg-[#0f766e]" />
+                Product
+              </p>
+              <h2
+                id="showcase-title"
+                className="mt-4 text-3xl font-extrabold tracking-tight text-[#0f172a] sm:text-4xl"
+              >
+                Everything you need, nothing you don&apos;t
+              </h2>
+              <p className="mt-3 text-base leading-relaxed text-[#475569]">
+                A clean dashboard to monitor competitors, and a change feed that
+                surfaces what actually matters.
+              </p>
+            </div>
+
+            <div className="space-y-10">
+              {/* Dashboard screenshot */}
+              <div className="group">
+                <div className="flex items-baseline justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      Dashboard overview
+                    </p>
+                    <p className="mt-1 text-sm text-[#64748b]">
+                      Track all competitors at a glance — active monitoring,
+                      latest changes, and quick actions in one view.
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-[#0f172a]/[0.08] bg-white shadow-[0_4px_24px_-4px_rgba(2,6,23,0.08)] transition-shadow duration-300 group-hover:shadow-[0_8px_32px_-6px_rgba(2,6,23,0.12)]">
+                  <Image
+                    src="/images/screenshot-dashboard.png"
+                    alt="Price Tracker dashboard showing competitor stats and latest pricing change"
+                    width={3024}
+                    height={998}
+                    sizes="(min-width: 1024px) 72rem, 100vw"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Change feed screenshot */}
+              <div className="group">
+                <div className="flex items-baseline justify-between gap-4 mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      AI-powered change feed
+                    </p>
+                    <p className="mt-1 text-sm text-[#64748b]">
+                      Every detected change comes with severity, confidence, and
+                      strategic insights — not just raw data.
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-[#0f172a]/[0.08] bg-white shadow-[0_4px_24px_-4px_rgba(2,6,23,0.08)] transition-shadow duration-300 group-hover:shadow-[0_8px_32px_-6px_rgba(2,6,23,0.12)]">
+                  <Image
+                    src="/images/screenshot-changes.png"
+                    alt="Recent pricing changes feed with AI-powered strategic insights"
+                    width={3024}
+                    height={778}
+                    sizes="(min-width: 1024px) 72rem, 100vw"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
