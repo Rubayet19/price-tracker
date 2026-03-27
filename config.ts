@@ -94,11 +94,11 @@ const config = {
   },
   resend: {
     // REQUIRED — Email 'From' field to be used when sending magic login links
-    fromNoReply: `Pricing Pulse <onboarding@resend.dev>`,
+    fromNoReply: `Pricing Pulse <noreply@pricingpulse.io>`,
     // REQUIRED — Email 'From' field to be used when sending other emails, like abandoned carts, updates etc..
-    fromAdmin: `Pricing Pulse Team <onboarding@resend.dev>`,
+    fromAdmin: `Pricing Pulse Team <team@pricingpulse.io>`,
     // Email shown to customer if they need support. Leave empty if not needed => if empty, set up Crisp above, otherwise you won't be able to offer customer support."
-    supportEmail: "support@resend.dev",
+    supportEmail: "support@pricingpulse.io",
   },
   colors: {
     // REQUIRED — The DaisyUI theme to use (added to the main layout.js). Leave blank for default (light & dark mode). If you use any theme other than light/dark, you need to add it in config.tailwind.js in daisyui.themes.
