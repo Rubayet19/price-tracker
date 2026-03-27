@@ -604,10 +604,26 @@ export default function LandingPage() {
           </div>
 
           <footer className="mx-auto mt-8 w-full max-w-6xl border-t border-[#0f172a]/10 pt-6 text-sm text-[#64748b]">
-            <p>
-              © {new Date().getFullYear()} Pricing Pulse. Competitor pricing
-              intelligence for decisive teams.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p>
+                © {new Date().getFullYear()} Pricing Pulse. Competitor pricing
+                intelligence for decisive teams.
+              </p>
+              <div className="flex gap-4">
+                <Link
+                  href="/privacy-policy"
+                  className="underline-offset-2 hover:text-[#0f172a] hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/tos"
+                  className="underline-offset-2 hover:text-[#0f172a] hover:underline"
+                >
+                  Terms of Service
+                </Link>
+              </div>
+            </div>
           </footer>
         </section>
       </main>
