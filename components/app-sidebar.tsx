@@ -70,7 +70,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton asChild className="!px-3 !py-2.5">
               <Link href="/dashboard">
                 <span className="inline-flex size-6 items-center justify-center rounded-md bg-[#0f766e] text-xs font-bold text-white">
-                  PT
+                  PP
                 </span>
                 <span className="text-base font-black tracking-tight text-[#0f172a]">
                   {config.appName}

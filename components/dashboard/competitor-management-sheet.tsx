@@ -198,7 +198,7 @@ export default function CompetitorManagementSheet({
           <SheetTitle>Manage pricing source</SheetTitle>
           <SheetDescription>
             Review the current source, refresh discovery, and confirm the URL
-            you want Price Tracker to trust.
+            you want Pricing Pulse to trust.
           </SheetDescription>
         </SheetHeader>
 

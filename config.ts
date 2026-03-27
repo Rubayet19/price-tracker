@@ -2,7 +2,7 @@ import { ConfigProps } from "./types/config";
 
 const config = {
   // REQUIRED
-  appName: "Price Tracker",
+  appName: "Pricing Pulse",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
   appDescription:
     "Track competitor pricing, verify pricing changes, and act faster with clear pricing intelligence.",
@@ -94,9 +94,9 @@ const config = {
   },
   resend: {
     // REQUIRED — Email 'From' field to be used when sending magic login links
-    fromNoReply: `Price Tracker <onboarding@resend.dev>`,
+    fromNoReply: `Pricing Pulse <onboarding@resend.dev>`,
     // REQUIRED — Email 'From' field to be used when sending other emails, like abandoned carts, updates etc..
-    fromAdmin: `Price Tracker Team <onboarding@resend.dev>`,
+    fromAdmin: `Pricing Pulse Team <onboarding@resend.dev>`,
     // Email shown to customer if they need support. Leave empty if not needed => if empty, set up Crisp above, otherwise you won't be able to offer customer support."
     supportEmail: "support@resend.dev",
   },

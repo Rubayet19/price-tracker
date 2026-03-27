@@ -372,7 +372,7 @@ export default function CompetitorDetailPage({
             Pricing source
           </CardTitle>
           <CardDescription className="mt-1 text-sm text-[#475569]">
-            Confirm the exact pricing page to monitor. Price Tracker will check
+            Confirm the exact pricing page to monitor. Pricing Pulse will check
             this URL daily.
           </CardDescription>
         </CardHeader>

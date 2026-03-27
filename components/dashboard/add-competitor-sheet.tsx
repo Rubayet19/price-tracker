@@ -220,7 +220,7 @@ export default function AddCompetitorSheet() {
                   inputMode="url"
                 />
                 <p className="text-sm text-[#64748b]">
-                  Use the homepage only. Price Tracker derives the domain
+                  Use the homepage only. Pricing Pulse derives the domain
                   automatically, discovers likely pricing pages, and checks the
                   saved source daily.
                 </p>

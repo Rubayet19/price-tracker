@@ -66,7 +66,7 @@ export const authOptions = {
   },
   theme: {
     brandColor: config.colors.main,
-    logo: `https://${config.domainName}/logoAndName.png`,
+    logo: `https://${config.domainName}/icon.svg`,
   },
 };
 

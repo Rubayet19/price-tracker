@@ -160,7 +160,7 @@ export default function CompetitorPricingSetupForm({
             </CardTitle>
             <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-[#475569]">
               Discovery is conservative by design. Confirm the exact URL you
-              want monitored before Price Tracker runs the first crawl and
+              want monitored before Pricing Pulse runs the first crawl and
               starts trusting changes from this competitor.
             </CardDescription>
           </div>

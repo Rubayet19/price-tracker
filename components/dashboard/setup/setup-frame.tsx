@@ -104,7 +104,7 @@ export default function SetupFrame({
                 Trust cues stay visible
               </CardTitle>
               <CardDescription>
-                Price Tracker keeps verification state, confidence, and crawl
+                Pricing Pulse keeps verification state, confidence, and crawl
                 health attached to every competitor.
               </CardDescription>
             </CardHeader>

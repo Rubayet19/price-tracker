@@ -31,7 +31,7 @@ const benefits: Benefit[] = [
     eyebrow: "Signal over noise",
     title: "Track the prices that actually move revenue",
     description:
-      "Price Tracker separates meaningful pricing changes from cosmetic edits so your team can respond faster and with confidence.",
+      "Pricing Pulse separates meaningful pricing changes from cosmetic edits so your team can respond faster and with confidence.",
   },
   {
     eyebrow: "AI-powered decisions",
@@ -43,7 +43,7 @@ const benefits: Benefit[] = [
     eyebrow: "Competitor vs. you",
     title: "See how every change stacks up against your own pricing",
     description:
-      "Enter your own pricing context and Price Tracker compares competitor moves against your plans, highlighting where you gain or lose ground.",
+      "Enter your own pricing context and Pricing Pulse compares competitor moves against your plans, highlighting where you gain or lose ground.",
   },
 ];
 
@@ -56,12 +56,12 @@ const workflow: WorkflowStep[] = [
   {
     title: "2. Confirm pricing sources",
     description:
-      "Price Tracker finds likely pricing pages and lets you override URLs for edge cases, ensuring reliable monitoring targets.",
+      "Pricing Pulse finds likely pricing pages and lets you override URLs for edge cases, ensuring reliable monitoring targets.",
   },
   {
     title: "3. Get checked automatically, every day",
     description:
-      "Price Tracker monitors each competitor daily, flags what actually changed, and skips the noise — so you only see what matters.",
+      "Pricing Pulse monitors each competitor daily, flags what actually changed, and skips the noise — so you only see what matters.",
   },
   {
     title: "4. Review changes and decide with confidence",
@@ -102,7 +102,7 @@ const faqs: FaqItem[] = [
   {
     question: "What happens if a pricing page is blocked or unclear?",
     answer:
-      "Price Tracker flags it clearly and won't report changes it isn't confident about. You'll see exactly which competitors need attention.",
+      "Pricing Pulse flags it clearly and won't report changes it isn't confident about. You'll see exactly which competitors need attention.",
   },
   {
     question: "Can I see when the last check happened?",
@@ -140,7 +140,7 @@ export default function LandingPage() {
             href="#top"
             className="rounded-md text-lg font-black tracking-tight text-[#0f172a] focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            Price Tracker
+            Pricing Pulse
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
@@ -196,12 +196,12 @@ export default function LandingPage() {
         <section className="mx-auto w-full max-w-6xl px-5 pt-16 pb-20 md:px-8 lg:pt-24 lg:pb-28">
           {/* Text block — centered */}
           <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0f766e]/15 bg-[#0f766e]/[0.06] px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f766e]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0f766e]/15 bg-[#0f766e]/[0.06] px-3.5 py-1 text-[11px] font-semibold tracking-[0.18em] text-[#0f766e] uppercase">
               <span className="inline-block size-1.5 rounded-full bg-[#0f766e]" />
               Competitor Pricing Intelligence
             </span>
 
-            <h1 className="mt-6 text-[2.25rem] font-extrabold leading-[1.15] tracking-tight text-[#0f172a] sm:text-5xl">
+            <h1 className="mt-6 text-[2.25rem] leading-[1.15] font-extrabold tracking-tight text-[#0f172a] sm:text-5xl">
               Know when competitors change their pricing.{" "}
               <span className="text-[#0f766e]">Before your customers do.</span>
             </h1>
@@ -291,7 +291,7 @@ export default function LandingPage() {
         >
           <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
             <div className="mb-12 max-w-2xl">
-              <p className="inline-flex items-center gap-1.5 rounded-full border border-[#0f766e]/15 bg-[#0f766e]/[0.06] px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f766e]">
+              <p className="inline-flex items-center gap-1.5 rounded-full border border-[#0f766e]/15 bg-[#0f766e]/[0.06] px-3.5 py-1 text-[11px] font-semibold tracking-[0.18em] text-[#0f766e] uppercase">
                 <span className="inline-block size-1.5 rounded-full bg-[#0f766e]" />
                 Product
               </p>
@@ -310,7 +310,7 @@ export default function LandingPage() {
             <div className="space-y-10">
               {/* Dashboard screenshot */}
               <div className="group">
-                <div className="flex items-baseline justify-between gap-4 mb-4">
+                <div className="mb-4 flex items-baseline justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-[#0f172a]">
                       Dashboard overview
@@ -324,7 +324,7 @@ export default function LandingPage() {
                 <div className="overflow-hidden rounded-xl border border-[#0f172a]/[0.08] bg-white shadow-[0_4px_24px_-4px_rgba(2,6,23,0.08)] transition-shadow duration-300 group-hover:shadow-[0_8px_32px_-6px_rgba(2,6,23,0.12)]">
                   <Image
                     src="/images/screenshot-dashboard.png"
-                    alt="Price Tracker dashboard showing competitor stats and latest pricing change"
+                    alt="Pricing Pulse dashboard showing competitor stats and latest pricing change"
                     width={3024}
                     height={998}
                     sizes="(min-width: 1024px) 72rem, 100vw"
@@ -335,7 +335,7 @@ export default function LandingPage() {
 
               {/* Change feed screenshot */}
               <div className="group">
-                <div className="flex items-baseline justify-between gap-4 mb-4">
+                <div className="mb-4 flex items-baseline justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-[#0f172a]">
                       AI-powered change feed
@@ -409,7 +409,7 @@ export default function LandingPage() {
                 Signals stay useful because confidence comes first
               </h2>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-[#475569]">
-                Price Tracker favors low-noise, verifiable updates over
+                Pricing Pulse favors low-noise, verifiable updates over
                 aggressive automation. If confidence is low, the product flags
                 uncertainty instead of pretending certainty.
               </p>
@@ -581,7 +581,7 @@ export default function LandingPage() {
               Ready to monitor smarter?
             </p>
             <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
-              Launch Price Tracker and catch the next competitor move before it
+              Launch Pricing Pulse and catch the next competitor move before it
               catches you.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#cbd5e1]">
@@ -605,7 +605,7 @@ export default function LandingPage() {
 
           <footer className="mx-auto mt-8 w-full max-w-6xl border-t border-[#0f172a]/10 pt-6 text-sm text-[#64748b]">
             <p>
-              © {new Date().getFullYear()} Price Tracker. Competitor pricing
+              © {new Date().getFullYear()} Pricing Pulse. Competitor pricing
               intelligence for decisive teams.
             </p>
           </footer>

@@ -103,7 +103,7 @@ export default function CompetitorSetupForm({
               autoCorrect="off"
             />
             <p className="text-sm text-[#64748b]">
-              Use the homepage only. Price Tracker derives the domain and
+              Use the homepage only. Pricing Pulse derives the domain and
               discovers pricing pages from it.
             </p>
           </div>
