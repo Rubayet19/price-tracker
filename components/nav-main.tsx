@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { type Icon } from "@tabler/icons-react";
 import {
   SidebarGroup,
@@ -22,6 +22,7 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const isItemActive = (url: string): boolean => {
     if (url === "/dashboard") {
@@ -50,6 +51,8 @@ export function NavMain({
                   <Link
                     href={item.url}
                     prefetch={false}
+                    onMouseEnter={() => router.prefetch(item.url)}
+                    onFocus={() => router.prefetch(item.url)}
                     aria-current={isActive ? "page" : undefined}
                   >
                     {item.icon ? <item.icon aria-hidden="true" /> : null}

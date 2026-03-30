@@ -10,6 +10,12 @@ import { encode } from "next-auth/jwt";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const BASE_URL = process.env.CHECK_BASE_URL ?? "http://localhost:3010";
 const COOKIE_NAME = "authjs.session-token";
+const DASHBOARD_TOP_LEVEL_ROUTES = new Set([
+  "/dashboard",
+  "/dashboard/competitors",
+  "/dashboard/changes",
+  "/dashboard/settings",
+]);
 
 const parseEnvFile = (contents) => {
   const entries = {};
@@ -206,7 +212,38 @@ const captureLoad = async (page, path) => {
     waitUntil: "domcontentloaded",
     timeout: 120_000,
   });
-  await page.waitForTimeout(1_500);
+  await page.waitForTimeout(2_000);
+  page.off("response", onResponse);
+  return requests;
+};
+
+const captureNavigation = async (page, linkName, expectedPathname) => {
+  const requests = [];
+  const onResponse = async (response) => {
+    const url = new URL(response.url());
+    if (
+      !url.pathname.startsWith("/dashboard") &&
+      !url.pathname.startsWith("/api/dashboard") &&
+      url.pathname !== "/api/auth/session" &&
+      !url.pathname.startsWith("/_next/static/chunks/app/dashboard")
+    ) {
+      return;
+    }
+
+    requests.push({
+      method: response.request().method(),
+      pathname: url.pathname,
+      search: url.search,
+      status: response.status(),
+    });
+  };
+
+  page.on("response", onResponse);
+  await Promise.all([
+    page.waitForURL(`${BASE_URL}${expectedPathname}`, { timeout: 120_000 }),
+    page.getByRole("link", { name: linkName }).click(),
+  ]);
+  await page.waitForTimeout(1_200);
   page.off("response", onResponse);
   return requests;
 };
@@ -217,6 +254,12 @@ const getSiblingPrefetches = (requests, currentPath) => {
       request.pathname.startsWith("/dashboard") &&
       request.pathname !== currentPath &&
       request.search.includes("_rsc=")
+  );
+};
+
+const getUnexpectedSiblingPrefetches = (requests, currentPath) => {
+  return getSiblingPrefetches(requests, currentPath).filter(
+    (request) => !DASHBOARD_TOP_LEVEL_ROUTES.has(request.pathname)
   );
 };
 
@@ -256,6 +299,21 @@ const main = async () => {
 
     const page = await context.newPage();
     const dashboardRequests = await captureLoad(page, "/dashboard");
+    const changesNavigationRequests = await captureNavigation(
+      page,
+      "Recent Changes",
+      "/dashboard/changes"
+    );
+    await page.goto(`${BASE_URL}/dashboard`, {
+      waitUntil: "domcontentloaded",
+      timeout: 120_000,
+    });
+    await page.waitForTimeout(400);
+    const competitorsNavigationRequests = await captureNavigation(
+      page,
+      "Competitors",
+      "/dashboard/competitors"
+    );
     const changesRequests = await captureLoad(page, "/dashboard/changes");
 
     const dashboardPrefetches = getSiblingPrefetches(
@@ -268,16 +326,29 @@ const main = async () => {
     );
 
     assert.equal(
-      dashboardPrefetches.length,
+      getUnexpectedSiblingPrefetches(dashboardRequests, "/dashboard").length,
       0,
-      `dashboard should not prefetch sibling dashboard routes, saw: ${dashboardPrefetches
+      `dashboard should only prefetch top-level dashboard routes, saw: ${dashboardPrefetches
         .map((request) => `${request.pathname}${request.search}`)
         .join(", ")}`
     );
     assert.equal(
-      changesPrefetches.length,
+      getUnexpectedSiblingPrefetches(changesRequests, "/dashboard/changes")
+        .length,
       0,
-      `changes should not prefetch sibling dashboard routes, saw: ${changesPrefetches
+      `changes should only prefetch top-level dashboard routes, saw: ${changesPrefetches
+        .map((request) => `${request.pathname}${request.search}`)
+        .join(", ")}`
+    );
+    assert.ok(
+      dashboardPrefetches.length <= 3,
+      `dashboard should prefetch at most the other three top-level routes, saw: ${dashboardPrefetches
+        .map((request) => `${request.pathname}${request.search}`)
+        .join(", ")}`
+    );
+    assert.ok(
+      changesPrefetches.length <= 3,
+      `changes should prefetch at most the other three top-level routes, saw: ${changesPrefetches
         .map((request) => `${request.pathname}${request.search}`)
         .join(", ")}`
     );
@@ -296,6 +367,26 @@ const main = async () => {
         changesRequests,
         "/api/dashboard/overview"
       )}`
+    );
+    assert.equal(
+      changesNavigationRequests.filter((request) =>
+        request.pathname.includes("/_next/static/chunks/app/dashboard/changes/page")
+      ).length,
+      0,
+      `first switch to changes should not fetch the page chunk on demand, saw: ${changesNavigationRequests
+        .map((request) => `${request.pathname}${request.search}`)
+        .join(", ")}`
+    );
+    assert.equal(
+      competitorsNavigationRequests.filter((request) =>
+        request.pathname.includes(
+          "/_next/static/chunks/app/dashboard/competitors/page"
+        )
+      ).length,
+      0,
+      `first switch to competitors should not fetch the page chunk on demand, saw: ${competitorsNavigationRequests
+        .map((request) => `${request.pathname}${request.search}`)
+        .join(", ")}`
     );
 
     await context.close();

@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
+import DashboardRoutePrefetcher from "@/components/dashboard/dashboard-route-prefetcher";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
@@ -13,6 +14,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         } as CSSProperties
       }
     >
+      <DashboardRoutePrefetcher />
       <AppSidebar variant="inset" />
       <SidebarInset id="main-content" className="bg-[#f7f6f3]">
         <SiteHeader />
