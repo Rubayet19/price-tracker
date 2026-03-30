@@ -94,9 +94,9 @@ const config = {
   },
   resend: {
     // REQUIRED — Email 'From' field to be used when sending magic login links
-    fromNoReply: `Pricing Pulse <noreply@pricingpulse.io>`,
+    fromNoReply: `Pricing Pulse <noreply@resend.pricingpulse.io>`,
     // REQUIRED — Email 'From' field to be used when sending other emails, like abandoned carts, updates etc..
-    fromAdmin: `Pricing Pulse Team <team@pricingpulse.io>`,
+    fromAdmin: `Pricing Pulse Team <team@resend.pricingpulse.io>`,
     // Email shown to customer if they need support. Leave empty if not needed => if empty, set up Crisp above, otherwise you won't be able to offer customer support."
     supportEmail: "support@pricingpulse.io",
   },

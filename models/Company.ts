@@ -128,6 +128,7 @@ const companySchema = new mongoose.Schema<ICompany>(
 );
 
 companySchema.index({ userId: 1, type: 1 });
+companySchema.index({ userId: 1, type: 1, name: 1 });
 companySchema.index({ nextCrawlAt: 1 });
 companySchema.index({ crawlLeaseUntil: 1 });
 

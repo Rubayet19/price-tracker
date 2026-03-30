@@ -19,6 +19,7 @@ interface CacheEntry<T> {
 }
 
 const requestCache = new Map<string, CacheEntry<unknown>>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
 
 function getCached<T>(key: string): T | null {
   const entry = requestCache.get(key);
@@ -34,8 +35,34 @@ function setCache<T>(key: string, data: T): void {
   requestCache.set(key, { data, timestamp: Date.now() });
 }
 
+async function loadWithCache<T>(
+  key: string,
+  loader: () => Promise<T>
+): Promise<T> {
+  const cached = getCached<T>(key);
+  if (cached) return cached;
+
+  const inFlight = inFlightRequests.get(key);
+  if (inFlight) {
+    return inFlight as Promise<T>;
+  }
+
+  const promise = loader()
+    .then((data) => {
+      setCache(key, data);
+      return data;
+    })
+    .finally(() => {
+      inFlightRequests.delete(key);
+    });
+
+  inFlightRequests.set(key, promise);
+  return promise;
+}
+
 export function invalidateDashboardCache(): void {
   requestCache.clear();
+  inFlightRequests.clear();
 }
 
 /* ------------------------------------------------------------------ */
@@ -82,66 +109,60 @@ const createFeedQuery = (
 export const loadDashboardOverview =
   async (): Promise<DashboardOverviewResponse> => {
     const cacheKey = "overview";
-    const cached = getCached<DashboardOverviewResponse>(cacheKey);
-    if (cached) return cached;
+    return loadWithCache(cacheKey, async () => {
+      const response = await fetch("/api/dashboard/overview", {
+        method: "GET",
+        cache: "no-store",
+      });
 
-    const response = await fetch("/api/dashboard/overview", {
-      method: "GET",
-      cache: "no-store",
+      if (!response.ok) {
+        throw new Error(
+          await toErrorMessage(response, "Failed to load dashboard overview")
+        );
+      }
+
+      return (await response.json()) as DashboardOverviewResponse;
     });
-
-    if (!response.ok) {
-      throw new Error(
-        await toErrorMessage(response, "Failed to load dashboard overview")
-      );
-    }
-
-    const data = (await response.json()) as DashboardOverviewResponse;
-    setCache(cacheKey, data);
-    return data;
   };
 
 export const loadDashboardFeed = async (
   filters: FeedFilters,
   options?: { cursor?: string | null; limit?: number }
 ): Promise<DashboardFeedResponse> => {
-  const response = await fetch(
-    `/api/dashboard/feed?${createFeedQuery(filters, options)}`,
-    {
-      method: "GET",
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      await toErrorMessage(response, "Failed to load dashboard feed")
-    );
-  }
-
-  return (await response.json()) as DashboardFeedResponse;
-};
-
-export const loadDashboardComparison =
-  async (): Promise<DashboardComparisonResponse> => {
-    const cacheKey = "comparison";
-    const cached = getCached<DashboardComparisonResponse>(cacheKey);
-    if (cached) return cached;
-
-    const response = await fetch("/api/dashboard/comparison", {
+  const query = createFeedQuery(filters, options);
+  return loadWithCache(`feed:${query}`, async () => {
+    const response = await fetch(`/api/dashboard/feed?${query}`, {
       method: "GET",
       cache: "no-store",
     });
 
     if (!response.ok) {
       throw new Error(
-        await toErrorMessage(response, "Failed to load dashboard comparison")
+        await toErrorMessage(response, "Failed to load dashboard feed")
       );
     }
 
-    const data = (await response.json()) as DashboardComparisonResponse;
-    setCache(cacheKey, data);
-    return data;
+    return (await response.json()) as DashboardFeedResponse;
+  });
+};
+
+export const loadDashboardComparison =
+  async (): Promise<DashboardComparisonResponse> => {
+    const cacheKey = "comparison";
+    return loadWithCache(cacheKey, async () => {
+      const response = await fetch("/api/dashboard/comparison", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          await toErrorMessage(response, "Failed to load dashboard comparison")
+        );
+      }
+
+      return (await response.json()) as DashboardComparisonResponse;
+    });
   };
 
 export const createBillingPortalSession = async (

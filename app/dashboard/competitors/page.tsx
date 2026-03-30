@@ -1,4 +1,4 @@
-import { auth } from "@/libs/auth";
+import { getDashboardSession } from "@/libs/dashboard-session";
 import {
   requireAuthenticatedDashboardUserId,
   requireCompletedSetup,
@@ -6,7 +6,7 @@ import {
 import DashboardCompetitorsContent from "@/components/dashboard/dashboard-competitors-content";
 
 export default async function DashboardCompetitorsPage() {
-  const session = await auth();
+  const session = await getDashboardSession();
   const userId = requireAuthenticatedDashboardUserId(session?.user?.id);
   await requireCompletedSetup(userId, { requireAccess: false });
 

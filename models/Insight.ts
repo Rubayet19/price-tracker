@@ -103,6 +103,7 @@ const insightSchema = new mongoose.Schema<IInsight>(
 
 insightSchema.index({ companyId: 1, generatedAt: -1 });
 insightSchema.index({ diffId: 1 });
+insightSchema.index({ diffId: 1, generatedAt: -1 });
 
 const insightToJSONPlugin = toJSON as unknown as Parameters<
   typeof insightSchema.plugin

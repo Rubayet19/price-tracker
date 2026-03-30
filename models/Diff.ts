@@ -81,6 +81,7 @@ const diffSchema = new mongoose.Schema<IDiff>(
 
 diffSchema.index({ companyId: 1, detectedAt: -1 });
 diffSchema.index({ userId: 1, detectedAt: -1 });
+diffSchema.index({ userId: 1, detectedAt: -1, _id: -1 });
 diffSchema.index({ userId: 1, severity: 1, detectedAt: -1 });
 diffSchema.index({ userId: 1, verificationState: 1, detectedAt: -1 });
 

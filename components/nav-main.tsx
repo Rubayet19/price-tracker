@@ -49,6 +49,7 @@ export function NavMain({
                 >
                   <Link
                     href={item.url}
+                    prefetch={false}
                     aria-current={isActive ? "page" : undefined}
                   >
                     {item.icon ? <item.icon aria-hidden="true" /> : null}

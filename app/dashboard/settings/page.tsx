@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import DashboardSettingsContent from "@/components/dashboard/dashboard-settings-content";
 import config from "@/config";
-import { auth } from "@/libs/auth";
+import { getDashboardSession } from "@/libs/dashboard-session";
 import connectMongo from "@/libs/mongoose";
 import { normalizeSelfPricingProfile } from "@/libs/self-pricing";
 import Company from "@/models/Company";
 import SelfPricingProfile from "@/models/SelfPricingProfile";
 
 export default async function DashboardSettingsPage() {
-  const session = await auth();
+  const session = await getDashboardSession();
   const userId = session?.user?.id;
 
   if (!userId) {

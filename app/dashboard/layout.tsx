@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { auth } from "@/libs/auth";
 import DashboardShell from "@/components/dashboard/dashboard-shell";
 import config from "@/config";
+import { getDashboardSession } from "@/libs/dashboard-session";
 
 // This is a server-side component to ensure the user is logged in.
 // If not, it will redirect to the login page.
@@ -14,7 +14,7 @@ export default async function LayoutPrivate({
 }: {
   children: ReactNode;
 }) {
-  const session = await auth();
+  const session = await getDashboardSession();
 
   if (!session) {
     redirect(config.auth.loginUrl);

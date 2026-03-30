@@ -68,7 +68,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="!px-3 !py-2.5">
-              <Link href="/dashboard">
+              <Link href="/dashboard" prefetch={false}>
                 <span className="inline-flex size-6 items-center justify-center rounded-md bg-[#0f766e] text-xs font-bold text-white">
                   PP
                 </span>

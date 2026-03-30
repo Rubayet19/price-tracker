@@ -10,7 +10,8 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "smoke:dashboard": "node scripts/smoke-dashboard.mjs"
+    "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
+    "check:dashboard-network": "node scripts/check-dashboard-network.mjs"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",

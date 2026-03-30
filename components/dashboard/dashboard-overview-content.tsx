@@ -319,7 +319,7 @@ export default function DashboardOverviewContent() {
         await Promise.all([
           loadDashboardOverview(),
           loadDashboardComparison(),
-          loadDashboardFeed(INITIAL_FILTERS, { limit: 30 }),
+          loadDashboardFeed(INITIAL_FILTERS, { limit: 20 }),
         ]);
 
       setOverview(overviewResponse);

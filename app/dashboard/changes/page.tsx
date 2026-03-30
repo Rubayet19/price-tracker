@@ -1,4 +1,4 @@
-import { auth } from "@/libs/auth";
+import { getDashboardSession } from "@/libs/dashboard-session";
 import {
   requireAuthenticatedDashboardUserId,
   requireCompletedSetup,
@@ -6,7 +6,7 @@ import {
 import DashboardChangesContent from "@/components/dashboard/dashboard-changes-content";
 
 export default async function DashboardChangesPage() {
-  const session = await auth();
+  const session = await getDashboardSession();
   const userId = requireAuthenticatedDashboardUserId(session?.user?.id);
   await requireCompletedSetup(userId, { requireAccess: false });
 

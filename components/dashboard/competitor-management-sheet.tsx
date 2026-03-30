@@ -213,7 +213,10 @@ export default function CompetitorManagementSheet({
               </div>
               <div className="flex items-center gap-2">
                 <Button asChild variant="outline" size="sm">
-                  <Link href={`/dashboard/competitors/${competitor.companyId}`}>
+                  <Link
+                    href={`/dashboard/competitors/${competitor.companyId}`}
+                    prefetch={false}
+                  >
                     <Pencil className="size-3.5" />
                     Edit details
                   </Link>
