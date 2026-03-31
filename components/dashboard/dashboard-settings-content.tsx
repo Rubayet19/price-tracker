@@ -281,10 +281,14 @@ export default function DashboardSettingsContent({
                     >
                       {activeAction === action
                         ? "Opening checkout..."
-                        : isCurrentTier
+                        : isCurrentTier &&
+                            overview?.entitlements.accessSource === "paid"
                           ? "Current plan"
                           : `Choose ${plan.name}`}
-                      {!isCurrentTier ? (
+                      {!(
+                        isCurrentTier &&
+                        overview?.entitlements.accessSource === "paid"
+                      ) ? (
                         <ArrowUpRight className="size-4" />
                       ) : null}
                     </Button>

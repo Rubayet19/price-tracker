@@ -30,9 +30,7 @@ export default async function CompetitorsSetupPage() {
       currentStep="competitors"
       status={status}
     >
-      <CompetitorSetupForm
-        competitorLimit={status.entitlements.competitorLimit}
-      />
+      <CompetitorSetupForm />
     </SetupFrame>
   );
 }

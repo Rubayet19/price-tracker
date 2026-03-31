@@ -325,24 +325,6 @@ export default function SelfPricingSetupForm({
               maxLength={3}
             />
           </div>
-
-          {!existingSelfCompany && (
-            <div className="space-y-1.5 md:col-span-3">
-              <Label htmlFor="self-pricing-url">
-                Pricing page URL (optional)
-              </Label>
-              <Input
-                id="self-pricing-url"
-                value={primaryPricingUrl}
-                onChange={(event) => setPrimaryPricingUrl(event.target.value)}
-                placeholder="https://example.com/pricing"
-                inputMode="url"
-              />
-              <p className="text-xs text-[#94a3b8]">
-                Leave blank to auto-detect from your homepage.
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Plans */}
