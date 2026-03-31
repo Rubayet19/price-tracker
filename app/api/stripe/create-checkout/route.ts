@@ -8,6 +8,7 @@ import config from "@/config";
 
 const ALLOWED_ORIGINS = [
   `https://${config.domainName}`,
+  `https://www.${config.domainName}`,
   ...(process.env.NODE_ENV === "development"
     ? ["http://localhost:3000", "http://localhost:3001"]
     : []),
