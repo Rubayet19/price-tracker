@@ -87,7 +87,7 @@ export default function SelfPricingSetupForm({
   const [homepageUrl, setHomepageUrl] = useState<string>(
     existingSelfCompany?.homepageUrl ?? ""
   );
-  const [primaryPricingUrl, setPrimaryPricingUrl] = useState<string>(
+  const [primaryPricingUrl] = useState<string>(
     existingSelfCompany?.primaryPricingUrl ?? ""
   );
   const [currency, setCurrency] = useState<string>(

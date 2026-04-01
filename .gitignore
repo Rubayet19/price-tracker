@@ -41,6 +41,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# docs & brainstorm artifacts
+/docs/
+.superpowers/
+
 # public
 public/robots.txt
 public/sitemap.xml
