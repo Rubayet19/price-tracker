@@ -46,8 +46,8 @@ const getSetupStepHref = (
   switch (step) {
     case "self_pricing":
       return "/dashboard/setup/self-pricing";
-    case "trial":
-      return "/dashboard/setup/trial";
+    case "plans":
+      return "/dashboard/setup/plans";
     case "competitors":
       return "/dashboard/setup/competitors";
     case "competitor_pricing":
@@ -143,11 +143,6 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
       step: "self_pricing",
       href: getSetupStepHref("self_pricing"),
     };
-  } else if (!entitlements.hasAccess) {
-    nextStep = {
-      step: "trial",
-      href: getSetupStepHref("trial"),
-    };
   } else if (!hasCompetitors) {
     nextStep = {
       step: "competitors",
@@ -161,6 +156,11 @@ export const getSetupStatus = async (userId: string): Promise<SetupStatus> => {
         competitorMissingPricing.companyId
       ),
       companyId: competitorMissingPricing.companyId,
+    };
+  } else if (!entitlements.hasAccess) {
+    nextStep = {
+      step: "plans",
+      href: getSetupStepHref("plans"),
     };
   } else {
     nextStep = {

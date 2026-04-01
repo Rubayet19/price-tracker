@@ -1,9 +1,7 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { CircleAlert, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import SetupProgress from "@/components/dashboard/setup/setup-progress";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -20,18 +18,6 @@ interface SetupFrameProps {
   status: SetupStatus;
   children: ReactNode;
 }
-
-const formatDate = (value: string | null): string => {
-  if (!value) {
-    return "Not started";
-  }
-
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
 
 export default function SetupFrame({
   title,
@@ -66,34 +52,30 @@ export default function SetupFrame({
           <Card className="border-[#0f172a]/10 bg-white/95">
             <CardHeader>
               <CardTitle className="text-lg font-black tracking-tight text-[#0f172a]">
-                Access summary
+                Setup progress
               </CardTitle>
               <CardDescription>
-                Setup is gated by explicit trial or paid access.
+                Complete each step to activate your dashboard.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-[#475569]">
               <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                <p className="font-semibold text-[#0f172a]">Current access</p>
-                <p className="mt-1 capitalize">
-                  {status.entitlements.accessState.replaceAll("_", " ")}
+                <p className="font-semibold text-[#0f172a]">
+                  Competitors configured
                 </p>
-              </div>
-              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                <p className="font-semibold text-[#0f172a]">Competitor limit</p>
                 <p className="mt-1">
-                  {status.competitorCount} of{" "}
-                  {status.entitlements.competitorLimit} competitors configured
+                  {status.competitorCount} competitor
+                  {status.competitorCount !== 1 ? "s" : ""} added
                 </p>
               </div>
-              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                <p className="font-semibold text-[#0f172a]">Trial window</p>
-                <p className="mt-1">
-                  {status.trial.isActive
-                    ? `Ends ${formatDate(status.trial.endsAt)}`
-                    : `Status: ${status.trial.status.replaceAll("_", " ")}`}
-                </p>
-              </div>
+              {status.entitlements.hasAccess ? (
+                <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+                  <p className="font-semibold text-[#0f172a]">Access</p>
+                  <p className="mt-1 capitalize">
+                    {status.entitlements.accessState.replaceAll("_", " ")}
+                  </p>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -116,28 +98,6 @@ export default function SetupFrame({
               <p>This keeps your dashboard accurate and low-noise by design.</p>
             </CardContent>
           </Card>
-
-          {!status.trial.canStartTrial && !status.entitlements.hasAccess ? (
-            <Card className="border-[#f59e0b]/25 bg-[#fffbeb]">
-              <CardHeader>
-                <CardTitle className="inline-flex items-center gap-2 text-lg font-black tracking-tight text-[#92400e]">
-                  <CircleAlert className="size-4" />
-                  Access required
-                </CardTitle>
-                <CardDescription className="text-[#a16207]">
-                  Trial access is no longer available on this account.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  asChild
-                  className="w-full bg-[#0f172a] text-white hover:bg-[#1e293b]"
-                >
-                  <Link href="/#pricing">View plans</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
         </aside>
       </div>
     </section>

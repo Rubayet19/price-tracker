@@ -50,12 +50,6 @@ export default function SetupProgress({
       complete: status.hasSelfPricing && status.hasSelfCompany,
     },
     {
-      key: "trial",
-      title: "Access",
-      description: "Start the 7-day trial before competitor tracking begins.",
-      complete: status.entitlements.hasAccess,
-    },
-    {
       key: "competitors",
       title: "First competitor",
       description: "Add the first competitor you want to monitor.",
@@ -66,6 +60,12 @@ export default function SetupProgress({
       title: "Confirm pricing URL",
       description: "Approve the pricing page so monitoring stays trustworthy.",
       complete: status.hasSelectedPrimaryPricing,
+    },
+    {
+      key: "plans",
+      title: "Choose your plan",
+      description: "Pick a plan or start a free trial to activate monitoring.",
+      complete: status.entitlements.hasAccess,
     },
   ];
 

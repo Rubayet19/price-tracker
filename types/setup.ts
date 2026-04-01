@@ -5,7 +5,7 @@ import type { SelfPricingProfileData } from "@/types/self-pricing";
 
 export type SetupStep =
   | "self_pricing"
-  | "trial"
+  | "plans"
   | "competitors"
   | "competitor_pricing"
   | "done";
