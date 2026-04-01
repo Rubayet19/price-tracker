@@ -29,6 +29,26 @@ export interface NormalizedExtractedPlan {
   annualPrice: number | null;
   /** When true, annualPrice is a per-month figure shown on an annual billing toggle. */
   annualPriceIsPerMonth?: boolean;
+  description?: string | null;
+  features?: string[];
+  hasFreeTrial?: boolean | null;
+  trialDetails?: string | null;
+}
+
+export interface PricingExtractionDebug {
+  scopeStrategy?:
+    | "full_page"
+    | "pricing_section"
+    | "anchored_segment"
+    | "playwright";
+  enrichmentSources?: Array<"jsonld" | "llm">;
+  candidateCount?: number;
+  selectedCandidateLabel?: string | null;
+  selectedCandidateScore?: number;
+  selectedPlanTexts?: string[];
+  toggleLabels?: string[];
+  clickedCadences?: Array<ComparisonCadence>;
+  failureReason?: string | null;
 }
 
 export interface NormalizedPricingPayload {
@@ -42,6 +62,7 @@ export interface NormalizedPricingPayload {
   oneTimePricingHints?: string[];
   pricingModel?: PricingModel;
   comparisonCadences?: ComparisonCadence[];
+  extractionDebug?: PricingExtractionDebug;
 }
 
 const normalizeWhitespace = (value: string): string => {
@@ -199,6 +220,21 @@ const uniqueExtractedPlans = (
             ? Number(plan.annualPrice.toFixed(2))
             : null,
         annualPriceIsPerMonth: plan.annualPriceIsPerMonth ?? false,
+        description:
+          typeof plan.description === "string" &&
+          normalizeWhitespace(plan.description).length > 0
+            ? normalizeWhitespace(plan.description)
+            : null,
+        features: Array.isArray(plan.features)
+          ? [...new Set(plan.features.map((feature) => normalizeWhitespace(feature)).filter(Boolean))].slice(0, 12)
+          : [],
+        hasFreeTrial:
+          typeof plan.hasFreeTrial === "boolean" ? plan.hasFreeTrial : null,
+        trialDetails:
+          typeof plan.trialDetails === "string" &&
+          normalizeWhitespace(plan.trialDetails).length > 0
+            ? normalizeWhitespace(plan.trialDetails)
+            : null,
       });
       continue;
     }
@@ -218,6 +254,30 @@ const uniqueExtractedPlans = (
       existing.annualPrice = Number(plan.annualPrice.toFixed(2));
       existing.annualPriceIsPerMonth = plan.annualPriceIsPerMonth ?? false;
     }
+
+    if (!existing.description && typeof plan.description === "string") {
+      const normalizedDescription = normalizeWhitespace(plan.description);
+      if (normalizedDescription.length > 0) {
+        existing.description = normalizedDescription;
+      }
+    }
+
+    if (Array.isArray(plan.features) && plan.features.length > 0) {
+      existing.features = [
+        ...new Set([...(existing.features ?? []), ...plan.features.map((feature) => normalizeWhitespace(feature)).filter(Boolean)]),
+      ].slice(0, 12);
+    }
+
+    if (existing.hasFreeTrial === null && typeof plan.hasFreeTrial === "boolean") {
+      existing.hasFreeTrial = plan.hasFreeTrial;
+    }
+
+    if (!existing.trialDetails && typeof plan.trialDetails === "string") {
+      const normalizedTrialDetails = normalizeWhitespace(plan.trialDetails);
+      if (normalizedTrialDetails.length > 0) {
+        existing.trialDetails = normalizedTrialDetails;
+      }
+    }
   }
 
   return [...planMap.values()].sort((left, right) =>
@@ -235,6 +295,98 @@ const uniqueComparisonCadences = (
   return [...new Set(cadences)].sort((left, right) =>
     left.localeCompare(right)
   );
+};
+
+const normalizeExtractionDebug = (
+  debug: PricingExtractionDebug | undefined
+): PricingExtractionDebug | undefined => {
+  if (!debug) {
+    return undefined;
+  }
+
+  const normalized: PricingExtractionDebug = {};
+
+  if (
+    debug.scopeStrategy === "full_page" ||
+    debug.scopeStrategy === "pricing_section" ||
+    debug.scopeStrategy === "anchored_segment" ||
+    debug.scopeStrategy === "playwright"
+  ) {
+    normalized.scopeStrategy = debug.scopeStrategy;
+  }
+
+  if (
+    typeof debug.candidateCount === "number" &&
+    Number.isFinite(debug.candidateCount) &&
+    debug.candidateCount >= 0
+  ) {
+    normalized.candidateCount = Math.floor(debug.candidateCount);
+  }
+
+  if (typeof debug.selectedCandidateLabel === "string") {
+    const value = normalizeWhitespace(debug.selectedCandidateLabel);
+    normalized.selectedCandidateLabel = value.length > 0 ? value : null;
+  } else if (debug.selectedCandidateLabel === null) {
+    normalized.selectedCandidateLabel = null;
+  }
+
+  if (
+    typeof debug.selectedCandidateScore === "number" &&
+    Number.isFinite(debug.selectedCandidateScore)
+  ) {
+    normalized.selectedCandidateScore = Number(
+      debug.selectedCandidateScore.toFixed(2)
+    );
+  }
+
+  const selectedPlanTexts = Array.isArray(debug.selectedPlanTexts)
+    ? debug.selectedPlanTexts
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => normalizeWhitespace(entry))
+        .filter(Boolean)
+    : [];
+  if (selectedPlanTexts.length > 0) {
+    normalized.selectedPlanTexts = [...new Set(selectedPlanTexts)].slice(0, 12);
+  }
+
+  const toggleLabels = Array.isArray(debug.toggleLabels)
+    ? debug.toggleLabels
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => normalizeWhitespace(entry))
+        .filter(Boolean)
+    : [];
+  if (toggleLabels.length > 0) {
+    normalized.toggleLabels = [...new Set(toggleLabels)].slice(0, 12);
+  }
+
+  const clickedCadences = Array.isArray(debug.clickedCadences)
+    ? debug.clickedCadences.filter(
+        (entry): entry is ComparisonCadence =>
+          entry === "month" || entry === "year"
+      )
+    : [];
+  if (clickedCadences.length > 0) {
+    normalized.clickedCadences = uniqueComparisonCadences(clickedCadences);
+  }
+
+  const enrichmentSources = Array.isArray(debug.enrichmentSources)
+    ? debug.enrichmentSources.filter(
+        (entry): entry is "jsonld" | "llm" =>
+          entry === "jsonld" || entry === "llm"
+      )
+    : [];
+  if (enrichmentSources.length > 0) {
+    normalized.enrichmentSources = [...new Set(enrichmentSources)];
+  }
+
+  if (typeof debug.failureReason === "string") {
+    const value = normalizeWhitespace(debug.failureReason);
+    normalized.failureReason = value.length > 0 ? value : null;
+  } else if (debug.failureReason === null) {
+    normalized.failureReason = null;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
 };
 
 export const getComparisonCadences = (payload: {
@@ -353,5 +505,6 @@ export const canonicalizePricingPayload = (
     oneTimePricingHints,
     pricingModel,
     comparisonCadences,
+    extractionDebug: normalizeExtractionDebug(payload.extractionDebug),
   };
 };

@@ -22,6 +22,7 @@ import {
   type ComparisonCadence,
   type NormalizedExtractedPlan,
   type NormalizedPricingPayload,
+  type PricingExtractionDebug,
   type PricingModel,
   type PricePeriod,
 } from "@/libs/crawler/normalize";
@@ -57,6 +58,11 @@ interface RawExtractedPlanRecord {
   currency: unknown;
   monthlyPrice: unknown;
   annualPrice: unknown;
+  annualPriceIsPerMonth?: unknown;
+  description?: unknown;
+  features?: unknown;
+  hasFreeTrial?: unknown;
+  trialDetails?: unknown;
 }
 
 export interface CrawlCompanyResult {
@@ -109,6 +115,76 @@ const isAllowedPeriod = (period: string): period is PricePeriod => {
   return ["day", "week", "month", "year", "one_time", "unknown"].includes(
     period
   );
+};
+
+const toExtractionDebug = (
+  payload: Record<string, unknown>
+): PricingExtractionDebug | undefined => {
+  const rawDebug = payload.extractionDebug;
+  if (!rawDebug || typeof rawDebug !== "object" || Array.isArray(rawDebug)) {
+    return undefined;
+  }
+
+  const debug = rawDebug as Record<string, unknown>;
+  const result: PricingExtractionDebug = {};
+
+  if (
+    debug.scopeStrategy === "full_page" ||
+    debug.scopeStrategy === "pricing_section" ||
+    debug.scopeStrategy === "anchored_segment" ||
+    debug.scopeStrategy === "playwright"
+  ) {
+    result.scopeStrategy = debug.scopeStrategy;
+  }
+
+  if (typeof debug.candidateCount === "number") {
+    result.candidateCount = debug.candidateCount;
+  }
+
+  if (
+    typeof debug.selectedCandidateLabel === "string" ||
+    debug.selectedCandidateLabel === null
+  ) {
+    result.selectedCandidateLabel = debug.selectedCandidateLabel as
+      | string
+      | null;
+  }
+
+  if (typeof debug.selectedCandidateScore === "number") {
+    result.selectedCandidateScore = debug.selectedCandidateScore;
+  }
+
+  if (Array.isArray(debug.selectedPlanTexts)) {
+    result.selectedPlanTexts = debug.selectedPlanTexts.filter(
+      (entry): entry is string => typeof entry === "string"
+    );
+  }
+
+  if (Array.isArray(debug.toggleLabels)) {
+    result.toggleLabels = debug.toggleLabels.filter(
+      (entry): entry is string => typeof entry === "string"
+    );
+  }
+
+  if (Array.isArray(debug.clickedCadences)) {
+    result.clickedCadences = debug.clickedCadences.filter(
+      (entry): entry is ComparisonCadence =>
+        entry === "month" || entry === "year"
+    );
+  }
+
+  if (Array.isArray(debug.enrichmentSources)) {
+    result.enrichmentSources = debug.enrichmentSources.filter(
+      (entry): entry is "jsonld" | "llm" =>
+        entry === "jsonld" || entry === "llm"
+    );
+  }
+
+  if (typeof debug.failureReason === "string" || debug.failureReason === null) {
+    result.failureReason = debug.failureReason as string | null;
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 };
 
 const toNormalizedPayload = (
@@ -214,6 +290,22 @@ const toNormalizedPayload = (
         currency,
         monthlyPrice,
         annualPrice,
+        annualPriceIsPerMonth: entry.annualPriceIsPerMonth === true,
+        description:
+          typeof entry.description === "string" && entry.description.trim()
+            ? entry.description.trim()
+            : null,
+        features: Array.isArray(entry.features)
+          ? entry.features.filter(
+              (feature): feature is string => typeof feature === "string"
+            )
+          : [],
+        hasFreeTrial:
+          typeof entry.hasFreeTrial === "boolean" ? entry.hasFreeTrial : null,
+        trialDetails:
+          typeof entry.trialDetails === "string" && entry.trialDetails.trim()
+            ? entry.trialDetails.trim()
+            : null,
       };
     })
     .filter((entry): entry is NormalizedExtractedPlan => entry !== null);
@@ -255,6 +347,7 @@ const toNormalizedPayload = (
       rawComparisonCadences.length > 0
         ? rawComparisonCadences
         : getComparisonCadences({ priceMentions, extractedPlans }),
+    extractionDebug: toExtractionDebug(payload),
   });
 };
 

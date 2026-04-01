@@ -21,6 +21,8 @@ export interface CompetitorComparisonPrice {
   source: "plan" | "bucket";
   /** When true for annual cadence, the price is shown per-month on the source page. */
   annualPriceIsPerMonth?: boolean;
+  description?: string | null;
+  trialDetails?: string | null;
 }
 
 export const getCompetitorComparisonUnavailableReason = (
@@ -49,6 +51,9 @@ export const getCompetitorComparisonUnavailableReason = (
 
   if (
     competitor.latestSnapshot.extractedPlans.length === 0 &&
+    competitor.latestSnapshot.pricePointBuckets.filter(
+      (bucket) => bucket.period === cadence
+    ).length === 0 &&
     competitor.latestSnapshot.pricePoints.length > 0
   ) {
     return "Prices were detected, but plan names couldn't be extracted. Re-crawl to retry.";
@@ -135,6 +140,8 @@ export const getCompetitorComparisonPrices = (
             cadence === "year"
               ? (plan.annualPriceIsPerMonth ?? false)
               : undefined,
+          description: plan.description ?? null,
+          trialDetails: plan.trialDetails ?? null,
         };
       })
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
@@ -144,7 +151,22 @@ export const getCompetitorComparisonPrices = (
     return extractedPlans;
   }
 
-  return [];
+  return (
+    competitor.latestSnapshot?.pricePointBuckets
+      .filter((bucket) => bucket.period === cadence)
+      .sort((left, right) => left.minAmount - right.minAmount)
+      .map((bucket, index) => ({
+        label:
+          bucket.count > 1
+            ? `Detected price range ${index + 1}`
+            : `Detected price point ${index + 1}`,
+        minAmount: bucket.minAmount,
+        maxAmount: bucket.maxAmount,
+        currency: bucket.currency,
+        count: bucket.count,
+        source: "bucket" as const,
+      })) ?? []
+  );
 };
 
 const summarizeSinglePrice = (

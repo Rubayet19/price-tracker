@@ -97,6 +97,7 @@ export interface DashboardComparisonCompetitor {
     capturedAt: string;
     confidence: number;
     isVerified: boolean;
+    pageDescription: string | null;
     pricingModel:
       | "monthly_only"
       | "annual_only"
@@ -123,7 +124,26 @@ export interface DashboardComparisonCompetitor {
       monthlyPrice: number | null;
       annualPrice: number | null;
       annualPriceIsPerMonth?: boolean;
+      description?: string | null;
+      features?: string[];
+      hasFreeTrial?: boolean | null;
+      trialDetails?: string | null;
     }>;
+    extractionDebug: {
+      scopeStrategy?:
+        | "full_page"
+        | "pricing_section"
+        | "anchored_segment"
+        | "playwright";
+      enrichmentSources?: Array<"jsonld" | "llm">;
+      candidateCount?: number;
+      selectedCandidateLabel?: string | null;
+      selectedCandidateScore?: number;
+      selectedPlanTexts?: string[];
+      toggleLabels?: string[];
+      clickedCadences?: Array<"month" | "year">;
+      failureReason?: string | null;
+    } | null;
   } | null;
 }
 

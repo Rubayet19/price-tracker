@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import type { ZodType } from "zod";
 
 const MODEL = "gpt-4o-mini";
 const MAX_TOKENS = 800;
@@ -11,6 +13,13 @@ const OUTPUT_COST_PER_MILLION = 0.6;
 
 export interface StructuredCompletionResult {
   parsed: Record<string, unknown>;
+  promptTokens: number;
+  completionTokens: number;
+  totalCostUsd: number;
+}
+
+export interface ParsedSchemaCompletionResult<T> {
+  parsed: T;
   promptTokens: number;
   completionTokens: number;
   totalCostUsd: number;
@@ -60,6 +69,44 @@ export const generateStructuredCompletion = async (
   }
 
   const parsed = JSON.parse(content) as Record<string, unknown>;
+  const promptTokens = response.usage?.prompt_tokens ?? 0;
+  const completionTokens = response.usage?.completion_tokens ?? 0;
+
+  return {
+    parsed,
+    promptTokens,
+    completionTokens,
+    totalCostUsd: calculateCost(promptTokens, completionTokens),
+  };
+};
+
+export const generateSchemaCompletion = async <T>(
+  systemPrompt: string,
+  userPrompt: string,
+  schema: ZodType<T>,
+  schemaName: string
+): Promise<ParsedSchemaCompletionResult<T> | null> => {
+  const client = getClient();
+  if (!client) {
+    return null;
+  }
+
+  const response = await client.chat.completions.parse({
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    temperature: TEMPERATURE,
+    response_format: zodResponseFormat(schema, schemaName),
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+  });
+
+  const parsed = response.choices[0]?.message?.parsed;
+  if (!parsed) {
+    return null;
+  }
+
   const promptTokens = response.usage?.prompt_tokens ?? 0;
   const completionTokens = response.usage?.completion_tokens ?? 0;
 

@@ -3,10 +3,12 @@ import {
   FETCH_TIMEOUT_MS,
   MAX_HTML_LENGTH,
   PRICING_URL_DISCOVERY_MAX_CANDIDATES,
+  PRICING_URL_DISCOVERY_PROBE_LIMIT,
   PRICING_URL_DISCOVERY_MIN_CONFIDENCE,
   PRICING_URL_DISCOVERY_MIN_PRIMARY_GAP,
   PRICING_URL_DISCOVERY_PRIMARY_CONFIDENCE_THRESHOLD,
 } from "@/libs/crawler/constants";
+import { fetchAndExtractPricing } from "@/libs/crawler/extract";
 import { normalizeUrl, stripHtmlToText } from "@/libs/crawler/normalize";
 import type { IPricingUrlCandidate } from "@/models/Company";
 
@@ -258,6 +260,64 @@ const pickRecommendedPrimaryUrl = (
   return best.url;
 };
 
+const scoreProbeResult = (result: Awaited<ReturnType<typeof fetchAndExtractPricing>>): number => {
+  if (result.status !== "ok") {
+    return 0.1;
+  }
+
+  let score = result.confidence;
+
+  if (result.isVerified) {
+    score += 0.12;
+  }
+
+  if ((result.pricingPayload.extractedPlans?.length ?? 0) >= 2) {
+    score += 0.16;
+  } else if ((result.pricingPayload.extractedPlans?.length ?? 0) === 1) {
+    score += 0.08;
+  }
+
+  if (result.pricingPayload.priceMentions.length >= 2) {
+    score += 0.08;
+  }
+
+  if (result.pricingPayload.pricingModel === "custom_only") {
+    score -= 0.18;
+  }
+
+  if (result.pricingPayload.pricingModel === "unknown") {
+    score -= 0.12;
+  }
+
+  return clampConfidence(score);
+};
+
+const probeCandidates = async (
+  candidates: IPricingUrlCandidate[]
+): Promise<IPricingUrlCandidate[]> => {
+  const targets = candidates.slice(0, PRICING_URL_DISCOVERY_PROBE_LIMIT);
+  const probed = await Promise.all(
+    targets.map(async (candidate) => {
+      try {
+        const result = await fetchAndExtractPricing(candidate.url, {
+          allowLlmEnrichment: false,
+          allowPlaywrightFallback: false,
+        });
+        const probeScore = scoreProbeResult(result);
+
+        return {
+          ...candidate,
+          confidence: clampConfidence(candidate.confidence * 0.35 + probeScore * 0.65),
+        };
+      } catch {
+        return candidate;
+      }
+    })
+  );
+
+  return sortCandidates([...probed, ...candidates.slice(targets.length)]);
+};
+
 export const mergePricingUrlCandidates = (
   ...candidateLists: ReadonlyArray<ReadonlyArray<IPricingUrlCandidate>>
 ): IPricingUrlCandidate[] => {
@@ -362,13 +422,20 @@ export const discoverPricingUrlsFromHomepage = async (
     }
   }
 
-  const candidates = sortCandidates([...candidateMap.values()]).slice(
+  let candidates = sortCandidates([...candidateMap.values()]).slice(
     0,
     maxCandidates
   );
+  let recommendedPrimaryUrl = pickRecommendedPrimaryUrl(candidates);
+
+  if (!recommendedPrimaryUrl && candidates.length > 1) {
+    candidates = await probeCandidates(candidates);
+    recommendedPrimaryUrl = pickRecommendedPrimaryUrl(candidates);
+  }
+
   return {
     homepageUrl: normalizedHomepageUrl,
     candidates,
-    recommendedPrimaryUrl: pickRecommendedPrimaryUrl(candidates),
+    recommendedPrimaryUrl,
   };
 };

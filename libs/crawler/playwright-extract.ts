@@ -9,6 +9,7 @@ import {
   createContentHash,
   normalizeHtmlForHash,
   normalizeUrl,
+  type PricingExtractionDebug,
   type NormalizedExtractedPlan,
   type NormalizedPricingPayload,
   type PricePeriod,
@@ -38,6 +39,7 @@ export interface PlaywrightExtractionResult {
   confidence: number;
   isVerified: boolean;
   extractedCadences: PricePeriod[];
+  enrichmentText: string;
 }
 
 const CADENCE_TOGGLE_SELECTOR =
@@ -66,6 +68,83 @@ const uniqueStrings = (items: string[]): string[] => {
   return [
     ...new Set(items.map((item) => normalizeWhitespace(item).toLowerCase())),
   ].filter(Boolean);
+};
+
+const getPageDescription = async (
+  page: import("playwright").Page
+): Promise<string | null> => {
+  return page
+    .locator('meta[name="description"], meta[property="og:description"]')
+    .first()
+    .getAttribute("content")
+    .then((value) => normalizeWhitespace(value ?? ""))
+    .then((value) => (value.length > 0 ? value : null))
+    .catch((): null => null);
+};
+
+const waitForPricingReady = async (
+  page: import("playwright").Page
+): Promise<void> => {
+  await page.locator("body").waitFor({
+    state: "visible",
+    timeout: Math.min(PLAYWRIGHT_EXTRACTION_TIMEOUT_MS, 5_000),
+  });
+
+  await page
+    .waitForFunction(
+      () => {
+        const bodyText = document.body?.innerText ?? "";
+        return (
+          bodyText.trim().length >= 120 ||
+          document.querySelector("main") !== null ||
+          document.querySelector('[class*="pricing"], [id*="pricing"]') !== null
+        );
+      },
+      { timeout: Math.min(PLAYWRIGHT_EXTRACTION_TIMEOUT_MS, 5_000) }
+    )
+    .catch((): undefined => undefined);
+};
+
+const collectCadenceToggleLabels = async (
+  page: import("playwright").Page
+): Promise<string[]> => {
+  const locator = page.locator(CADENCE_TOGGLE_SELECTOR);
+  const count = await locator.count().catch((): number => 0);
+  const labels: string[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const candidate = locator.nth(index);
+    const visible = await candidate.isVisible().catch((): boolean => false);
+    if (!visible) {
+      continue;
+    }
+
+    const text = await candidate.innerText().catch((): string => "");
+    const normalized = normalizeWhitespace(text);
+    if (
+      normalized &&
+      /\b(monthly|month|yearly|annual|annually|year)\b/i.test(normalized)
+    ) {
+      labels.push(normalized);
+    }
+  }
+
+  return [...new Set(labels)];
+};
+
+const waitForCadenceUpdate = async (
+  page: import("playwright").Page,
+  previousText: string
+): Promise<void> => {
+  await page
+    .waitForFunction(
+      (priorText) => (document.body?.innerText ?? "") !== priorText,
+      previousText,
+      {
+        timeout: Math.max(1_200, PLAYWRIGHT_TOGGLE_SETTLE_MS + 1_200),
+      }
+    )
+    .catch((): undefined => undefined);
 };
 
 const detectCadenceFromText = (value: string): PricePeriod | null => {
@@ -654,10 +733,14 @@ const clickCadenceIfPresent = async (
         continue;
       }
 
+      const previousText = await page
+        .locator("body")
+        .innerText()
+        .catch((): string => "");
       await candidate
         .click({ timeout: 2_000 })
         .catch((): undefined => undefined);
-      await page.waitForTimeout(PLAYWRIGHT_TOGGLE_SETTLE_MS);
+      await waitForCadenceUpdate(page, previousText);
       return true;
     }
   }
@@ -690,8 +773,12 @@ const clickCadenceIfPresent = async (
     const needsClick = wantsMonthly ? isChecked : !isChecked;
 
     if (needsClick) {
+      const previousText = await page
+        .locator("body")
+        .innerText()
+        .catch((): string => "");
       await sw.click({ timeout: 2_000 }).catch((): undefined => undefined);
-      await page.waitForTimeout(PLAYWRIGHT_TOGGLE_SETTLE_MS);
+      await waitForCadenceUpdate(page, previousText);
     }
 
     return true;
@@ -733,12 +820,7 @@ export const extractPricingWithPlaywright = async (
       waitUntil: "domcontentloaded",
       timeout: PLAYWRIGHT_EXTRACTION_TIMEOUT_MS,
     });
-
-    await page
-      .waitForLoadState("networkidle", {
-        timeout: Math.min(PLAYWRIGHT_EXTRACTION_TIMEOUT_MS, 5_000),
-      })
-      .catch((): undefined => undefined);
+    await waitForPricingReady(page);
 
     // Wait for Cloudflare / bot challenge pages to resolve.
     // The stealth plugin passes the checks, but the JS challenge needs time to verify.
@@ -759,13 +841,7 @@ export const extractPricingWithPlaywright = async (
           }
         )
         .catch((): undefined => undefined);
-
-      // After challenge resolves, wait for the real page to finish loading.
-      await page
-        .waitForLoadState("networkidle", {
-          timeout: 8_000,
-        })
-        .catch((): undefined => undefined);
+      await waitForPricingReady(page);
     }
 
     // Dismiss common cookie consent dialogs that may overlay pricing content.
@@ -778,6 +854,8 @@ export const extractPricingWithPlaywright = async (
       .catch((): undefined => undefined);
 
     const extractedStates: RenderedStatePayload[] = [];
+    const toggleLabels = await collectCadenceToggleLabels(page);
+    const clickedCadences: Array<"month" | "year"> = [];
 
     const rawEval = await extractRenderedState(page, null);
     extractedStates.push(rawEval);
@@ -787,6 +865,7 @@ export const extractPricingWithPlaywright = async (
       /\bmonthly\b/i
     ).catch((): boolean => false);
     if (clickedMonthly) {
+      clickedCadences.push("month");
       extractedStates.push(await extractRenderedState(page, "month"));
     }
 
@@ -795,6 +874,7 @@ export const extractPricingWithPlaywright = async (
       /\b(yearly|annually|annual)\b/i
     ).catch((): boolean => false);
     if (clickedYearly) {
+      clickedCadences.push("year");
       extractedStates.push(await extractRenderedState(page, "year"));
     }
 
@@ -843,16 +923,31 @@ export const extractPricingWithPlaywright = async (
     }
 
     const extractedPlans = buildExtractedPlans(extractedStates);
+    const enrichmentText = extractedStates
+      .flatMap((state) => state.planCards.map((card) => card.text))
+      .join("\n")
+      .trim() || rawEval.text;
+    const extractionDebug: PricingExtractionDebug = {
+      scopeStrategy: "playwright",
+      selectedPlanTexts: extractedPlans.map((plan) => plan.name),
+      toggleLabels,
+      clickedCadences,
+      failureReason:
+        extractedPlans.length === 0 && priceMentions.length === 0
+          ? "No rendered pricing cards qualified after DOM scoring."
+          : null,
+    };
 
     const payload = canonicalizePricingPayload({
       sourceUrl: normalizedSourceUrl,
       pageTitle: await page.title().catch((): null => null),
-      pageDescription: null,
+      pageDescription: await getPageDescription(page),
       planNames,
       priceMentions,
       extractedPlans,
       customPricingHints,
       oneTimePricingHints,
+      extractionDebug,
     });
 
     const confidence = computeConfidence(
@@ -872,6 +967,7 @@ export const extractPricingWithPlaywright = async (
         payload.planNames.length > 0 &&
         payload.priceMentions.length > 0,
       extractedCadences,
+      enrichmentText,
     };
   } finally {
     await browser.close();

@@ -11,13 +11,22 @@ import {
   PRICING_TEXT_SIGNALS,
   VERIFIED_CONFIDENCE_THRESHOLD,
 } from "@/libs/crawler/constants";
+import {
+  enrichPricingPayloadWithLlm,
+  shouldRunLlmPricingEnrichment,
+} from "@/libs/crawler/llm-extract";
 import { extractPricingWithPlaywright } from "@/libs/crawler/playwright-extract";
+import {
+  extractPricingFromJsonLd,
+  mergeSchemaPricingIntoPayload,
+} from "@/libs/crawler/schema-extract";
 import {
   canonicalizePricingPayload,
   createContentHash,
   normalizeHtmlForHash,
   normalizeUrl,
   stripHtmlToText,
+  type PricingExtractionDebug,
   type PricingModel,
   type NormalizedExtractedPlan,
   type NormalizedPricePoint,
@@ -48,6 +57,11 @@ interface ExtractionBase {
   captureMethod: SnapshotCaptureMethod;
 }
 
+interface FetchAndExtractPricingOptions {
+  allowLlmEnrichment?: boolean;
+  allowPlaywrightFallback?: boolean;
+}
+
 export interface CrawlExtractionSuccess extends ExtractionBase {
   status: "ok";
   contentHash: string;
@@ -62,6 +76,26 @@ export interface CrawlExtractionFailure extends ExtractionBase {
 export type CrawlExtractionResult =
   | CrawlExtractionSuccess
   | CrawlExtractionFailure;
+
+type StaticScopeStrategy = "full_page" | "pricing_section" | "anchored_segment";
+
+interface StaticScopeCandidate {
+  strategy: StaticScopeStrategy;
+  label: string | null;
+  html: string;
+  text: string;
+  planNames: string[];
+  priceMentions: NormalizedPricePoint[];
+  extractedPlans: NormalizedExtractedPlan[];
+  pricingSignals: string[];
+  customPricingHints: string[];
+  oneTimePricingHints: string[];
+  noisePlanCount: number;
+  score: number;
+}
+
+const NAVIGATION_LIKE_PLAN_NAME_PATTERN =
+  /^(about|android|api|blog|careers|connect|contact|customers|developers|docs|documentation|enterprise|faq|help|home|integrations|ios|jobs|legal|login|partners|privacy|resources?|security|sign in|support|terms)$/i;
 
 const findMetaContent = (html: string, name: string): string | null => {
   const pattern = new RegExp(
@@ -204,9 +238,16 @@ const extractPriceMentions = (text: string): NormalizedPricePoint[] => {
     const lowestContextAmount = hasPairedPriceContext
       ? Math.min(...contextAmounts)
       : null;
+    const loweredContext = context.toLowerCase();
+    const hasCrossCadenceContext =
+      /billed yearly|billed annually|paid yearly|paid annually|per year|\/year|yearly|annual|annually/.test(
+        loweredContext
+      ) &&
+      /per month|\/month|\/mo\b|monthly/.test(loweredContext);
     const shouldPreferLowestPairedPrice =
       hasPairedPriceContext &&
       lowestContextAmount !== null &&
+      hasCrossCadenceContext &&
       (inferredPeriod === "one_time" ||
         inferredPeriod === "month" ||
         inferredPeriod === "year");
@@ -251,6 +292,12 @@ const extractSignalMentions = (
   }
 
   return matches;
+};
+
+const countNavigationLikePlanNames = (planNames: string[]): number => {
+  return planNames.filter((name) =>
+    NAVIGATION_LIKE_PLAN_NAME_PATTERN.test(name.trim())
+  ).length;
 };
 
 const extractPricingCardsFromHtml = (
@@ -352,6 +399,199 @@ const extractPlanNames = (html: string): string[] => {
     )
     .filter((value) => /[a-z]/i.test(value))
     .filter((value) => value.split(/\s+/).length <= 4);
+};
+
+const extractBlockCandidates = (
+  html: string,
+  tagName: "section" | "article" | "main"
+): Array<{ html: string; label: string | null }> => {
+  const pattern = new RegExp(
+    `<${tagName}\\b([^>]*)>[\\s\\S]*?<\\/${tagName}>`,
+    "gi"
+  );
+  const candidates: Array<{ html: string; label: string | null }> = [];
+
+  for (const match of html.matchAll(pattern)) {
+    const blockHtml = match[0] ?? "";
+    if (blockHtml.length < 120 || blockHtml.length > 40_000) {
+      continue;
+    }
+    const attrs = match[1] ?? "";
+    const labelMatch = attrs.match(
+      /\b(?:id|class|data-section|data-testid)\s*=\s*["']([^"']+)["']/i
+    );
+    candidates.push({
+      html: blockHtml,
+      label: labelMatch?.[1]?.trim() ?? null,
+    });
+  }
+
+  return candidates;
+};
+
+const extractAnchoredSegments = (
+  html: string
+): Array<{ html: string; label: string | null }> => {
+  const candidates: Array<{ html: string; label: string | null }> = [];
+  const anchorPattern =
+    /<(section|div|main)\b[^>]*(?:id|class)\s*=\s*["']([^"']*(?:pricing|plans?|billing|tiers?)[^"']*)["'][^>]*>/gi;
+
+  for (const match of html.matchAll(anchorPattern)) {
+    const start = match.index ?? 0;
+    const anchoredHtml = html.slice(start, Math.min(html.length, start + 12_000));
+    if (anchoredHtml.length < 120) {
+      continue;
+    }
+
+    candidates.push({
+      html: anchoredHtml,
+      label: (match[2] ?? "").trim() || null,
+    });
+  }
+
+  return candidates;
+};
+
+const scoreStaticScopeCandidate = (
+  html: string,
+  strategy: StaticScopeStrategy,
+  label: string | null
+): StaticScopeCandidate => {
+  const text = stripHtmlToText(html);
+  const priceMentions = extractPriceMentions(text);
+  const extractedPlans = extractPricingCardsFromHtml(html);
+  const planNames = extractPlanNames(html);
+  const pricingSignals = extractSignalMentions(text, PRICING_TEXT_SIGNALS);
+  const customPricingHints = extractSignalMentions(text, CUSTOM_PRICING_SIGNALS);
+  const oneTimePricingHints = extractSignalMentions(text, ONE_TIME_PRICING_SIGNALS);
+  const noisePlanCount = countNavigationLikePlanNames(planNames);
+
+  let score = 0;
+  score += Math.min(priceMentions.length, 4) * 4;
+  score += Math.min(extractedPlans.length, 4) * 6;
+  score += Math.min(planNames.length, 4) * 2;
+  score += Math.min(pricingSignals.length, 3);
+
+  if (
+    label &&
+    /\b(pricing|plans?|billing|tiers?|compare)\b/i.test(label.toLowerCase())
+  ) {
+    score += 4;
+  }
+
+  if (customPricingHints.length > 0 && priceMentions.length === 0) {
+    score += 1;
+  }
+
+  if (strategy === "pricing_section") {
+    score += 2;
+  }
+
+  if (strategy === "anchored_segment") {
+    score += 1;
+  }
+
+  score -= noisePlanCount * 4;
+
+  if (priceMentions.length === 0) {
+    score -= 3;
+  }
+
+  if (planNames.length === 0 && extractedPlans.length === 0) {
+    score -= 2;
+  }
+
+  return {
+    strategy,
+    label,
+    html,
+    text,
+    planNames,
+    priceMentions,
+    extractedPlans,
+    pricingSignals,
+    customPricingHints,
+    oneTimePricingHints,
+    noisePlanCount,
+    score,
+  };
+};
+
+const chooseStaticScope = (
+  html: string
+): {
+  selected: StaticScopeCandidate;
+  debug: PricingExtractionDebug;
+} => {
+  const deduped = new Map<string, StaticScopeCandidate>();
+
+  const register = (
+    candidateHtml: string,
+    strategy: StaticScopeStrategy,
+    label: string | null
+  ): void => {
+    const normalized = normalizeHtmlForHash(candidateHtml);
+    if (!normalized || deduped.has(normalized)) {
+      return;
+    }
+
+    deduped.set(
+      normalized,
+      scoreStaticScopeCandidate(candidateHtml, strategy, label)
+    );
+  };
+
+  register(html, "full_page", "full page");
+
+  for (const candidate of extractBlockCandidates(html, "section")) {
+    register(candidate.html, "pricing_section", candidate.label);
+  }
+  for (const candidate of extractBlockCandidates(html, "article")) {
+    register(candidate.html, "pricing_section", candidate.label);
+  }
+  for (const candidate of extractBlockCandidates(html, "main")) {
+    register(candidate.html, "pricing_section", candidate.label);
+  }
+  for (const candidate of extractAnchoredSegments(html)) {
+    register(candidate.html, "anchored_segment", candidate.label);
+  }
+
+  const candidates = [...deduped.values()].sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+
+    if (left.noisePlanCount !== right.noisePlanCount) {
+      return left.noisePlanCount - right.noisePlanCount;
+    }
+
+    if (right.extractedPlans.length !== left.extractedPlans.length) {
+      return right.extractedPlans.length - left.extractedPlans.length;
+    }
+
+    if (left.strategy === "full_page" && right.strategy !== "full_page") {
+      return 1;
+    }
+
+    if (right.strategy === "full_page" && left.strategy !== "full_page") {
+      return -1;
+    }
+
+    return 0;
+  });
+
+  const selected = candidates[0] ?? scoreStaticScopeCandidate(html, "full_page", "full page");
+
+  return {
+    selected,
+    debug: {
+      scopeStrategy: selected.strategy,
+      candidateCount: candidates.length,
+      selectedCandidateLabel: selected.label,
+      selectedCandidateScore: selected.score,
+      selectedPlanTexts: selected.planNames,
+    },
+  };
 };
 
 const getConfidence = (
@@ -563,7 +803,8 @@ const classifyFetchFailure = (
 };
 
 export const fetchAndExtractPricing = async (
-  sourceUrl: string
+  sourceUrl: string,
+  options: FetchAndExtractPricingOptions = {}
 ): Promise<CrawlExtractionResult> => {
   const normalizedSourceUrl = normalizeUrl(sourceUrl);
   if (!normalizedSourceUrl) {
@@ -580,7 +821,10 @@ export const fetchAndExtractPricing = async (
   if (fetched.ok === false) {
     if (BLOCKED_HTTP_STATUSES.has(fetched.status)) {
       try {
-        const playwrightResult = await extractPricingWithPlaywright(sourceUrl);
+        const playwrightResult =
+          options.allowPlaywrightFallback === false
+            ? null
+            : await extractPricingWithPlaywright(sourceUrl);
         if (
           playwrightResult &&
           playwrightResult.pricingPayload.priceMentions.length > 0
@@ -616,27 +860,15 @@ export const fetchAndExtractPricing = async (
   }
 
   const normalizedHashInput = normalizeHtmlForHash(fetched.html);
-
-  const pricingText = stripHtmlToText(fetched.html);
-  const blockedSignals = extractSignalMentions(
-    pricingText,
-    BLOCKED_TEXT_SIGNALS
-  );
-
-  const priceMentions = extractPriceMentions(pricingText);
-  const pricingSignals = extractSignalMentions(
-    pricingText,
-    PRICING_TEXT_SIGNALS
-  );
-  const customPricingHints = extractSignalMentions(
-    pricingText,
-    CUSTOM_PRICING_SIGNALS
-  );
-  const oneTimePricingHints = extractSignalMentions(
-    pricingText,
-    ONE_TIME_PRICING_SIGNALS
-  );
-  const planNames = extractPlanNames(fetched.html);
+  const fullPageText = stripHtmlToText(fetched.html);
+  const blockedSignals = extractSignalMentions(fullPageText, BLOCKED_TEXT_SIGNALS);
+  const staticScope = chooseStaticScope(fetched.html);
+  const pricingText = staticScope.selected.text;
+  const priceMentions = staticScope.selected.priceMentions;
+  const pricingSignals = staticScope.selected.pricingSignals;
+  const customPricingHints = staticScope.selected.customPricingHints;
+  const oneTimePricingHints = staticScope.selected.oneTimePricingHints;
+  const planNames = staticScope.selected.planNames;
 
   const staticFoundNothing =
     blockedSignals.length > 0 ||
@@ -648,7 +880,10 @@ export const fetchAndExtractPricing = async (
   if (staticFoundNothing) {
     // Static HTML is either a bot challenge page or a JS-rendered shell — try Playwright.
     try {
-      const playwrightResult = await extractPricingWithPlaywright(sourceUrl);
+      const playwrightResult =
+        options.allowPlaywrightFallback === false
+          ? null
+          : await extractPricingWithPlaywright(sourceUrl);
       if (
         playwrightResult &&
         playwrightResult.pricingPayload.priceMentions.length > 0
@@ -688,7 +923,7 @@ export const fetchAndExtractPricing = async (
     };
   }
 
-  const extractedPlans = extractPricingCardsFromHtml(fetched.html);
+  const extractedPlans = staticScope.selected.extractedPlans;
 
   const staticPayload = canonicalizePricingPayload({
     sourceUrl: normalizedSourceUrl,
@@ -699,6 +934,7 @@ export const fetchAndExtractPricing = async (
     extractedPlans,
     customPricingHints,
     oneTimePricingHints,
+    extractionDebug: staticScope.debug,
   });
   const confidence = getConfidence(
     staticPayload.priceMentions,
@@ -706,7 +942,7 @@ export const fetchAndExtractPricing = async (
     pricingSignals,
     staticPayload.customPricingHints,
     staticPayload.oneTimePricingHints ?? [],
-    hasInteractiveCadenceSignals(pricingText),
+    hasInteractiveCadenceSignals(fullPageText),
     staticPayload.pricingModel ?? "unknown"
   );
 
@@ -714,17 +950,19 @@ export const fetchAndExtractPricing = async (
   let finalConfidence = confidence;
   let captureMethod: SnapshotCaptureMethod = "static";
   let contentHash = createContentHash(normalizedHashInput);
+  let enrichmentText = staticScope.selected.text;
   let isVerified =
     confidence >= VERIFIED_CONFIDENCE_THRESHOLD &&
     payload.priceMentions.length > 0 &&
     payload.planNames.length > 0;
 
   if (
+    options.allowPlaywrightFallback !== false &&
     shouldUsePlaywrightFallback({
       prices: staticPayload.priceMentions,
       planNames: staticPayload.planNames,
       extractedPlans: staticPayload.extractedPlans ?? [],
-      pricingText,
+      pricingText: fullPageText,
       confidence,
     })
   ) {
@@ -744,6 +982,7 @@ export const fetchAndExtractPricing = async (
         finalConfidence = playwrightResult.confidence;
         captureMethod = "playwright";
         contentHash = playwrightResult.contentHash;
+        enrichmentText = playwrightResult.enrichmentText;
         isVerified =
           playwrightResult.isVerified &&
           playwrightResult.pricingPayload.priceMentions.length > 0 &&
@@ -753,6 +992,32 @@ export const fetchAndExtractPricing = async (
       console.error(
         "Playwright fallback failed during confidence-based upgrade"
       );
+    }
+  }
+
+  payload = mergeSchemaPricingIntoPayload(
+    payload,
+    extractPricingFromJsonLd(fetched.html)
+  );
+
+  if (
+    options.allowLlmEnrichment !== false &&
+    shouldRunLlmPricingEnrichment({
+      payload,
+      confidence: finalConfidence,
+    })
+  ) {
+    try {
+      const enriched = await enrichPricingPayloadWithLlm({
+        payload,
+        scopeText: enrichmentText,
+      });
+
+      if (enriched) {
+        payload = enriched.payload;
+      }
+    } catch (error) {
+      console.error("LLM enrichment failed");
     }
   }
 

@@ -278,11 +278,23 @@ export default function DashboardComparisonSection({
                         competitorPrices.map((price) => (
                           <div
                             key={`${price.label}-${price.currency}-${price.minAmount}-${price.maxAmount}`}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2"
+                            className="flex items-start justify-between gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2"
                           >
-                            <span className="font-medium text-[#0f172a]">
-                              {price.label}
-                            </span>
+                            <div className="min-w-0">
+                              <span className="font-medium text-[#0f172a]">
+                                {price.label}
+                              </span>
+                              {price.description ? (
+                                <p className="mt-1 max-w-md text-xs leading-5 text-[#64748b]">
+                                  {price.description}
+                                </p>
+                              ) : null}
+                              {price.trialDetails ? (
+                                <p className="mt-1 text-xs font-medium text-[#0f766e]">
+                                  {price.trialDetails}
+                                </p>
+                              ) : null}
+                            </div>
                             <span className="text-sm text-[#334155]">
                               {price.minAmount === price.maxAmount
                                 ? `${formatCurrencyAmount(price.currency, price.minAmount)}${cadenceSuffix(cadence, price.annualPriceIsPerMonth)}`
@@ -294,6 +306,12 @@ export default function DashboardComparisonSection({
                     </div>
                   </div>
                 </div>
+
+                {competitor.latestSnapshot?.pageDescription ? (
+                  <p className="mt-4 text-sm leading-6 text-[#64748b]">
+                    {competitor.latestSnapshot.pageDescription}
+                  </p>
+                ) : null}
 
                 <div className="mt-4 rounded-2xl border border-[#0f766e]/15 bg-[#f0fdfa] px-4 py-3">
                   <p className="text-xs font-semibold tracking-[0.16em] text-[#0f766e] uppercase">

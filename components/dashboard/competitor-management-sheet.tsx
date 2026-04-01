@@ -259,6 +259,79 @@ export default function CompetitorManagementSheet({
             ) : null}
           </div>
 
+          {competitor.latestSnapshot ? (
+            <div className="rounded-2xl border border-[#e2e8f0] bg-white p-4">
+              <p className="text-sm font-semibold text-[#0f172a]">
+                Latest extracted context
+              </p>
+              {competitor.latestSnapshot.pageDescription ? (
+                <p className="mt-2 text-sm leading-6 text-[#475569]">
+                  {competitor.latestSnapshot.pageDescription}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-[#64748b]">
+                  No page description captured on the latest snapshot.
+                </p>
+              )}
+
+              {competitor.latestSnapshot.extractionDebug ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {competitor.latestSnapshot.extractionDebug.scopeStrategy ? (
+                    <Badge variant="outline" className="bg-[#f8fafc]">
+                      Scope: {competitor.latestSnapshot.extractionDebug.scopeStrategy.replaceAll("_", " ")}
+                    </Badge>
+                  ) : null}
+                  {(competitor.latestSnapshot.extractionDebug.enrichmentSources ??
+                    []).map((source) => (
+                    <Badge
+                      key={source}
+                      variant="outline"
+                      className="bg-[#f0fdfa] text-[#115e59]"
+                    >
+                      Enriched: {source}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+
+              {competitor.latestSnapshot.extractedPlans.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {competitor.latestSnapshot.extractedPlans.map((plan) => (
+                    <div
+                      key={`${plan.name}-${plan.monthlyPrice ?? "na"}-${plan.annualPrice ?? "na"}`}
+                      className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-3"
+                    >
+                      <p className="font-medium text-[#0f172a]">{plan.name}</p>
+                      {plan.description ? (
+                        <p className="mt-1 text-sm leading-6 text-[#64748b]">
+                          {plan.description}
+                        </p>
+                      ) : null}
+                      {plan.trialDetails ? (
+                        <p className="mt-1 text-sm font-medium text-[#0f766e]">
+                          {plan.trialDetails}
+                        </p>
+                      ) : null}
+                      {plan.features && plan.features.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {plan.features.slice(0, 4).map((feature) => (
+                            <Badge
+                              key={`${plan.name}-${feature}`}
+                              variant="outline"
+                              className="bg-white text-[#334155]"
+                            >
+                              {feature}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#0f172a]/10 bg-[#f8fafc] p-4">
             <div>
               <p className="text-sm font-semibold text-[#0f172a]">

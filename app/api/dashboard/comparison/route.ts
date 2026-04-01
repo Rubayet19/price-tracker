@@ -57,6 +57,22 @@ interface ExtractedPlan {
   monthlyPrice: number | null;
   annualPrice: number | null;
   annualPriceIsPerMonth: boolean;
+  description: string | null;
+  features: string[];
+  hasFreeTrial: boolean | null;
+  trialDetails: string | null;
+}
+
+interface ExtractionDebug {
+  scopeStrategy?: "full_page" | "pricing_section" | "anchored_segment" | "playwright";
+  enrichmentSources?: Array<"jsonld" | "llm">;
+  candidateCount?: number;
+  selectedCandidateLabel?: string | null;
+  selectedCandidateScore?: number;
+  selectedPlanTexts?: string[];
+  toggleLabels?: string[];
+  clickedCadences?: Array<"month" | "year">;
+  failureReason?: string | null;
 }
 
 const isPricePeriod = (value: string): value is PricePeriod => {
@@ -192,10 +208,97 @@ const toExtractedPlans = (
         monthlyPrice,
         annualPrice,
         annualPriceIsPerMonth: entry.annualPriceIsPerMonth === true,
+        description:
+          typeof entry.description === "string" && entry.description.trim()
+            ? entry.description.trim()
+            : null,
+        features: Array.isArray(entry.features)
+          ? entry.features.filter(
+              (feature): feature is string => typeof feature === "string"
+            )
+          : [],
+        hasFreeTrial:
+          typeof entry.hasFreeTrial === "boolean" ? entry.hasFreeTrial : null,
+        trialDetails:
+          typeof entry.trialDetails === "string" && entry.trialDetails.trim()
+            ? entry.trialDetails.trim()
+            : null,
       };
     })
     .filter((plan): plan is ExtractedPlan => plan !== null)
     .sort((left, right) => left.name.localeCompare(right.name));
+};
+
+const toExtractionDebug = (
+  payload: Record<string, unknown>
+): ExtractionDebug | null => {
+  const rawDebug = payload.extractionDebug;
+  if (!isRecord(rawDebug)) {
+    return null;
+  }
+
+  const debug: ExtractionDebug = {};
+
+  if (
+    rawDebug.scopeStrategy === "full_page" ||
+    rawDebug.scopeStrategy === "pricing_section" ||
+    rawDebug.scopeStrategy === "anchored_segment" ||
+    rawDebug.scopeStrategy === "playwright"
+  ) {
+    debug.scopeStrategy = rawDebug.scopeStrategy;
+  }
+
+  if (Array.isArray(rawDebug.enrichmentSources)) {
+    debug.enrichmentSources = rawDebug.enrichmentSources.filter(
+      (entry): entry is "jsonld" | "llm" =>
+        entry === "jsonld" || entry === "llm"
+    );
+  }
+
+  if (typeof rawDebug.candidateCount === "number") {
+    debug.candidateCount = rawDebug.candidateCount;
+  }
+
+  if (
+    typeof rawDebug.selectedCandidateLabel === "string" ||
+    rawDebug.selectedCandidateLabel === null
+  ) {
+    debug.selectedCandidateLabel = rawDebug.selectedCandidateLabel as
+      | string
+      | null;
+  }
+
+  if (typeof rawDebug.selectedCandidateScore === "number") {
+    debug.selectedCandidateScore = rawDebug.selectedCandidateScore;
+  }
+
+  if (Array.isArray(rawDebug.selectedPlanTexts)) {
+    debug.selectedPlanTexts = rawDebug.selectedPlanTexts.filter(
+      (entry): entry is string => typeof entry === "string"
+    );
+  }
+
+  if (Array.isArray(rawDebug.toggleLabels)) {
+    debug.toggleLabels = rawDebug.toggleLabels.filter(
+      (entry): entry is string => typeof entry === "string"
+    );
+  }
+
+  if (Array.isArray(rawDebug.clickedCadences)) {
+    debug.clickedCadences = rawDebug.clickedCadences.filter(
+      (entry): entry is "month" | "year" =>
+        entry === "month" || entry === "year"
+    );
+  }
+
+  if (
+    typeof rawDebug.failureReason === "string" ||
+    rawDebug.failureReason === null
+  ) {
+    debug.failureReason = rawDebug.failureReason as string | null;
+  }
+
+  return Object.keys(debug).length > 0 ? debug : null;
 };
 
 const toComparisonClassification = (
@@ -348,11 +451,16 @@ export async function GET(): Promise<NextResponse> {
               capturedAt: latestSnapshot.capturedAt,
               confidence: latestSnapshot.confidence,
               isVerified: latestSnapshot.isVerified,
+              pageDescription:
+                typeof latestSnapshot.pricingPayload.pageDescription === "string"
+                  ? latestSnapshot.pricingPayload.pageDescription
+                  : null,
               pricingModel: comparisonClassification.pricingModel,
               comparisonCadences: comparisonClassification.comparisonCadences,
               pricePoints,
               pricePointBuckets,
               extractedPlans,
+              extractionDebug: toExtractionDebug(latestSnapshot.pricingPayload),
             }
           : null,
       };
