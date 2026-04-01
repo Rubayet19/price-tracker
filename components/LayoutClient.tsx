@@ -1,5 +1,6 @@
 "use client";
 
+import type { Session } from "next-auth";
 import { ReactNode, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -52,10 +53,16 @@ const CrispChat = (): null => {
 // 3. Toaster: Show Success/Error messages anywhere from the app with toast()
 // 4. Tooltip: Show a tooltip if any JSX element has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content=""
 // 5. CrispChat: Set Crisp customer chat support (see above)
-const ClientLayout = ({ children }: { children: ReactNode }) => {
+const ClientLayout = ({
+  children,
+  session,
+}: {
+  children: ReactNode;
+  session: Session | null;
+}) => {
   return (
     <>
-      <SessionProvider>
+      <SessionProvider session={session}>
         <PostHogProviderWrapper>
           {/* Show a progress bar at the top when navigating between pages */}
           <NextTopLoader color={config.colors.main} showSpinner={false} />
