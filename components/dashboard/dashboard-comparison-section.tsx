@@ -223,7 +223,10 @@ export default function DashboardComparisonSection({
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm">
-                    <Link href="/dashboard/competitors" prefetch={false}>
+                    <Link
+                      href={`/dashboard/competitors#competitor-${competitor.companyId}`}
+                      prefetch={false}
+                    >
                       Manage source
                       <ArrowUpRight className="size-3.5" />
                     </Link>

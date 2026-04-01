@@ -360,8 +360,9 @@ export default function DashboardCompetitorsContent() {
           ) : (
             sortedCompetitors.map((competitor) => (
               <article
+                id={`competitor-${competitor.companyId}`}
                 key={competitor.companyId}
-                className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-5"
+                className="scroll-mt-24 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-5"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">
