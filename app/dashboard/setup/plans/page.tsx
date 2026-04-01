@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
+import PlansSetupCard from "@/components/dashboard/setup/plans-setup-card";
 import SetupFrame from "@/components/dashboard/setup/setup-frame";
-import TrialSetupCard from "@/components/dashboard/setup/trial-setup-card";
 import config from "@/config";
 import { auth } from "@/libs/auth";
 import { getSetupStatus } from "@/libs/setup";
 
-export default async function TrialSetupPage() {
+export default async function PlansSetupPage() {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -19,18 +19,18 @@ export default async function TrialSetupPage() {
     redirect("/dashboard");
   }
 
-  if (status.nextStep.step !== "trial") {
+  if (status.nextStep.step !== "plans") {
     redirect(status.nextStep.href);
   }
 
   return (
     <SetupFrame
-      title="Unlock competitor tracking"
-      description="Start your free trial to unlock competitor monitoring and pricing intelligence."
-      currentStep="trial"
+      title="Choose your plan"
+      description="Pick the plan that matches your monitoring needs, or start with a free trial."
+      currentStep="plans"
       status={status}
     >
-      <TrialSetupCard status={status} />
+      <PlansSetupCard status={status} />
     </SetupFrame>
   );
 }
