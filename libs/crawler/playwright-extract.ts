@@ -134,17 +134,96 @@ const collectCadenceToggleLabels = async (
 
 const waitForCadenceUpdate = async (
   page: import("playwright").Page,
-  previousText: string
-): Promise<void> => {
-  await page
-    .waitForFunction(
-      (priorText) => (document.body?.innerText ?? "") !== priorText,
-      previousText,
-      {
-        timeout: Math.max(1_200, PLAYWRIGHT_TOGGLE_SETTLE_MS + 1_200),
+  previousState: {
+    bodyText: string;
+    className: string | null;
+    ariaPressed: string | null;
+    ariaSelected: string | null;
+    dataState: string | null;
+  },
+  candidate?: import("playwright").Locator
+): Promise<boolean> => {
+  const timeoutAt =
+    Date.now() + Math.max(1_200, PLAYWRIGHT_TOGGLE_SETTLE_MS + 1_200);
+
+  while (Date.now() < timeoutAt) {
+    const currentText = await page
+      .locator("body")
+      .innerText()
+      .catch((): string => "");
+    if (currentText !== previousState.bodyText) {
+      return true;
+    }
+
+    if (candidate) {
+      const currentClassName = await candidate
+        .getAttribute("class")
+        .catch((): string | null => null);
+      const currentAriaPressed = await candidate
+        .getAttribute("aria-pressed")
+        .catch((): string | null => null);
+      const currentAriaSelected = await candidate
+        .getAttribute("aria-selected")
+        .catch((): string | null => null);
+      const currentDataState = await candidate
+        .getAttribute("data-state")
+        .catch((): string | null => null);
+
+      if (
+        currentClassName !== previousState.className ||
+        currentAriaPressed !== previousState.ariaPressed ||
+        currentAriaSelected !== previousState.ariaSelected ||
+        currentDataState !== previousState.dataState
+      ) {
+        return true;
       }
-    )
-    .catch((): undefined => undefined);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+
+  return false;
+};
+
+const captureCadenceControlState = async (
+  page: import("playwright").Page,
+  candidate?: import("playwright").Locator
+): Promise<{
+  bodyText: string;
+  className: string | null;
+  ariaPressed: string | null;
+  ariaSelected: string | null;
+  dataState: string | null;
+}> => {
+  const bodyText = await page
+    .locator("body")
+    .innerText()
+    .catch((): string => "");
+
+  if (!candidate) {
+    return {
+      bodyText,
+      className: null,
+      ariaPressed: null,
+      ariaSelected: null,
+      dataState: null,
+    };
+  }
+
+  const [className, ariaPressed, ariaSelected, dataState] = await Promise.all([
+    candidate.getAttribute("class").catch((): string | null => null),
+    candidate.getAttribute("aria-pressed").catch((): string | null => null),
+    candidate.getAttribute("aria-selected").catch((): string | null => null),
+    candidate.getAttribute("data-state").catch((): string | null => null),
+  ]);
+
+  return {
+    bodyText,
+    className,
+    ariaPressed,
+    ariaSelected,
+    dataState,
+  };
 };
 
 const detectCadenceFromText = (value: string): PricePeriod | null => {
@@ -161,29 +240,34 @@ const detectCadenceFromText = (value: string): PricePeriod | null => {
   return null;
 };
 
+const hasAnnualBillingSignal = (value: string): boolean => {
+  return /billed yearly|billed annually|paid yearly|paid annually|annual plan|yearly plan|billed for 12 months|billed for 1 year|12-month billing|12 month billing|annual billing|yearly billing/.test(
+    value
+  );
+};
+
+const hasMonthlyPricingSignal = (value: string): boolean => {
+  return /billed monthly|monthly plan|per month|\/\s*month|\/\s*mo\b|monthly/.test(
+    value
+  );
+};
+
 const toPeriod = (
   cardText: string,
   activeCadence: PricePeriod | null
 ): PricePeriod => {
   const lowered = cardText.toLowerCase();
 
-  if (
-    /billed yearly|billed annually|paid yearly|paid annually|annual plan|yearly plan/.test(
-      lowered
-    )
-  ) {
+  if (hasAnnualBillingSignal(lowered)) {
     return "year";
   }
 
-  if (
-    /billed monthly|monthly plan|per month|\/\s*month|\/\s*mo\b|monthly/.test(
-      lowered
-    )
-  ) {
-    return activeCadence === "year" &&
-      /billed yearly|billed annually|paid yearly|paid annually/.test(lowered)
-      ? "year"
-      : "month";
+  if (activeCadence === "year" && hasMonthlyPricingSignal(lowered)) {
+    return "year";
+  }
+
+  if (hasMonthlyPricingSignal(lowered)) {
+    return "month";
   }
 
   if (/per year|\/year|yearly|annual|annually/.test(lowered)) {
@@ -264,8 +348,7 @@ const computeConfidence = (
 
 const isAnnualPriceShownPerMonth = (cardText: string): boolean => {
   const lowered = cardText.toLowerCase();
-  const hasBilledAnnually =
-    /billed yearly|billed annually|paid yearly|paid annually/.test(lowered);
+  const hasBilledAnnually = hasAnnualBillingSignal(lowered);
   const hasPerMonth = /\/month|\/mo|per month/.test(lowered);
   return hasBilledAnnually && hasPerMonth;
 };
@@ -273,13 +356,17 @@ const isAnnualPriceShownPerMonth = (cardText: string): boolean => {
 const buildExtractedPlans = (
   states: RenderedStatePayload[]
 ): NormalizedExtractedPlan[] => {
+  const prioritizedStates = [
+    ...states.filter((state) => state.cadence !== null),
+    ...states.filter((state) => state.cadence === null),
+  ];
   const planMap = new Map<string, NormalizedExtractedPlan>();
   const unknownPeriodPlans = new Map<
     string,
     { amount: number; cardText: string }
   >();
 
-  for (const state of states) {
+  for (const state of prioritizedStates) {
     for (const card of state.planCards) {
       const planName = card.planName ? normalizeWhitespace(card.planName) : "";
       if (!planName) {
@@ -733,15 +820,14 @@ const clickCadenceIfPresent = async (
         continue;
       }
 
-      const previousText = await page
-        .locator("body")
-        .innerText()
-        .catch((): string => "");
+      const previousState = await captureCadenceControlState(page, candidate);
       await candidate
-        .click({ timeout: 2_000 })
+        .click({ timeout: 2_000, force: true })
         .catch((): undefined => undefined);
-      await waitForCadenceUpdate(page, previousText);
-      return true;
+      const changed = await waitForCadenceUpdate(page, previousState, candidate);
+      if (changed) {
+        return true;
+      }
     }
   }
 
@@ -773,12 +859,14 @@ const clickCadenceIfPresent = async (
     const needsClick = wantsMonthly ? isChecked : !isChecked;
 
     if (needsClick) {
-      const previousText = await page
-        .locator("body")
-        .innerText()
-        .catch((): string => "");
-      await sw.click({ timeout: 2_000 }).catch((): undefined => undefined);
-      await waitForCadenceUpdate(page, previousText);
+      const previousState = await captureCadenceControlState(page, sw);
+      await sw
+        .click({ timeout: 2_000, force: true })
+        .catch((): undefined => undefined);
+      const changed = await waitForCadenceUpdate(page, previousState, sw);
+      if (!changed) {
+        continue;
+      }
     }
 
     return true;
@@ -846,9 +934,9 @@ export const extractPricingWithPlaywright = async (
 
     // Dismiss common cookie consent dialogs that may overlay pricing content.
     await page
-      .locator(
-        'button:has-text("Accept"), button:has-text("Accept all"), button:has-text("Accept cookies"), button:has-text("Allow all"), button:has-text("I agree"), button:has-text("Got it"), button:has-text("OK")'
-      )
+      .getByRole("button", {
+        name: /^(accept|accept all|accept cookies|allow all|i agree|got it|ok)$/i,
+      })
       .first()
       .click({ timeout: 2_000 })
       .catch((): undefined => undefined);
@@ -856,9 +944,7 @@ export const extractPricingWithPlaywright = async (
     const extractedStates: RenderedStatePayload[] = [];
     const toggleLabels = await collectCadenceToggleLabels(page);
     const clickedCadences: Array<"month" | "year"> = [];
-
-    const rawEval = await extractRenderedState(page, null);
-    extractedStates.push(rawEval);
+    let rawEval: RenderedStatePayload | null = null;
 
     const clickedMonthly = await clickCadenceIfPresent(
       page,
@@ -878,8 +964,13 @@ export const extractPricingWithPlaywright = async (
       extractedStates.push(await extractRenderedState(page, "year"));
     }
 
-    const planNames: string[] = [];
-    const priceMentions: Array<{
+    if (extractedStates.length === 0 || clickedCadences.length < 2) {
+      rawEval = await extractRenderedState(page, null);
+      extractedStates.push(rawEval);
+    }
+
+    const rawPlanNames: string[] = [];
+    const rawPriceMentions: Array<{
       amount: number;
       currency: string;
       period: PricePeriod;
@@ -907,13 +998,13 @@ export const extractPricingWithPlaywright = async (
 
       for (const card of state.planCards) {
         if (card.planName) {
-          planNames.push(card.planName);
+          rawPlanNames.push(card.planName);
         }
 
         const period = toPeriod(card.text, state.cadence);
 
         for (const price of card.prices) {
-          priceMentions.push({
+          rawPriceMentions.push({
             amount: price.amount,
             currency: price.currency,
             period,
@@ -923,10 +1014,63 @@ export const extractPricingWithPlaywright = async (
     }
 
     const extractedPlans = buildExtractedPlans(extractedStates);
+    const extractedPlanNames =
+      extractedPlans.length > 0
+        ? extractedPlans.map((plan) => plan.name)
+        : rawPlanNames;
+    const extractedCadencePriceMentions = extractedPlans.flatMap((plan) => {
+      const mentions: Array<{
+        amount: number;
+        currency: string;
+        period: PricePeriod;
+      }> = [];
+
+      if (
+        typeof plan.monthlyPrice === "number" &&
+        Number.isFinite(plan.monthlyPrice) &&
+        plan.currency
+      ) {
+        mentions.push({
+          amount: plan.monthlyPrice,
+          currency: plan.currency,
+          period: "month",
+        });
+      }
+
+      if (
+        typeof plan.annualPrice === "number" &&
+        Number.isFinite(plan.annualPrice) &&
+        plan.currency
+      ) {
+        mentions.push({
+          amount: plan.annualPrice,
+          currency: plan.currency,
+          period: "year",
+        });
+      }
+
+      return mentions;
+    });
+    const extractedCadenceSet = new Set(
+      extractedCadencePriceMentions.map((entry) => entry.period)
+    );
+    const priceMentions =
+      extractedCadencePriceMentions.length > 0
+        ? [
+            ...extractedCadencePriceMentions,
+            ...rawPriceMentions.filter((entry) => {
+              if (entry.period !== "month" && entry.period !== "year") {
+                return true;
+              }
+
+              return !extractedCadenceSet.has(entry.period);
+            }),
+          ]
+        : rawPriceMentions;
     const enrichmentText = extractedStates
       .flatMap((state) => state.planCards.map((card) => card.text))
       .join("\n")
-      .trim() || rawEval.text;
+      .trim() || rawEval?.text || "";
     const extractionDebug: PricingExtractionDebug = {
       scopeStrategy: "playwright",
       selectedPlanTexts: extractedPlans.map((plan) => plan.name),
@@ -942,7 +1086,7 @@ export const extractPricingWithPlaywright = async (
       sourceUrl: normalizedSourceUrl,
       pageTitle: await page.title().catch((): null => null),
       pageDescription: await getPageDescription(page),
-      planNames,
+      planNames: extractedPlanNames,
       priceMentions,
       extractedPlans,
       customPricingHints,

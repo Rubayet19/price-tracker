@@ -184,6 +184,45 @@ export default function DashboardCompetitorsContent() {
     };
   }, [loadCompetitors]);
 
+  const scrollToHashTarget = useCallback((): void => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hash = window.location.hash;
+    if (!hash.startsWith("#competitor-")) {
+      return;
+    }
+
+    const target = document.querySelector(hash);
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("hashchange", scrollToHashTarget);
+
+    return () => {
+      window.removeEventListener("hashchange", scrollToHashTarget);
+    };
+  }, [scrollToHashTarget]);
+
+  useEffect(() => {
+    if (isLoading || competitors.length === 0) {
+      return;
+    }
+
+    scrollToHashTarget();
+  }, [competitors, isLoading, scrollToHashTarget]);
+
   const handleCrawlNow = async (companyId: string): Promise<void> => {
     setActiveCompanyId(companyId);
 

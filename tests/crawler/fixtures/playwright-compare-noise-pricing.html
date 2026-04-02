@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Compare Noise Pricing Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        background: #ffffff;
+        color: #111827;
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 48px 24px 96px;
+      }
+
+      .pricing-root {
+        display: grid;
+        gap: 28px;
+      }
+
+      .plan-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+        gap: 24px;
+      }
+
+      .plan-card,
+      .compare-card {
+        border: 1px solid #d1d5db;
+        border-radius: 24px;
+        padding: 28px;
+        min-height: 340px;
+        background: #f8fafc;
+      }
+
+      .compare-card {
+        background: #eef2ff;
+      }
+
+      h2,
+      h3 {
+        margin: 0 0 16px;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      .price {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+        margin: 24px 0 8px;
+      }
+
+      .price small {
+        font-size: 28px;
+      }
+
+      .subcopy {
+        font-size: 22px;
+        line-height: 1.4;
+      }
+
+      .compare-copy {
+        font-size: 20px;
+        line-height: 1.5;
+        margin-bottom: 18px;
+      }
+
+      button {
+        margin-top: 24px;
+        width: 100%;
+        height: 52px;
+        border: none;
+        border-radius: 999px;
+        background: #312e81;
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="pricing-root">
+        <div class="plan-grid">
+          <div class="plan-card">
+            <h2>Annual Plan</h2>
+            <div class="price">$8.34<small>/mo.</small></div>
+            <div class="subcopy">$99.99 billed annually</div>
+            <button>Start Free Trial</button>
+          </div>
+          <div class="plan-card">
+            <h2>Monthly Plan</h2>
+            <div class="price">$24.99<small>/mo.</small></div>
+            <div class="subcopy">billed monthly</div>
+            <button>Start Free Trial</button>
+          </div>
+        </div>
+
+        <div class="compare-card">
+          <h3>Premium+</h3>
+          <div class="compare-copy">Compare Premium vs Premium+</div>
+          <div class="compare-copy">
+            Reach your goals with all the benefits of Premium+ for just
+            ~$0.28 per day. Billed annually.
+          </div>
+          <div class="price">$6.67<small>/mo.</small></div>
+          <div class="subcopy">Annual price comparison only</div>
+          <button>See Comparison</button>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
