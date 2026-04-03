@@ -19,6 +19,7 @@ import {
   canonicalizePricingPayload,
   classifyPricingModel,
   getComparisonCadences,
+  normalizeUrl,
   type ComparisonCadence,
   type NormalizedExtractedPlan,
   type NormalizedPricingPayload,
@@ -488,11 +489,29 @@ const processCompany = async (
   let diffCreated = false;
   let insightCreated = false;
   let skippedByHash = false;
+  const normalizedHomepageUrl = company.homepageUrl
+    ? normalizeUrl(company.homepageUrl)
+    : null;
+  const normalizedPrimaryPricingUrl = company.primaryPricingUrl
+    ? normalizeUrl(company.primaryPricingUrl)
+    : null;
+  const currentSourceWasUserSelected = normalizedPrimaryPricingUrl
+    ? company.pricingUrlCandidates.some((candidate) => {
+        return (
+          candidate.selectedByUser &&
+          normalizeUrl(candidate.url) === normalizedPrimaryPricingUrl
+        );
+      })
+    : false;
+  const canPromoteDiscoveredPricingUrl =
+    !currentSourceWasUserSelected &&
+    normalizedHomepageUrl !== null &&
+    normalizedPrimaryPricingUrl === normalizedHomepageUrl;
 
   try {
     let sourceUrl = company.primaryPricingUrl ?? null;
 
-    if (!sourceUrl && company.homepageUrl) {
+    if ((!sourceUrl || canPromoteDiscoveredPricingUrl) && company.homepageUrl) {
       attemptedDiscovery = true;
 
       const discovery = await discoverPricingUrlsFromHomepage({
@@ -506,7 +525,7 @@ const processCompany = async (
       );
       discoveredPrimaryPricingUrl = discovery.recommendedPrimaryUrl;
 
-      if (discoveredPrimaryPricingUrl) {
+      if (discoveredPrimaryPricingUrl && (!sourceUrl || canPromoteDiscoveredPricingUrl)) {
         sourceUrl = discoveredPrimaryPricingUrl;
       }
     }
@@ -735,7 +754,10 @@ const processCompany = async (
         discoveredCandidates ?? company.pricingUrlCandidates;
     }
 
-    if (!company.primaryPricingUrl && discoveredPrimaryPricingUrl) {
+    if (
+      discoveredPrimaryPricingUrl &&
+      (!company.primaryPricingUrl || canPromoteDiscoveredPricingUrl)
+    ) {
       setPayload.primaryPricingUrl = discoveredPrimaryPricingUrl;
     }
 

@@ -30,9 +30,12 @@ export interface PricingUrlDiscoveryResult {
 }
 
 const PRICING_PATH_PATTERNS: Array<{ pattern: RegExp; weight: number }> = [
-  { pattern: /^\/pricing(?:\/|$)/, weight: 0.85 },
-  { pattern: /^\/plans?(?:\/|$)/, weight: 0.78 },
-  { pattern: /(?:^|\/)(pricing|plans?)(?:\/|$)/, weight: 0.52 },
+  { pattern: /^\/pricing(?:\.[a-z0-9-]+)?(?:\/|$)/, weight: 0.85 },
+  { pattern: /^\/plans?(?:\.[a-z0-9-]+)?(?:\/|$)/, weight: 0.78 },
+  {
+    pattern: /(?:^|\/)(pricing|plans?)(?:\.[a-z0-9-]+)?(?:\/|$)/,
+    weight: 0.52,
+  },
   {
     pattern: /(?:^|\/)(subscriptions?|billing|cost|prices?)(?:\/|$)/,
     weight: 0.35,
@@ -428,7 +431,7 @@ export const discoverPricingUrlsFromHomepage = async (
   );
   let recommendedPrimaryUrl = pickRecommendedPrimaryUrl(candidates);
 
-  if (!recommendedPrimaryUrl && candidates.length > 1) {
+  if (!recommendedPrimaryUrl && candidates.length > 0) {
     candidates = await probeCandidates(candidates);
     recommendedPrimaryUrl = pickRecommendedPrimaryUrl(candidates);
   }

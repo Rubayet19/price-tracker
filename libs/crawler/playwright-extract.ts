@@ -132,6 +132,89 @@ const collectCadenceToggleLabels = async (
   return [...new Set(labels)];
 };
 
+const isCadenceControlActive = async (
+  candidate: import("playwright").Locator
+): Promise<boolean> => {
+  const [ariaPressed, ariaSelected, ariaChecked, dataState, className] =
+    await Promise.all([
+      candidate.getAttribute("aria-pressed").catch((): string | null => null),
+      candidate.getAttribute("aria-selected").catch((): string | null => null),
+      candidate.getAttribute("aria-checked").catch((): string | null => null),
+      candidate.getAttribute("data-state").catch((): string | null => null),
+      candidate.getAttribute("class").catch((): string | null => null),
+    ]);
+
+  if (
+    ariaPressed === "true" ||
+    ariaSelected === "true" ||
+    ariaChecked === "true"
+  ) {
+    return true;
+  }
+
+  if (
+    dataState &&
+    /^(active|checked|selected|on|open)$/i.test(dataState.trim())
+  ) {
+    return true;
+  }
+
+  if (className && /\b(active|selected|current|checked|on)\b/i.test(className)) {
+    return true;
+  }
+
+  return false;
+};
+
+const detectActiveCadence = async (
+  page: import("playwright").Page
+): Promise<PricePeriod | null> => {
+  const locator = page.locator(CADENCE_TOGGLE_SELECTOR);
+  const count = await locator.count().catch((): number => 0);
+
+  for (let index = 0; index < count; index += 1) {
+    const candidate = locator.nth(index);
+    const visible = await candidate.isVisible().catch((): boolean => false);
+    if (!visible) {
+      continue;
+    }
+
+    const text = await candidate.innerText().catch((): string => "");
+    const cadence = detectCadenceFromText(text);
+    if (!cadence) {
+      continue;
+    }
+
+    if (await isCadenceControlActive(candidate)) {
+      return cadence;
+    }
+  }
+
+  const switches = page.locator('[role="switch"]');
+  const switchCount = await switches.count().catch((): number => 0);
+
+  for (let index = 0; index < switchCount; index += 1) {
+    const sw = switches.nth(index);
+    if (!(await sw.isVisible().catch((): boolean => false))) {
+      continue;
+    }
+
+    const container = sw.locator("xpath=..");
+    const containerText = await container.innerText().catch((): string => "");
+    if (
+      !/monthly/i.test(containerText) ||
+      !/yearly|annual/i.test(containerText)
+    ) {
+      continue;
+    }
+
+    const isChecked = (await sw.getAttribute("aria-checked")) === "true";
+    return isChecked ? "year" : "month";
+  }
+
+  return null;
+};
+
 const waitForCadenceUpdate = async (
   page: import("playwright").Page,
   previousState: {
@@ -945,6 +1028,32 @@ export const extractPricingWithPlaywright = async (
     const toggleLabels = await collectCadenceToggleLabels(page);
     const clickedCadences: Array<"month" | "year"> = [];
     let rawEval: RenderedStatePayload | null = null;
+    const capturedCadences = new Set<PricePeriod>();
+
+    const captureState = async (
+      cadence: PricePeriod | null
+    ): Promise<RenderedStatePayload> => {
+      if (cadence !== null && capturedCadences.has(cadence)) {
+        return (
+          extractedStates.find((state) => state.cadence === cadence) ??
+          (await extractRenderedState(page, cadence))
+        );
+      }
+
+      const state = await extractRenderedState(page, cadence);
+      if (cadence !== null) {
+        capturedCadences.add(cadence);
+      } else {
+        rawEval = state;
+      }
+      extractedStates.push(state);
+      return state;
+    };
+
+    const initialCadence = await detectActiveCadence(page);
+    if (initialCadence) {
+      await captureState(initialCadence);
+    }
 
     const clickedMonthly = await clickCadenceIfPresent(
       page,
@@ -952,7 +1061,7 @@ export const extractPricingWithPlaywright = async (
     ).catch((): boolean => false);
     if (clickedMonthly) {
       clickedCadences.push("month");
-      extractedStates.push(await extractRenderedState(page, "month"));
+      await captureState("month");
     }
 
     const clickedYearly = await clickCadenceIfPresent(
@@ -961,12 +1070,13 @@ export const extractPricingWithPlaywright = async (
     ).catch((): boolean => false);
     if (clickedYearly) {
       clickedCadences.push("year");
-      extractedStates.push(await extractRenderedState(page, "year"));
+      await captureState("year");
     }
 
-    if (extractedStates.length === 0 || clickedCadences.length < 2) {
-      rawEval = await extractRenderedState(page, null);
-      extractedStates.push(rawEval);
+    if (extractedStates.length === 0) {
+      await captureState(null);
+    } else if (!initialCadence && clickedCadences.length < 2) {
+      await captureState(null);
     }
 
     const rawPlanNames: string[] = [];

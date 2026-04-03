@@ -142,3 +142,28 @@ test("playwright extraction ignores compare-table pricing noise outside the prim
     "secondary compare sections should not leak into canonical plan names"
   );
 });
+
+test("playwright extraction preserves the default active cadence before switching toggles", async (t) => {
+  const server = await startFixtureServer(
+    loadFixture("playwright-default-monthly-toggle-pricing.html")
+  );
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await extractPricingWithPlaywright(server.url);
+
+  assert.ok(result);
+  const pro = result.pricingPayload.extractedPlans?.find(
+    (plan) => plan.name === "Pro"
+  );
+
+  assert.ok(pro);
+  assert.equal(pro.monthlyPrice, 29.99);
+  assert.equal(pro.annualPrice, 300);
+  assert.equal(pro.annualPriceIsPerMonth, false);
+  assert.deepEqual(result.pricingPayload.priceMentions, [
+    { amount: 29.99, currency: "USD", period: "month" },
+    { amount: 300, currency: "USD", period: "year" },
+  ]);
+});
