@@ -842,7 +842,10 @@ export const fetchAndExtractPricing = async (
           };
         }
       } catch (playwrightError) {
-        console.error("Playwright fallback failed after blocked static fetch");
+        console.error(
+          "Playwright fallback failed after blocked static fetch",
+          playwrightError
+        );
       }
     }
 
@@ -901,7 +904,10 @@ export const fetchAndExtractPricing = async (
         };
       }
     } catch (playwrightError) {
-      console.error("Playwright fallback failed after empty static extraction");
+      console.error(
+        "Playwright fallback failed after empty static extraction",
+        playwrightError
+      );
     }
 
     if (blockedSignals.length > 0) {
@@ -990,7 +996,8 @@ export const fetchAndExtractPricing = async (
       }
     } catch (playwrightError) {
       console.error(
-        "Playwright fallback failed during confidence-based upgrade"
+        "Playwright fallback failed during confidence-based upgrade",
+        playwrightError
       );
     }
   }

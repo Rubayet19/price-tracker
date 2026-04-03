@@ -14,6 +14,7 @@ import {
   type NormalizedPricingPayload,
   type PricePeriod,
 } from "@/libs/crawler/normalize";
+import { launchPlaywrightBrowser } from "@/libs/crawler/playwright-runtime";
 
 interface RenderedPricePoint {
   amount: number;
@@ -968,13 +969,7 @@ export const extractPricingWithPlaywright = async (
 
   const navigationUrl = buildNavigationUrl(sourceUrl, normalizedSourceUrl);
 
-  const { chromium } = await import("playwright-extra");
-  const { default: stealth } = await import("puppeteer-extra-plugin-stealth");
-  chromium.use(stealth());
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--disable-blink-features=AutomationControlled"],
-  });
+  const browser = await launchPlaywrightBrowser();
 
   try {
     const context = await browser.newContext({
