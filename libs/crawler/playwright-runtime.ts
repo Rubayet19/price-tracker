@@ -26,6 +26,24 @@ const toBaseUrl = (value: string | undefined): string | null => {
   }
 };
 
+const appendVercelProtectionBypass = (
+  url: string,
+  env: RuntimeEnv
+): string => {
+  const bypassSecret = trimOrNull(env.VERCEL_AUTOMATION_BYPASS_SECRET);
+  if (!bypassSecret) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("x-vercel-protection-bypass", bypassSecret);
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+};
+
 const mergeLaunchArgs = (...argLists: ReadonlyArray<ReadonlyArray<string>>) => {
   const seen = new Set<string>();
   const merged: string[] = [];
@@ -64,14 +82,23 @@ export const getChromiumPackUrl = (
     return null;
   }
 
-  const baseUrl =
-    toBaseUrl(env.VERCEL_URL) ??
-    toBaseUrl(env.VERCEL_BRANCH_URL) ??
-    toBaseUrl(env.VERCEL_PROJECT_PRODUCTION_URL) ??
-    toBaseUrl(env.SITE_URL) ??
-    toBaseUrl(env.NEXTAUTH_URL);
+  const isProductionDeploy = trimOrNull(env.VERCEL_ENV) === "production";
 
-  return baseUrl ? `${baseUrl}/chromium-pack.tar` : null;
+  const baseUrl = isProductionDeploy
+    ? toBaseUrl(env.VERCEL_PROJECT_PRODUCTION_URL) ??
+      toBaseUrl(env.SITE_URL) ??
+      toBaseUrl(env.NEXTAUTH_URL) ??
+      toBaseUrl(env.VERCEL_URL) ??
+      toBaseUrl(env.VERCEL_BRANCH_URL)
+    : toBaseUrl(env.VERCEL_URL) ??
+      toBaseUrl(env.VERCEL_BRANCH_URL) ??
+      toBaseUrl(env.VERCEL_PROJECT_PRODUCTION_URL) ??
+      toBaseUrl(env.SITE_URL) ??
+      toBaseUrl(env.NEXTAUTH_URL);
+
+  return baseUrl
+    ? appendVercelProtectionBypass(`${baseUrl}/chromium-pack.tar`, env)
+    : null;
 };
 
 const getServerlessExecutablePath = async (

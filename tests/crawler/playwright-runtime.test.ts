@@ -35,6 +35,33 @@ test("playwright runtime uses the current Vercel deployment asset before other U
   );
 });
 
+test("playwright runtime appends the Vercel automation bypass secret to generated asset URLs", () => {
+  const env = {
+    VERCEL: "1",
+    VERCEL_URL: "preview.example.vercel.app",
+    VERCEL_AUTOMATION_BYPASS_SECRET: "secret-token",
+  };
+
+  assert.equal(
+    getChromiumPackUrl(env),
+    "https://preview.example.vercel.app/chromium-pack.tar?x-vercel-protection-bypass=secret-token"
+  );
+});
+
+test("playwright runtime prefers the public production URL during production deploys", () => {
+  const env = {
+    VERCEL: "1",
+    VERCEL_ENV: "production",
+    VERCEL_URL: "deployment-hash-user.vercel.app",
+    VERCEL_PROJECT_PRODUCTION_URL: "pricingpulse.io",
+  };
+
+  assert.equal(
+    getChromiumPackUrl(env),
+    "https://pricingpulse.io/chromium-pack.tar"
+  );
+});
+
 test("playwright runtime falls back to the production site URL when needed", () => {
   const env = {
     VERCEL: "1",
