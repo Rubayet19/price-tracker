@@ -42,17 +42,78 @@ const competitorWithoutPlans: DashboardComparisonCompetitor = {
       },
     ],
     extractedPlans: [],
+    extractionDebug: null,
   },
 };
 
-test("dashboard comparison falls back to price buckets when named plans are unavailable", () => {
+const competitorWithOrderedPlanTexts: DashboardComparisonCompetitor = {
+  ...competitorWithoutPlans,
+  companyId: "cmp_2",
+  latestSnapshot: {
+    ...competitorWithoutPlans.latestSnapshot!,
+    comparisonCadences: ["month", "year"],
+    pricePoints: [
+      { amount: 39.9, currency: "USD", period: "month" },
+      { amount: 159, currency: "USD", period: "month" },
+      { amount: 299, currency: "USD", period: "month" },
+      { amount: 34, currency: "USD", period: "year" },
+      { amount: 135, currency: "USD", period: "year" },
+      { amount: 254, currency: "USD", period: "year" },
+    ],
+    pricePointBuckets: [
+      {
+        currency: "USD",
+        period: "month",
+        count: 3,
+        minAmount: 39.9,
+        maxAmount: 299,
+      },
+      {
+        currency: "USD",
+        period: "year",
+        count: 3,
+        minAmount: 34,
+        maxAmount: 254,
+      },
+    ],
+    extractionDebug: {
+      selectedPlanTexts: ["Basic", "Pro", "Max"],
+    },
+  },
+};
+
+test("dashboard comparison reconstructs named plans from ordered debug labels when extracted plans are unavailable", () => {
+  const unavailableReason = getCompetitorComparisonUnavailableReason(
+    competitorWithOrderedPlanTexts,
+    "month"
+  );
+  const prices = getCompetitorComparisonPrices(
+    competitorWithOrderedPlanTexts,
+    "month"
+  );
+
+  assert.equal(unavailableReason, null);
+  assert.deepEqual(
+    prices.map((price) => ({
+      label: price.label,
+      amount: price.minAmount,
+      source: price.source,
+    })),
+    [
+      { label: "Basic", amount: 39.9, source: "plan" },
+      { label: "Pro", amount: 159, source: "plan" },
+      { label: "Max", amount: 299, source: "plan" },
+    ]
+  );
+});
+
+test("dashboard comparison no longer renders synthetic detected price range labels when named plans are unavailable", () => {
   const unavailableReason = getCompetitorComparisonUnavailableReason(
     competitorWithoutPlans,
     "month"
   );
   const prices = getCompetitorComparisonPrices(competitorWithoutPlans, "month");
 
-  assert.equal(unavailableReason, null);
-  assert.equal(prices.length, 1);
-  assert.equal(prices[0]?.source, "bucket");
+  assert.match(unavailableReason ?? "", /tier names couldn't be extracted/i);
+  assert.deepEqual(prices, []);
 });

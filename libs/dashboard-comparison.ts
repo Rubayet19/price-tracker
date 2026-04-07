@@ -25,6 +25,80 @@ export interface CompetitorComparisonPrice {
   trialDetails?: string | null;
 }
 
+const uniqueDisplayStrings = (items: string[]): string[] => {
+  const seen = new Set<string>();
+  const values: string[] = [];
+
+  for (const item of items) {
+    const normalized = item.trim();
+    if (!normalized) {
+      continue;
+    }
+
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    values.push(normalized);
+  }
+
+  return values;
+};
+
+const getNamedFallbackComparisonPrices = (
+  competitor: DashboardComparisonCompetitor,
+  cadence: ComparisonCadence
+): CompetitorComparisonPrice[] => {
+  const latestSnapshot = competitor.latestSnapshot;
+  if (!latestSnapshot) {
+    return [];
+  }
+
+  const orderedLabels = uniqueDisplayStrings(
+    latestSnapshot.extractionDebug?.selectedPlanTexts ?? []
+  );
+  if (orderedLabels.length === 0) {
+    return [];
+  }
+
+  const exactPoints = latestSnapshot.pricePoints
+    .filter((point) => point.period === cadence)
+    .filter((point) => Number.isFinite(point.amount) && point.currency)
+    .map((point) => ({
+      amount: point.amount,
+      currency: point.currency,
+    }))
+    .filter(
+      (point, index, points) =>
+        points.findIndex(
+          (candidate) =>
+            candidate.currency === point.currency &&
+            candidate.amount === point.amount
+        ) === index
+    )
+    .sort((left, right) => left.amount - right.amount);
+
+  if (exactPoints.length === 0 || exactPoints.length !== orderedLabels.length) {
+    return [];
+  }
+
+  const currencies = new Set(exactPoints.map((point) => point.currency));
+  if (currencies.size !== 1) {
+    return [];
+  }
+
+  return exactPoints.map((point, index) => ({
+    label: orderedLabels[index] ?? `Plan ${index + 1}`,
+    minAmount: point.amount,
+    maxAmount: point.amount,
+    currency: point.currency,
+    count: 1,
+    source: "plan" as const,
+  }));
+};
+
 export const getCompetitorComparisonUnavailableReason = (
   competitor: DashboardComparisonCompetitor,
   cadence: ComparisonCadence
@@ -49,14 +123,15 @@ export const getCompetitorComparisonUnavailableReason = (
     return `No ${cadence === "month" ? "monthly" : "annual"} prices were detected on the latest pricing source.`;
   }
 
+  if (getNamedFallbackComparisonPrices(competitor, cadence).length > 0) {
+    return null;
+  }
+
   if (
     competitor.latestSnapshot.extractedPlans.length === 0 &&
-    competitor.latestSnapshot.pricePointBuckets.filter(
-      (bucket) => bucket.period === cadence
-    ).length === 0 &&
-    competitor.latestSnapshot.pricePoints.length > 0
+    competitor.latestSnapshot.pricePoints.some((point) => point.period === cadence)
   ) {
-    return "Prices were detected, but plan names couldn't be extracted. Re-crawl to retry.";
+    return "Prices were detected, but tier names couldn't be extracted reliably. Open Manage source to review the raw context.";
   }
 
   return null;
@@ -151,22 +226,7 @@ export const getCompetitorComparisonPrices = (
     return extractedPlans;
   }
 
-  return (
-    competitor.latestSnapshot?.pricePointBuckets
-      .filter((bucket) => bucket.period === cadence)
-      .sort((left, right) => left.minAmount - right.minAmount)
-      .map((bucket, index) => ({
-        label:
-          bucket.count > 1
-            ? `Detected price range ${index + 1}`
-            : `Detected price point ${index + 1}`,
-        minAmount: bucket.minAmount,
-        maxAmount: bucket.maxAmount,
-        currency: bucket.currency,
-        count: bucket.count,
-        source: "bucket" as const,
-      })) ?? []
-  );
+  return getNamedFallbackComparisonPrices(competitor, cadence);
 };
 
 const summarizeSinglePrice = (
@@ -255,6 +315,7 @@ export const summarizeCompetitorComparison = (
   }
 
   const currency = lowestCompetitorPrice.currency;
+  const allNamedPlans = competitorPrices.every((price) => price.source === "plan");
 
-  return `Competitor ${cadence === "month" ? "monthly" : "annual"} pricing spans ${formatCurrencyAmount(currency, lowestCompetitorPrice.minAmount)} to ${formatCurrencyAmount(currency, highestCompetitorPrice.maxAmount)} across ${competitorPrices.length} detected price point${competitorPrices.length === 1 ? "" : "s"}.`;
+  return `Competitor ${cadence === "month" ? "monthly" : "annual"} pricing spans ${formatCurrencyAmount(currency, lowestCompetitorPrice.minAmount)} to ${formatCurrencyAmount(currency, highestCompetitorPrice.maxAmount)} across ${competitorPrices.length} detected ${allNamedPlans ? `plan${competitorPrices.length === 1 ? "" : "s"}` : `price point${competitorPrices.length === 1 ? "" : "s"}`}.`;
 };

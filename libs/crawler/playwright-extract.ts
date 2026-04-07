@@ -80,6 +80,28 @@ const uniqueStrings = (items: string[]): string[] => {
   ].filter(Boolean);
 };
 
+const uniqueDisplayStrings = (items: string[]): string[] => {
+  const seen = new Set<string>();
+  const values: string[] = [];
+
+  for (const item of items) {
+    const normalized = normalizeWhitespace(item);
+    if (!normalized) {
+      continue;
+    }
+
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    values.push(normalized);
+  }
+
+  return values;
+};
+
 const getPageDescription = async (
   page: import("playwright").Page
 ): Promise<string | null> => {
@@ -1291,9 +1313,13 @@ export const extractPricingWithPlaywright = async (
       .flatMap((state) => state.planCards.map((card) => card.text))
       .join("\n")
       .trim() || rawEval?.text || "";
+    const orderedPlanTexts = uniqueDisplayStrings(rawPlanNames);
     const extractionDebug: PricingExtractionDebug = {
       scopeStrategy: "playwright",
-      selectedPlanTexts: extractedPlans.map((plan) => plan.name),
+      selectedPlanTexts:
+        extractedPlans.length > 0
+          ? extractedPlans.map((plan) => plan.name)
+          : orderedPlanTexts,
       toggleLabels,
       clickedCadences,
       failureReason:
