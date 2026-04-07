@@ -1,6 +1,131 @@
 type RuntimeEnv = Record<string, string | undefined>;
 
+type StealthDependencyRegistry = {
+  setDependencyResolution: (
+    dependencyPath: string,
+    pluginModule: (...args: any[]) => any
+  ) => unknown;
+};
+
 const DEFAULT_LOCAL_ARGS = ["--disable-blink-features=AutomationControlled"];
+const STEALTH_EVASION_IMPORTS = [
+  {
+    dependencyPath: "stealth/evasions/chrome.app",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/chrome.app")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/chrome.csi",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/chrome.csi")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/chrome.loadTimes",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/chrome.loadTimes")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/chrome.runtime",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/chrome.runtime")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/defaultArgs",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/defaultArgs")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/iframe.contentWindow",
+    importer: () =>
+      Promise.resolve(
+        require(
+          "puppeteer-extra-plugin-stealth/evasions/iframe.contentWindow"
+        )
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/media.codecs",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/media.codecs")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/navigator.hardwareConcurrency",
+    importer: () =>
+      Promise.resolve(
+        require(
+          "puppeteer-extra-plugin-stealth/evasions/navigator.hardwareConcurrency"
+        )
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/navigator.languages",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/navigator.languages")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/navigator.permissions",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/navigator.permissions")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/navigator.plugins",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/navigator.plugins")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/navigator.webdriver",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/navigator.webdriver")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/sourceurl",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/sourceurl")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/user-agent-override",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/user-agent-override")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/webgl.vendor",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/webgl.vendor")
+      ),
+  },
+  {
+    dependencyPath: "stealth/evasions/window.outerdimensions",
+    importer: () =>
+      Promise.resolve(
+        require("puppeteer-extra-plugin-stealth/evasions/window.outerdimensions")
+      ),
+  },
+] as const;
 
 let cachedExecutablePath: string | null = null;
 let executablePathPromise: Promise<string> | null = null;
@@ -101,6 +226,18 @@ export const getChromiumPackUrl = (
     : null;
 };
 
+export const registerStealthDependencyResolution = async (
+  registry: StealthDependencyRegistry
+): Promise<void> => {
+  for (const { dependencyPath, importer } of STEALTH_EVASION_IMPORTS) {
+    const module = await importer();
+    registry.setDependencyResolution(
+      dependencyPath,
+      (module.default ?? module) as (...args: any[]) => any
+    );
+  }
+};
+
 const getServerlessExecutablePath = async (
   env: RuntimeEnv = process.env
 ): Promise<string> => {
@@ -150,6 +287,7 @@ const createPlaywrightChromium = async (
       [import("playwright-core"), import("@sparticuz/chromium-min")]
     );
     const chromium = addExtra(playwrightChromium);
+    await registerStealthDependencyResolution(chromium.plugins);
     chromium.use(stealth());
 
     return {
@@ -164,6 +302,7 @@ const createPlaywrightChromium = async (
 
   const { chromium: playwrightChromium } = await import("playwright");
   const chromium = addExtra(playwrightChromium);
+  await registerStealthDependencyResolution(chromium.plugins);
   chromium.use(stealth());
 
   return {

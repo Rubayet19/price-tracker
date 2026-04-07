@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   getChromiumPackUrl,
+  registerStealthDependencyResolution,
   shouldUseServerlessChromium,
 } from "@/libs/crawler/playwright-runtime";
 
@@ -81,4 +82,34 @@ test("playwright runtime keeps serverless Chromium disabled outside Vercel", () 
 
   assert.equal(shouldUseServerlessChromium(env), false);
   assert.equal(getChromiumPackUrl(env), null);
+});
+
+test("playwright runtime registers explicit stealth dependency resolutions", async () => {
+  const seen: string[] = [];
+
+  await registerStealthDependencyResolution({
+    setDependencyResolution(dependencyPath: string) {
+      seen.push(dependencyPath);
+      return this;
+    },
+  });
+
+  assert.deepEqual(seen, [
+    "stealth/evasions/chrome.app",
+    "stealth/evasions/chrome.csi",
+    "stealth/evasions/chrome.loadTimes",
+    "stealth/evasions/chrome.runtime",
+    "stealth/evasions/defaultArgs",
+    "stealth/evasions/iframe.contentWindow",
+    "stealth/evasions/media.codecs",
+    "stealth/evasions/navigator.hardwareConcurrency",
+    "stealth/evasions/navigator.languages",
+    "stealth/evasions/navigator.permissions",
+    "stealth/evasions/navigator.plugins",
+    "stealth/evasions/navigator.webdriver",
+    "stealth/evasions/sourceurl",
+    "stealth/evasions/user-agent-override",
+    "stealth/evasions/webgl.vendor",
+    "stealth/evasions/window.outerdimensions",
+  ]);
 });
