@@ -111,5 +111,7 @@ test("playwright runtime registers explicit stealth dependency resolutions", asy
     "stealth/evasions/user-agent-override",
     "stealth/evasions/webgl.vendor",
     "stealth/evasions/window.outerdimensions",
+    "user-preferences",
+    "user-data-dir",
   ]);
 });

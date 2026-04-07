@@ -125,6 +125,16 @@ const STEALTH_EVASION_IMPORTS = [
         require("puppeteer-extra-plugin-stealth/evasions/window.outerdimensions")
       ),
   },
+  {
+    dependencyPath: "user-preferences",
+    importer: () =>
+      Promise.resolve(require("puppeteer-extra-plugin-user-preferences")),
+  },
+  {
+    dependencyPath: "user-data-dir",
+    importer: () =>
+      Promise.resolve(require("puppeteer-extra-plugin-user-data-dir")),
+  },
 ] as const;
 
 let cachedExecutablePath: string | null = null;

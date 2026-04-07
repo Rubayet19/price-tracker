@@ -22,6 +22,8 @@ const nextConfig = {
     "playwright-core",
     "playwright-extra",
     "puppeteer-extra-plugin-stealth",
+    "puppeteer-extra-plugin-user-preferences",
+    "puppeteer-extra-plugin-user-data-dir",
   ],
   allowedDevOrigins: ["localtest.me"],
   images: {
