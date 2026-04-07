@@ -65,6 +65,15 @@ const normalizeWhitespace = (value: string): string => {
   return value.replace(/\s+/g, " ").trim();
 };
 
+const normalizeCadenceControlText = (value: string): string => {
+  return normalizeWhitespace(
+    value
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/(\d)([A-Za-z])/g, "$1 $2")
+      .replace(/([A-Za-z])(\d)/g, "$1 $2")
+  );
+};
+
 const uniqueStrings = (items: string[]): string[] => {
   return [
     ...new Set(items.map((item) => normalizeWhitespace(item).toLowerCase())),
@@ -121,16 +130,79 @@ const collectCadenceToggleLabels = async (
     }
 
     const text = await candidate.innerText().catch((): string => "");
-    const normalized = normalizeWhitespace(text);
+    const normalized = normalizeCadenceControlText(text);
     if (
       normalized &&
       /\b(monthly|month|yearly|annual|annually|year)\b/i.test(normalized)
     ) {
       labels.push(normalized);
     }
+
+    if (!normalized) {
+      const parentText = await candidate
+        .locator("xpath=..")
+        .innerText()
+        .catch((): string => "");
+      const normalizedParent = normalizeCadenceControlText(parentText);
+      if (
+        normalizedParent &&
+        /\b(monthly|month)\b/i.test(normalizedParent) &&
+        /\b(yearly|annual|annually|year)\b/i.test(normalizedParent)
+      ) {
+        labels.push(normalizedParent);
+      }
+    }
   }
 
   return [...new Set(labels)];
+};
+
+const detectCadenceFromGenericToggle = async (
+  candidate: import("playwright").Locator,
+  containerText: string
+): Promise<PricePeriod | null> => {
+  if (
+    !/\b(monthly|month)\b/i.test(containerText) ||
+    !/\b(yearly|annual|annually|year)\b/i.test(containerText)
+  ) {
+    return null;
+  }
+
+  return candidate
+    .evaluate((element) => {
+      if (!(element instanceof HTMLElement)) {
+        return null;
+      }
+
+      const hostRect = element.getBoundingClientRect();
+      const knob =
+        element.querySelector("span, div") instanceof HTMLElement
+          ? (element.querySelector("span, div") as HTMLElement)
+          : null;
+      if (!knob) {
+        return null;
+      }
+
+      const knobRect = knob.getBoundingClientRect();
+      const knobClass = knob.className ?? "";
+      const knobTransform = window.getComputedStyle(knob).transform ?? "";
+      const centeredLeft = knobRect.left - hostRect.left + knobRect.width / 2;
+
+      if (
+        /\b(translate-x|translatex|right|checked|selected|active|on)\b/i.test(
+          knobClass
+        )
+      ) {
+        return "year";
+      }
+
+      if (knobTransform && knobTransform !== "none") {
+        return "year";
+      }
+
+      return centeredLeft >= hostRect.width / 2 ? "year" : "month";
+    })
+    .catch((): PricePeriod | null => null);
 };
 
 const isCadenceControlActive = async (
@@ -181,8 +253,21 @@ const detectActiveCadence = async (
     }
 
     const text = await candidate.innerText().catch((): string => "");
-    const cadence = detectCadenceFromText(text);
+    const normalizedText = normalizeCadenceControlText(text);
+    const cadence = detectCadenceFromText(normalizedText);
     if (!cadence) {
+      const parentText = await candidate
+        .locator("xpath=..")
+        .innerText()
+        .catch((): string => "");
+      const normalizedParent = normalizeCadenceControlText(parentText);
+      const genericCadence = await detectCadenceFromGenericToggle(
+        candidate,
+        normalizedParent
+      );
+      if (genericCadence) {
+        return genericCadence;
+      }
       continue;
     }
 
@@ -201,7 +286,9 @@ const detectActiveCadence = async (
     }
 
     const container = sw.locator("xpath=..");
-    const containerText = await container.innerText().catch((): string => "");
+    const containerText = normalizeCadenceControlText(
+      await container.innerText().catch((): string => "")
+    );
     if (
       !/monthly/i.test(containerText) ||
       !/yearly|annual/i.test(containerText)
@@ -311,7 +398,7 @@ const captureCadenceControlState = async (
 };
 
 const detectCadenceFromText = (value: string): PricePeriod | null => {
-  const lowered = value.toLowerCase();
+  const lowered = normalizeCadenceControlText(value).toLowerCase();
 
   if (/(^|\W)(monthly|month)(\W|$)/.test(lowered)) {
     return "month";
@@ -342,11 +429,19 @@ const toPeriod = (
 ): PricePeriod => {
   const lowered = cardText.toLowerCase();
 
-  if (hasAnnualBillingSignal(lowered)) {
-    return "year";
+  if (
+    /\/lifetime|one-time payment|one time payment|pay once|lifetime access|buy once|single payment/.test(
+      lowered
+    )
+  ) {
+    return "one_time";
   }
 
-  if (activeCadence === "year" && hasMonthlyPricingSignal(lowered)) {
+  if (activeCadence === "month" || activeCadence === "year") {
+    return activeCadence;
+  }
+
+  if (hasAnnualBillingSignal(lowered)) {
     return "year";
   }
 
@@ -361,15 +456,6 @@ const toPeriod = (
   // Detect daily pricing (e.g. marketing "~$0.28 per day" conversions)
   if (/per day|\/day/.test(lowered)) {
     return "day";
-  }
-
-  // Detect one-time / lifetime pricing
-  if (
-    /\/lifetime|one-time payment|one time payment|pay once|lifetime access|buy once/.test(
-      lowered
-    )
-  ) {
-    return "one_time";
   }
 
   return activeCadence ?? "unknown";
@@ -494,6 +580,11 @@ const buildExtractedPlans = (
 
       if (state.cadence === null) {
         const inferredPeriod = toPeriod(card.text, null);
+        if (inferredPeriod === "one_time") {
+          planMap.set(dedupeKey, existing);
+          continue;
+        }
+
         if (inferredPeriod === "month" && existing.monthlyPrice === null) {
           existing.monthlyPrice = primaryPrice.amount;
         }
@@ -570,6 +661,15 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     return value.replace(/\\s+/g, " ").trim();
   }
 
+  function normalizeCadenceText(value) {
+    return normalizeText(
+      value
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/(\\d)([A-Za-z])/g, "$1 $2")
+        .replace(/([A-Za-z])(\\d)/g, "$1 $2")
+    );
+  }
+
   function isLikelyPlanName(value) {
     const normalized = normalizeText(value);
     if (!normalized) return false;
@@ -577,7 +677,21 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     if (normalized.split(/\\s+/).length > 4) return false;
     if (/[,:!?]/.test(normalized) || /\\d/.test(normalized) || normalized.includes(".")) return false;
     if (/^(usd|eur|gbp|cad|aud|jpy|inr|brl|mxn|chf|sek|nok|dkk|nzd|sgd|hkd|krw|try|zar|pln)$/i.test(normalized)) return false;
-    return !/save up|months free|launch price|intro price|best value|limited time|most popular|per month|billed|trial|price tag|credit card|required|enterprise power|integrations|history|users|pages|cadence|coverage|compare|pricing|faq|features|trusted by|money-back/i.test(normalized);
+    return !/save up|months free|launch price|intro price|best value|limited time|most popular|per month|billed|trial|price tag|credit card|required|enterprise power|integrations|history|users|pages|cadence|coverage|compare|pricing|faq|features|trusted by|money-back|upgrade|manage subscription|contact us|what are credits/i.test(normalized);
+  }
+
+  function inferPlanNameFromButtonText(value) {
+    const normalized = normalizeText(value);
+    if (!normalized) return null;
+
+    const match = normalized.match(/(?:upgrade to|choose|select|start|subscribe to|get)\\s+([a-z][a-z0-9+ -]{1,20})$/i);
+    if (!match || !match[1]) return null;
+
+    const candidate = match[1]
+      .replace(/\\b(plan|tier|subscription)\\b/gi, "")
+      .trim();
+
+    return isLikelyPlanName(candidate) ? candidate : null;
   }
 
   function isVisible(element) {
@@ -616,6 +730,13 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
         const raw = normalizeText(entry.textContent || "");
         pricePattern.lastIndex = 0;
         if (!pricePattern.test(raw)) return null;
+        const hasVisibleNestedPrice = Array.from(entry.children).some((child) => {
+          if (!(child instanceof HTMLElement) || !isTextVisible(child)) return false;
+          const childRaw = normalizeText(child.textContent || "");
+          pricePattern.lastIndex = 0;
+          return pricePattern.test(childRaw);
+        });
+        if (hasVisibleNestedPrice) return null;
         pricePattern.lastIndex = 0;
         const style = window.getComputedStyle(entry);
         var fontSize = Number.parseFloat(style.fontSize || "0");
@@ -675,18 +796,20 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
         .map((entry) => entry.textContent || "")
         .join(" ")
     );
+    const inferredPlanName = inferPlanNameFromButtonText(buttonText);
+    const planName = normalizedHeading || inferredPlanName;
 
     let score = 0;
-    if (normalizedHeading) score += 4;
+    if (planName) score += 4;
     if (primaryPrices.length > 0) score += 4;
     if (/start|get started|contact sales|book|trial/i.test(buttonText)) score += 2;
     if (featureCount >= 2) score += 2;
     if (/feature|everything in|get started|contact sales|popular/.test(text.toLowerCase())) score += 2;
     if (oneTimeSignals.some((signal) => text.toLowerCase().includes(signal))) score += 2;
 
-    if (score < 7 || primaryPrices.length === 0 || !normalizedHeading) return null;
-    if (/\\bfree\\b/i.test(normalizedHeading)) return null;
-    return { element, planName: normalizedHeading, text, prices: primaryPrices, score };
+    if (score < 7 || primaryPrices.length === 0 || !planName) return null;
+    if (/\\bfree\\b/i.test(planName)) return null;
+    return { element, planName, text, prices: primaryPrices, score };
   }).filter(Boolean).sort((left, right) => right.score - left.score).slice(0, 12);
 
   // Remove container elements that span multiple distinct plan headings
@@ -886,22 +1009,44 @@ const clickCadenceIfPresent = async (
   page: import("playwright").Page,
   label: RegExp
 ): Promise<boolean> => {
-  const exactCandidates = [
-    page.getByRole("tab").filter({ hasText: label }),
-    page.getByRole("button").filter({ hasText: label }),
-    page.getByRole("switch", { name: label }),
-    page.locator("label").filter({ hasText: label }),
-    page.locator(CADENCE_TOGGLE_SELECTOR).filter({ hasText: label }),
-  ];
+  const controls = page.locator(CADENCE_TOGGLE_SELECTOR);
+  const count = await controls.count().catch((): number => 0);
 
-  for (const locator of exactCandidates) {
-    const count = await locator.count().catch((): number => 0);
+  for (let index = 0; index < count; index += 1) {
+    const candidate = controls.nth(index);
+    if (!(await candidate.isVisible().catch((): boolean => false))) {
+      continue;
+    }
 
-    for (let index = 0; index < count; index += 1) {
-      const candidate = locator.nth(index);
+    const directText = normalizeCadenceControlText(
+      await candidate.innerText().catch((): string => "")
+    );
+    const parentText = normalizeCadenceControlText(
+      await candidate.locator("xpath=..").innerText().catch((): string => "")
+    );
+    const relevantText =
+      directText && /\b(monthly|month|yearly|annual|annually|year)\b/i.test(directText)
+        ? directText
+        : parentText;
 
-      if (!(await candidate.isVisible().catch((): boolean => false))) {
-        continue;
+    if (!relevantText || !label.test(relevantText)) {
+      continue;
+    }
+
+    const genericToggleCadence =
+      !directText &&
+      /\b(monthly|month)\b/i.test(parentText) &&
+      /\b(yearly|annual|annually|year)\b/i.test(parentText)
+        ? await detectCadenceFromGenericToggle(candidate, parentText)
+        : null;
+
+    if (genericToggleCadence) {
+      const wantsMonthly = /monthly/i.test(label.source);
+      const desiredCadence: PricePeriod = wantsMonthly ? "month" : "year";
+      const needsClick = genericToggleCadence !== desiredCadence;
+
+      if (!needsClick) {
+        return true;
       }
 
       const previousState = await captureCadenceControlState(page, candidate);
@@ -912,48 +1057,18 @@ const clickCadenceIfPresent = async (
       if (changed) {
         return true;
       }
-    }
-  }
 
-  // Handle switch toggles with adjacent text labels (e.g., "Monthly [switch] Yearly").
-  // Convention: unchecked = left label (Monthly), checked = right label (Yearly).
-  const switches = page.locator('[role="switch"]');
-  const switchCount = await switches.count().catch((): number => 0);
-
-  for (let index = 0; index < switchCount; index += 1) {
-    const sw = switches.nth(index);
-    if (!(await sw.isVisible().catch((): boolean => false))) {
       continue;
     }
 
-    const container = sw.locator("xpath=..");
-    const containerText = await container.innerText().catch((): string => "");
-    if (
-      !/monthly/i.test(containerText) ||
-      !/yearly|annual/i.test(containerText)
-    ) {
-      continue;
+    const previousState = await captureCadenceControlState(page, candidate);
+    await candidate
+      .click({ timeout: 2_000, force: true })
+      .catch((): undefined => undefined);
+    const changed = await waitForCadenceUpdate(page, previousState, candidate);
+    if (changed) {
+      return true;
     }
-    if (!label.test(containerText)) {
-      continue;
-    }
-
-    const isChecked = (await sw.getAttribute("aria-checked")) === "true";
-    const wantsMonthly = /monthly/i.test(label.source);
-    const needsClick = wantsMonthly ? isChecked : !isChecked;
-
-    if (needsClick) {
-      const previousState = await captureCadenceControlState(page, sw);
-      await sw
-        .click({ timeout: 2_000, force: true })
-        .catch((): undefined => undefined);
-      const changed = await waitForCadenceUpdate(page, previousState, sw);
-      if (!changed) {
-        continue;
-      }
-    }
-
-    return true;
   }
 
   return false;

@@ -8,6 +8,7 @@ export type PricePeriod =
   | "one_time"
   | "unknown";
 export type ComparisonCadence = "month" | "year";
+export type PricingEnrichmentSource = "jsonld" | "script" | "llm";
 export type PricingModel =
   | "monthly_only"
   | "annual_only"
@@ -41,7 +42,7 @@ export interface PricingExtractionDebug {
     | "pricing_section"
     | "anchored_segment"
     | "playwright";
-  enrichmentSources?: Array<"jsonld" | "llm">;
+  enrichmentSources?: PricingEnrichmentSource[];
   candidateCount?: number;
   selectedCandidateLabel?: string | null;
   selectedCandidateScore?: number;
@@ -371,8 +372,8 @@ const normalizeExtractionDebug = (
 
   const enrichmentSources = Array.isArray(debug.enrichmentSources)
     ? debug.enrichmentSources.filter(
-        (entry): entry is "jsonld" | "llm" =>
-          entry === "jsonld" || entry === "llm"
+        (entry): entry is PricingEnrichmentSource =>
+          entry === "jsonld" || entry === "script" || entry === "llm"
       )
     : [];
   if (enrichmentSources.length > 0) {

@@ -176,8 +176,8 @@ const toExtractionDebug = (
 
   if (Array.isArray(debug.enrichmentSources)) {
     result.enrichmentSources = debug.enrichmentSources.filter(
-      (entry): entry is "jsonld" | "llm" =>
-        entry === "jsonld" || entry === "llm"
+      (entry): entry is "jsonld" | "script" | "llm" =>
+        entry === "jsonld" || entry === "script" || entry === "llm"
     );
   }
 

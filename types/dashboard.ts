@@ -135,7 +135,7 @@ export interface DashboardComparisonCompetitor {
         | "pricing_section"
         | "anchored_segment"
         | "playwright";
-      enrichmentSources?: Array<"jsonld" | "llm">;
+      enrichmentSources?: Array<"jsonld" | "script" | "llm">;
       candidateCount?: number;
       selectedCandidateLabel?: string | null;
       selectedCandidateScore?: number;

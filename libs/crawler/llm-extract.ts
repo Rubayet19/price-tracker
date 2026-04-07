@@ -64,6 +64,14 @@ export const shouldRunLlmPricingEnrichment = (input: {
     return true;
   }
 
+  if (
+    payload.pricingModel === "one_time" ||
+    ((payload.oneTimePricingHints?.length ?? 0) > 0 &&
+      (payload.comparisonCadences?.length ?? 0) === 0)
+  ) {
+    return false;
+  }
+
   if (confidence >= 0.86) {
     return false;
   }
@@ -174,7 +182,7 @@ const upsertExtractedPlan = (
       : null;
   const normalizedFeatures = [
     ...new Set(
-      enrichmentPlan.features
+      (Array.isArray(enrichmentPlan.features) ? enrichmentPlan.features : [])
         .map((feature) => normalizeWhitespace(feature))
         .filter(Boolean)
     ),
@@ -257,6 +265,12 @@ export const mergePricingPayloadEnrichment = (
     features: [...(plan.features ?? [])],
   }));
   const matchedCadenceByPriceKey = new Map<string, ComparisonCadence>();
+  const allowRecurringCadenceHints =
+    payload.pricingModel !== "one_time" &&
+    !(
+      (payload.oneTimePricingHints?.length ?? 0) > 0 &&
+      (payload.comparisonCadences?.length ?? 0) === 0
+    );
 
   for (const plan of enrichment.plans) {
     const currency =
@@ -274,15 +288,19 @@ export const mergePricingPayloadEnrichment = (
         ? plan.cadenceHint
         : null;
 
-    if (structuralMatch && cadenceHint) {
+    if (allowRecurringCadenceHints && structuralMatch && cadenceHint) {
       matchedCadenceByPriceKey.set(`${currency}|${roundedPrice.toFixed(2)}`, cadenceHint);
     }
 
-    upsertExtractedPlan(updatedPlans, plan, Boolean(structuralMatch));
+    upsertExtractedPlan(
+      updatedPlans,
+      plan,
+      allowRecurringCadenceHints && Boolean(structuralMatch)
+    );
   }
 
   const globalCadenceHint =
-    enrichment.comparisonCadenceHints.length === 1
+    allowRecurringCadenceHints && enrichment.comparisonCadenceHints.length === 1
       ? enrichment.comparisonCadenceHints[0]
       : null;
 

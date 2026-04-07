@@ -65,7 +65,7 @@ interface ExtractedPlan {
 
 interface ExtractionDebug {
   scopeStrategy?: "full_page" | "pricing_section" | "anchored_segment" | "playwright";
-  enrichmentSources?: Array<"jsonld" | "llm">;
+  enrichmentSources?: Array<"jsonld" | "script" | "llm">;
   candidateCount?: number;
   selectedCandidateLabel?: string | null;
   selectedCandidateScore?: number;
@@ -250,8 +250,8 @@ const toExtractionDebug = (
 
   if (Array.isArray(rawDebug.enrichmentSources)) {
     debug.enrichmentSources = rawDebug.enrichmentSources.filter(
-      (entry): entry is "jsonld" | "llm" =>
-        entry === "jsonld" || entry === "llm"
+      (entry): entry is "jsonld" | "script" | "llm" =>
+        entry === "jsonld" || entry === "script" || entry === "llm"
     );
   }
 

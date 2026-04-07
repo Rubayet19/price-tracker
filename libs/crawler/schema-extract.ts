@@ -1,6 +1,7 @@
 import {
   canonicalizePricingPayload,
   type NormalizedExtractedPlan,
+  type PricingEnrichmentSource,
   type NormalizedPricingPayload,
   type NormalizedPricePoint,
   type PricePeriod,
@@ -46,6 +47,16 @@ const flattenJsonLdNodes = (value: unknown): Record<string, unknown>[] => {
 
 const extractJsonLdBlocks = (html: string): string[] => {
   return [...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => (match[1] ?? "").trim())
+    .filter(Boolean);
+};
+
+const extractStructuredScriptBlocks = (html: string): string[] => {
+  return [
+    ...html.matchAll(
+      /<script\b(?![^>]*\bsrc=)(?![^>]*type=["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script>/gi
+    ),
+  ]
     .map((match) => (match[1] ?? "").trim())
     .filter(Boolean);
 };
@@ -169,6 +180,195 @@ const extractOfferData = (
   return { amount, currency, period };
 };
 
+const escapeRegExp = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const decodeEmbeddedScriptText = (value: string): string => {
+  return normalizeWhitespace(
+    value
+      .replace(/\\u0022/gi, '"')
+      .replace(/\\u0026/gi, "&")
+      .replace(/\\u003c/gi, "<")
+      .replace(/\\u003e/gi, ">")
+      .replace(/\\\//g, "/")
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, " ")
+      .replace(/\\t/g, " ")
+  );
+};
+
+const parseStructuredNumericField = (
+  objectText: string,
+  fieldNames: string[]
+): number | null => {
+  for (const fieldName of fieldNames) {
+    const pattern = new RegExp(
+      `"${fieldName}"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`,
+      "i"
+    );
+    const match = objectText.match(pattern);
+    if (!match?.[1]) {
+      continue;
+    }
+
+    const amount = Number.parseFloat(match[1]);
+    if (Number.isFinite(amount) && amount >= 0) {
+      return amount;
+    }
+  }
+
+  return null;
+};
+
+const parseStructuredStringField = (
+  objectText: string,
+  fieldNames: string[]
+): string | null => {
+  for (const fieldName of fieldNames) {
+    const pattern = new RegExp(`"${fieldName}"\\s*:\\s*"([^"]+)"`, "i");
+    const match = objectText.match(pattern);
+    const value = normalizeWhitespace(match?.[1] ?? "");
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+};
+
+const isLikelyStructuredPlanName = (value: string | null): value is string => {
+  if (!value) {
+    return false;
+  }
+
+  const normalized = normalizeWhitespace(value);
+  if (!normalized || normalized.length > 32) {
+    return false;
+  }
+
+  if (normalized.split(/\s+/).length > 4) {
+    return false;
+  }
+
+  return !/\b(monthly|yearly|annually|pricing|credits|plan toggle|upgrade)\b/i.test(
+    normalized
+  );
+};
+
+const extractPricingFromStructuredScripts = (
+  html: string
+): SchemaPricingExtract => {
+  const priceMentions: NormalizedPricePoint[] = [];
+  const extractedPlans: NormalizedExtractedPlan[] = [];
+
+  const planObjectPattern =
+    /\{[^{}]{0,1400}?"name"\s*:\s*"[^"]{1,40}"[^{}]{0,1400}?\}/g;
+
+  for (const block of extractStructuredScriptBlocks(html)) {
+    const decodedBlock = decodeEmbeddedScriptText(block);
+
+    for (const match of decodedBlock.matchAll(planObjectPattern)) {
+      const objectText = match[0] ?? "";
+      const planName = parseStructuredStringField(objectText, ["name"]);
+      if (!isLikelyStructuredPlanName(planName)) {
+        continue;
+      }
+
+      const currency =
+        parseStructuredStringField(objectText, ["currency", "priceCurrency"])
+          ?.toUpperCase() ?? "USD";
+      const monthlyPrice = parseStructuredNumericField(objectText, [
+        "monthlyPrice",
+        "monthPrice",
+      ]);
+      const annualPrice = parseStructuredNumericField(objectText, [
+        "annuallyPrice",
+        "annualPrice",
+        "yearlyPrice",
+        "yearPrice",
+      ]);
+      const description = parseStructuredStringField(objectText, [
+        "description",
+        "subtitle",
+      ]);
+
+      if (monthlyPrice === null && annualPrice === null) {
+        continue;
+      }
+
+      extractedPlans.push({
+        name: planName,
+        currency,
+        monthlyPrice,
+        annualPrice,
+        annualPriceIsPerMonth: annualPrice !== null,
+        description,
+      });
+
+      if (monthlyPrice !== null) {
+        priceMentions.push({
+          amount: monthlyPrice,
+          currency,
+          period: "month",
+        });
+      }
+
+      if (annualPrice !== null) {
+        priceMentions.push({
+          amount: annualPrice,
+          currency,
+          period: "year",
+        });
+      }
+    }
+  }
+
+  return {
+    pageDescription: null,
+    priceMentions,
+    extractedPlans,
+  };
+};
+
+const inferOfferPeriodFromPageDescription = (input: {
+  offerName: string | null;
+  amount: number | null;
+  description: string | null;
+}): PricePeriod => {
+  const description = normalizeWhitespace(input.description ?? "");
+  if (!description || input.amount === null) {
+    return "unknown";
+  }
+
+  const amountPattern = escapeRegExp(
+    String(Number(input.amount.toFixed(2))).replace(/\.00$/, "")
+  );
+  const normalizedOfferName = normalizeWhitespace(input.offerName ?? "");
+
+  if (normalizedOfferName) {
+    const namedWindowPattern = new RegExp(
+      `${escapeRegExp(normalizedOfferName)}[\\s\\S]{0,60}?\\$?${amountPattern}(?:\\.0)?(?:0)?[\\s\\S]{0,24}?(?:\\/|per\\s+)?(month|monthly|mo|year|yearly|annual|annually|yr)`,
+      "i"
+    );
+    const namedWindowMatch = description.match(namedWindowPattern);
+    if (namedWindowMatch?.[1]) {
+      return mapPeriodFromText(namedWindowMatch[1]);
+    }
+  }
+
+  const globalAmountPattern = new RegExp(
+    `\\$?${amountPattern}(?:\\.0)?(?:0)?[\\s\\S]{0,24}?(?:\\/|per\\s+)?(month|monthly|mo|year|yearly|annual|annually|yr)`,
+    "i"
+  );
+  const globalAmountMatch = description.match(globalAmountPattern);
+  if (globalAmountMatch?.[1]) {
+    return mapPeriodFromText(globalAmountMatch[1]);
+  }
+
+  return "unknown";
+};
+
 export const extractPricingFromJsonLd = (html: string): SchemaPricingExtract => {
   const pageDescriptions = new Set<string>();
   const priceMentions: NormalizedPricePoint[] = [];
@@ -224,6 +424,10 @@ export const extractPricingFromJsonLd = (html: string): SchemaPricingExtract => 
       }
 
       for (const offer of offers) {
+        const offerName =
+          typeof offer.name === "string"
+            ? normalizeWhitespace(offer.name)
+            : planName || null;
         const { amount, currency, period } = extractOfferData(
           offer,
           offerFallbackText
@@ -231,22 +435,30 @@ export const extractPricingFromJsonLd = (html: string): SchemaPricingExtract => 
         if (amount === null || !currency) {
           continue;
         }
+        const enrichedPeriod =
+          period !== "unknown"
+            ? period
+            : inferOfferPeriodFromPageDescription({
+                offerName,
+                amount,
+                description,
+              });
 
         priceMentions.push({
           amount,
           currency,
-          period,
+          period: enrichedPeriod,
         });
 
-        if (!planName) {
+        if (!offerName) {
           continue;
         }
 
         extractedPlans.push({
-          name: planName,
+          name: offerName,
           currency,
-          monthlyPrice: period === "month" ? amount : null,
-          annualPrice: period === "year" ? amount : null,
+          monthlyPrice: enrichedPeriod === "month" ? amount : null,
+          annualPrice: enrichedPeriod === "year" ? amount : null,
           description,
           features,
           hasFreeTrial,
@@ -263,33 +475,50 @@ export const extractPricingFromJsonLd = (html: string): SchemaPricingExtract => 
   };
 };
 
-export const mergeSchemaPricingIntoPayload = (
+const mergePricingEnrichment = (
   payload: NormalizedPricingPayload,
-  schemaExtract: SchemaPricingExtract
+  enrichmentExtract: SchemaPricingExtract,
+  source: PricingEnrichmentSource
 ): NormalizedPricingPayload => {
   const extractionDebug = payload.extractionDebug
     ? {
         ...payload.extractionDebug,
         enrichmentSources: [
           ...(payload.extractionDebug.enrichmentSources ?? []),
-          ...(schemaExtract.extractedPlans.length > 0 ||
-          schemaExtract.priceMentions.length > 0 ||
-          schemaExtract.pageDescription
-            ? (["jsonld"] as const)
+          ...(enrichmentExtract.extractedPlans.length > 0 ||
+          enrichmentExtract.priceMentions.length > 0 ||
+          enrichmentExtract.pageDescription
+            ? ([source] as const)
             : []),
         ],
       }
-    : schemaExtract.extractedPlans.length > 0 ||
-        schemaExtract.priceMentions.length > 0 ||
-        schemaExtract.pageDescription
-      ? { enrichmentSources: ["jsonld" as const] }
+    : enrichmentExtract.extractedPlans.length > 0 ||
+        enrichmentExtract.priceMentions.length > 0 ||
+        enrichmentExtract.pageDescription
+      ? { enrichmentSources: [source] }
       : undefined;
 
   return canonicalizePricingPayload({
     ...payload,
-    pageDescription: payload.pageDescription ?? schemaExtract.pageDescription,
-    priceMentions: [...payload.priceMentions, ...schemaExtract.priceMentions],
-    extractedPlans: [...(payload.extractedPlans ?? []), ...schemaExtract.extractedPlans],
+    pageDescription: payload.pageDescription ?? enrichmentExtract.pageDescription,
+    priceMentions: [...payload.priceMentions, ...enrichmentExtract.priceMentions],
+    extractedPlans: [...(payload.extractedPlans ?? []), ...enrichmentExtract.extractedPlans],
     extractionDebug,
   });
 };
+
+export const mergeSchemaPricingIntoPayload = (
+  payload: NormalizedPricingPayload,
+  schemaExtract: SchemaPricingExtract
+): NormalizedPricingPayload => {
+  return mergePricingEnrichment(payload, schemaExtract, "jsonld");
+};
+
+export const mergeStructuredScriptPricingIntoPayload = (
+  payload: NormalizedPricingPayload,
+  scriptExtract: SchemaPricingExtract
+): NormalizedPricingPayload => {
+  return mergePricingEnrichment(payload, scriptExtract, "script");
+};
+
+export { extractPricingFromStructuredScripts };

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pricing</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .hidden {
+        display: none;
+      }
+      .pricing {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .card {
+        border: 1px solid #ccc;
+        border-radius: 16px;
+        padding: 24px;
+        min-height: 320px;
+      }
+      .plan-name {
+        font-size: 32px;
+        font-weight: 700;
+        display: block;
+      }
+      .price {
+        font-size: 52px;
+        font-weight: 700;
+      }
+      .muted {
+        color: #666;
+      }
+      .strike {
+        text-decoration: line-through;
+        color: #777;
+      }
+      .toggle button {
+        margin-right: 8px;
+      }
+      .toggle .active {
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <section>
+      <h1>Upgrade your plan for more credits</h1>
+      <div class="toggle">
+        <button id="monthly-button" type="button">Monthly</button>
+        <button id="annual-button" class="active" type="button">
+          Annually<span>Save 15%</span>
+        </button>
+      </div>
+      <div class="pricing" id="pricing-grid"></div>
+    </section>
+
+    <script>
+      const monthlyPlans = [
+        {
+          name: "Basic",
+          current: "$39.9",
+          previous: null,
+          credits: "1000 Credits / month",
+        },
+        {
+          name: "Pro",
+          current: "$159",
+          previous: null,
+          credits: "4000 Credits / month",
+        },
+        {
+          name: "Max",
+          current: "$299",
+          previous: null,
+          credits: "9000 Credits / month",
+        },
+      ];
+
+      const annualPlans = [
+        {
+          name: "Basic",
+          current: "$34",
+          previous: "$39.9",
+          credits: "1000 Credits / month",
+        },
+        {
+          name: "Pro",
+          current: "$135",
+          previous: "$159",
+          credits: "4000 Credits / month",
+        },
+        {
+          name: "Max",
+          current: "$254",
+          previous: "$299",
+          credits: "9000 Credits / month",
+        },
+      ];
+
+      const grid = document.getElementById("pricing-grid");
+      const monthlyButton = document.getElementById("monthly-button");
+      const annualButton = document.getElementById("annual-button");
+
+      function render(plans, annual) {
+        grid.innerHTML = plans
+          .map(
+            (plan) => `
+              <div class="card">
+                <div class="plan-name">${plan.name}</div>
+                <div>
+                  <span class="price">${plan.current}</span>
+                  ${
+                    plan.previous
+                      ? `<span class="strike">${plan.previous}</span>`
+                      : ""
+                  }
+                  <span class="muted">/month</span>
+                </div>
+                <button type="button">Upgrade to ${plan.name}</button>
+                <p>${plan.credits}</p>
+                <p>Unlimited conversation</p>
+                <p>Export task results</p>
+                ${
+                  annual
+                    ? "<p>Annual billing. Save 15%.</p>"
+                    : "<p>Billed monthly.</p>"
+                }
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      monthlyButton.addEventListener("click", () => {
+        monthlyButton.classList.add("active");
+        annualButton.classList.remove("active");
+        render(monthlyPlans, false);
+      });
+
+      annualButton.addEventListener("click", () => {
+        annualButton.classList.add("active");
+        monthlyButton.classList.remove("active");
+        render(annualPlans, true);
+      });
+
+      render(annualPlans, true);
+    </script>
+  </body>
+</html>

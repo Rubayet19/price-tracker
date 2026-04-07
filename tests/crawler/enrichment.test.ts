@@ -3,7 +3,10 @@ import test from "node:test";
 
 import type { NormalizedPricingPayload } from "@/libs/crawler/normalize";
 import { mergePricingPayloadEnrichment } from "@/libs/crawler/llm-extract";
-import { extractPricingFromJsonLd } from "@/libs/crawler/schema-extract";
+import {
+  extractPricingFromJsonLd,
+  extractPricingFromStructuredScripts,
+} from "@/libs/crawler/schema-extract";
 
 test("json-ld extraction captures plan descriptions and feature lists", () => {
   const html = `
@@ -112,5 +115,112 @@ test("llm enrichment fills soft fields and cadence without overriding structural
   assert.equal(
     enriched.extractedPlans?.[0]?.description,
     "Advanced collaboration plan."
+  );
+});
+
+test("structured script extraction recovers monthly and annual pricing from serialized app config", () => {
+  const html = `
+    <html>
+      <head>
+        <script>
+          self.__next_f.push([1,"{\\"pricingConfig\\":[{\\"name\\":\\"Basic\\",\\"monthlyPrice\\":39.9,\\"annuallyPrice\\":34,\\"description\\":\\"1000 Credits / month\\"},{\\"name\\":\\"Pro\\",\\"monthlyPrice\\":159,\\"annuallyPrice\\":135,\\"description\\":\\"4000 Credits / month\\"},{\\"name\\":\\"Max\\",\\"monthlyPrice\\":299,\\"annuallyPrice\\":254,\\"description\\":\\"9000 Credits / month\\"}]}"]);
+        </script>
+      </head>
+      <body></body>
+    </html>
+  `;
+
+  const result = extractPricingFromStructuredScripts(html);
+
+  assert.deepEqual(
+    result.extractedPlans.map((plan) => ({
+      name: plan.name,
+      monthlyPrice: plan.monthlyPrice,
+      annualPrice: plan.annualPrice,
+      annualPriceIsPerMonth: plan.annualPriceIsPerMonth,
+    })),
+    [
+      {
+        name: "Basic",
+        monthlyPrice: 39.9,
+        annualPrice: 34,
+        annualPriceIsPerMonth: true,
+      },
+      {
+        name: "Pro",
+        monthlyPrice: 159,
+        annualPrice: 135,
+        annualPriceIsPerMonth: true,
+      },
+      {
+        name: "Max",
+        monthlyPrice: 299,
+        annualPrice: 254,
+        annualPriceIsPerMonth: true,
+      },
+    ]
+  );
+  assert.deepEqual(
+    result.priceMentions.map((entry) => ({
+      amount: entry.amount,
+      period: entry.period,
+    })),
+    [
+      { amount: 39.9, period: "month" },
+      { amount: 34, period: "year" },
+      { amount: 159, period: "month" },
+      { amount: 135, period: "year" },
+      { amount: 299, period: "month" },
+      { amount: 254, period: "year" },
+    ]
+  );
+});
+
+test("llm enrichment does not turn one-time pricing into recurring pricing", () => {
+  const payload: NormalizedPricingPayload = {
+    sourceUrl: "https://example.com/pricing",
+    pageTitle: "SuperShrimp Pricing",
+    pageDescription: "One-time payment posture app.",
+    planNames: ["supershrimp"],
+    priceMentions: [
+      { amount: 17, currency: "USD", period: "one_time" },
+      { amount: 29, currency: "USD", period: "unknown" },
+      { amount: 5000, currency: "USD", period: "unknown" },
+    ],
+    extractedPlans: [],
+    customPricingHints: [],
+    oneTimePricingHints: ["one-time payment"],
+    pricingModel: "one_time",
+    comparisonCadences: [],
+  };
+
+  const enriched = mergePricingPayloadEnrichment(payload, {
+    pageDescription: "One-time payment with a year of updates.",
+    comparisonCadenceHints: ["year"],
+    plans: [
+      {
+        name: "SuperShrimp",
+        price: 17,
+        currency: "USD",
+        cadenceHint: "one_time",
+        description: "One-time payment with all features included.",
+        features: ["1 year of updates", "30-day money-back guarantee"],
+        hasFreeTrial: false,
+      },
+      {
+        name: "Chronic Back Pain Treatment",
+        price: 5000,
+        currency: "USD",
+        cadenceHint: "year",
+        description: "Runs $5,000 per year.",
+      },
+    ],
+  });
+
+  assert.equal(enriched.pricingModel, "one_time");
+  assert.deepEqual(enriched.comparisonCadences, []);
+  assert.deepEqual(
+    enriched.priceMentions.map((entry) => entry.period),
+    ["one_time", "unknown", "unknown"]
   );
 });

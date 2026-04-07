@@ -167,3 +167,48 @@ test("playwright extraction preserves the default active cadence before switchin
     { amount: 300, currency: "USD", period: "year" },
   ]);
 });
+
+test("playwright extraction handles concatenated annual toggle labels and recovers plan names from CTA copy", async (t) => {
+  const server = await startFixtureServer(
+    loadFixture("playwright-camelcase-toggle-pricing.html")
+  );
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await extractPricingWithPlaywright(server.url);
+
+  assert.ok(result);
+  assert.deepEqual(result.pricingPayload.extractionDebug?.clickedCadences, [
+    "month",
+    "year",
+  ]);
+  assert.deepEqual(
+    result.pricingPayload.extractedPlans?.map((plan) => ({
+      name: plan.name,
+      monthlyPrice: plan.monthlyPrice,
+      annualPrice: plan.annualPrice,
+      annualPriceIsPerMonth: plan.annualPriceIsPerMonth,
+    })),
+    [
+      {
+        name: "Basic",
+        monthlyPrice: 39.9,
+        annualPrice: 34,
+        annualPriceIsPerMonth: true,
+      },
+      {
+        name: "Max",
+        monthlyPrice: 299,
+        annualPrice: 254,
+        annualPriceIsPerMonth: true,
+      },
+      {
+        name: "Pro",
+        monthlyPrice: 159,
+        annualPrice: 135,
+        annualPriceIsPerMonth: true,
+      },
+    ]
+  );
+});

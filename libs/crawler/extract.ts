@@ -17,8 +17,10 @@ import {
 } from "@/libs/crawler/llm-extract";
 import { extractPricingWithPlaywright } from "@/libs/crawler/playwright-extract";
 import {
+  extractPricingFromStructuredScripts,
   extractPricingFromJsonLd,
   mergeSchemaPricingIntoPayload,
+  mergeStructuredScriptPricingIntoPayload,
 } from "@/libs/crawler/schema-extract";
 import {
   canonicalizePricingPayload,
@@ -169,6 +171,14 @@ const inferPeriodFromContext = (context: string): PricePeriod => {
   const lowered = context.toLowerCase();
 
   if (
+    /(one-time payment|one time payment|pay once|one-time fee|lifetime access|yours forever|buy once|single payment)/.test(
+      lowered
+    )
+  ) {
+    return "one_time";
+  }
+
+  if (
     /(per user\/month|per month|\/month|\/mo|billed monthly|monthly plan|monthly)/.test(
       lowered
     )
@@ -183,15 +193,6 @@ const inferPeriodFromContext = (context: string): PricePeriod => {
   ) {
     return "year";
   }
-
-  if (
-    /(one-time payment|one time payment|pay once|one-time fee|lifetime access|yours forever|buy once|single payment)/.test(
-      lowered
-    )
-  ) {
-    return "one_time";
-  }
-
   return "unknown";
 };
 
@@ -234,10 +235,40 @@ const extractPriceMentions = (text: string): NormalizedPricePoint[] => {
       .filter(
         (contextAmount) => Number.isFinite(contextAmount) && contextAmount > 0
       );
+    const recurringContextAmounts = [
+      ...context.matchAll(
+        /(?:\b(?:USD|EUR|GBP|CAD|AUD|JPY)\b\s*|[€£$¥])\s*(\d{1,4}(?:,\d{3})*(?:\.\d{1,2})?)(?:\s*(?:\/|per)?\s*(day|daily|d|week|weekly|wk|w|month|monthly|mo|m|year|yearly|annual|annually|yr|y|once|one-time|onetime))?/gi
+      ),
+    ]
+      .map((contextMatch) => {
+        const localContext = context.slice(
+          Math.max(0, (contextMatch.index ?? 0) - 20),
+          Math.min(
+            context.length,
+            (contextMatch.index ?? 0) + (contextMatch[0]?.length ?? 0) + 20
+          )
+        );
+        return {
+          amount: Number.parseFloat((contextMatch[1] ?? "").replace(/,/g, "")),
+          period: contextMatch[2]
+            ? mapPeriod(contextMatch[2])
+            : inferPeriodFromContext(localContext),
+        };
+      })
+      .filter(
+        (entry) =>
+          Number.isFinite(entry.amount) &&
+          entry.amount > 0 &&
+          entry.period !== "day"
+      );
     const hasPairedPriceContext = contextAmounts.length >= 2;
     const lowestContextAmount = hasPairedPriceContext
       ? Math.min(...contextAmounts)
       : null;
+    const lowestRecurringContextAmount =
+      recurringContextAmounts.length >= 2
+        ? Math.min(...recurringContextAmounts.map((entry) => entry.amount))
+        : null;
     const loweredContext = context.toLowerCase();
     const hasCrossCadenceContext =
       /billed yearly|billed annually|paid yearly|paid annually|per year|\/year|yearly|annual|annually/.test(
@@ -246,11 +277,13 @@ const extractPriceMentions = (text: string): NormalizedPricePoint[] => {
       /per month|\/month|\/mo\b|monthly/.test(loweredContext);
     const shouldPreferLowestPairedPrice =
       hasPairedPriceContext &&
-      lowestContextAmount !== null &&
+      (lowestRecurringContextAmount !== null || lowestContextAmount !== null) &&
       hasCrossCadenceContext &&
       (inferredPeriod === "one_time" ||
         inferredPeriod === "month" ||
         inferredPeriod === "year");
+    const preferredPairedAmount =
+      lowestRecurringContextAmount ?? lowestContextAmount;
 
     if (
       Number.isFinite(amount) &&
@@ -260,7 +293,7 @@ const extractPriceMentions = (text: string): NormalizedPricePoint[] => {
       !(inferredPeriod === "unknown" && amount < 5) &&
       !(inferredPeriod === "unknown" && amount > 500) &&
       !(inferredPeriod === "unknown" && hasNoisyPriceContext(context)) &&
-      !(shouldPreferLowestPairedPrice && amount !== lowestContextAmount)
+      !(shouldPreferLowestPairedPrice && amount !== preferredPairedAmount)
     ) {
       const currency = codeToken
         ? codeToken.toUpperCase()
@@ -391,12 +424,14 @@ const extractPlanNames = (html: string): string[] => {
     .map((match) => stripHtmlToText(match[2] ?? ""))
     .map((value) => value.trim())
     .filter((value) => value.length > 0 && value.length <= 48)
+    .filter((value) => !/[.,:!?]/.test(value))
     .filter(
       (value) =>
         !/pricing|compare|faq|features|trusted by|money-back|save up to/i.test(
           value
         )
     )
+    .filter((value) => !/^(how|what|why|when|where|which|who)\b/i.test(value))
     .filter((value) => /[a-z]/i.test(value))
     .filter((value) => value.split(/\s+/).length <= 4);
 };
@@ -438,7 +473,21 @@ const extractAnchoredSegments = (
 
   for (const match of html.matchAll(anchorPattern)) {
     const start = match.index ?? 0;
-    const anchoredHtml = html.slice(start, Math.min(html.length, start + 12_000));
+    const tagName = (match[1] ?? "").toLowerCase();
+    let end = Math.min(html.length, start + 12_000);
+
+    if (tagName === "section" || tagName === "main") {
+      const closePattern = new RegExp(`</${tagName}>`, "i");
+      const closeMatch = html.slice(start).match(closePattern);
+      if (closeMatch && typeof closeMatch.index === "number") {
+        end = Math.min(
+          html.length,
+          start + closeMatch.index + closeMatch[0].length
+        );
+      }
+    }
+
+    const anchoredHtml = html.slice(start, end);
     if (anchoredHtml.length < 120) {
       continue;
     }
@@ -465,12 +514,22 @@ const scoreStaticScopeCandidate = (
   const customPricingHints = extractSignalMentions(text, CUSTOM_PRICING_SIGNALS);
   const oneTimePricingHints = extractSignalMentions(text, ONE_TIME_PRICING_SIGNALS);
   const noisePlanCount = countNavigationLikePlanNames(planNames);
+  const recurringPriceCount = priceMentions.filter(
+    (price) => price.period === "month" || price.period === "year"
+  ).length;
+  const nonRecurringPriceCount = priceMentions.filter(
+    (price) =>
+      price.period === "day" ||
+      price.period === "week" ||
+      price.period === "one_time"
+  ).length;
 
   let score = 0;
   score += Math.min(priceMentions.length, 4) * 4;
   score += Math.min(extractedPlans.length, 4) * 6;
   score += Math.min(planNames.length, 4) * 2;
   score += Math.min(pricingSignals.length, 3);
+  score += Math.min(recurringPriceCount, 4) * 3;
 
   if (
     label &&
@@ -491,6 +550,7 @@ const scoreStaticScopeCandidate = (
     score += 1;
   }
 
+  score -= nonRecurringPriceCount;
   score -= noisePlanCount * 4;
 
   if (priceMentions.length === 0) {
@@ -686,6 +746,146 @@ const hasImplausiblePriceSpread = (prices: NormalizedPricePoint[]): boolean => {
   return max >= 5_000 || max / Math.max(min, 1) >= 100;
 };
 
+const applyHtmlPricingEnrichments = (
+  payload: NormalizedPricingPayload,
+  htmlPricing: {
+    structuredScripts: ReturnType<typeof extractPricingFromStructuredScripts>;
+    jsonLd: ReturnType<typeof extractPricingFromJsonLd>;
+  }
+): NormalizedPricingPayload => {
+  const merged = mergeSchemaPricingIntoPayload(
+    mergeStructuredScriptPricingIntoPayload(
+      payload,
+      htmlPricing.structuredScripts
+    ),
+    htmlPricing.jsonLd
+  );
+
+  const hasOneTimeSignal =
+    (merged.oneTimePricingHints?.length ?? 0) > 0 ||
+    merged.priceMentions.some((entry) => entry.period === "one_time");
+  const hasMonthlyCadence = merged.priceMentions.some(
+    (entry) => entry.period === "month"
+  );
+  const recurringPlanCount = (merged.extractedPlans ?? []).filter(
+    (plan) =>
+      (typeof plan.monthlyPrice === "number" &&
+        Number.isFinite(plan.monthlyPrice)) ||
+      (typeof plan.annualPrice === "number" && Number.isFinite(plan.annualPrice))
+  ).length;
+
+  if (!hasOneTimeSignal || hasMonthlyCadence || recurringPlanCount > 0) {
+    return merged;
+  }
+
+  const oneTimeAmounts = merged.priceMentions
+    .filter((entry) => entry.period === "one_time")
+    .map((entry) => entry.amount)
+    .filter((amount) => Number.isFinite(amount) && amount > 0);
+  const maxOneTimeAmount =
+    oneTimeAmounts.length > 0 ? Math.max(...oneTimeAmounts) : 0;
+  const filteredPriceMentions = merged.priceMentions.filter((entry) => {
+    if (entry.period !== "year") {
+      return true;
+    }
+
+    if (entry.amount >= 1_000) {
+      return false;
+    }
+
+    if (maxOneTimeAmount > 0 && entry.amount > maxOneTimeAmount * 5) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return canonicalizePricingPayload({
+    ...merged,
+    priceMentions: filteredPriceMentions,
+  });
+};
+
+const getPricingModelRank = (model: PricingModel | undefined): number => {
+  switch (model) {
+    case "mixed_recurring":
+      return 4;
+    case "monthly_only":
+    case "annual_only":
+      return 3;
+    case "custom_only":
+      return 2;
+    case "one_time":
+      return 1;
+    default:
+      return 0;
+  }
+};
+
+const getRecurringPlanCount = (payload: NormalizedPricingPayload): number => {
+  return (payload.extractedPlans ?? []).filter(
+    (plan) =>
+      (typeof plan.monthlyPrice === "number" &&
+        Number.isFinite(plan.monthlyPrice)) ||
+      (typeof plan.annualPrice === "number" && Number.isFinite(plan.annualPrice))
+  ).length;
+};
+
+const getRecurringPriceCount = (payload: NormalizedPricingPayload): number => {
+  return payload.priceMentions.filter(
+    (entry) => entry.period === "month" || entry.period === "year"
+  ).length;
+};
+
+const shouldPreferAlternativePayload = ({
+  currentPayload,
+  currentConfidence,
+  alternativePayload,
+  alternativeConfidence,
+}: {
+  currentPayload: NormalizedPricingPayload;
+  currentConfidence: number;
+  alternativePayload: NormalizedPricingPayload;
+  alternativeConfidence: number;
+}): boolean => {
+  const currentCadenceCount = currentPayload.comparisonCadences?.length ?? 0;
+  const alternativeCadenceCount =
+    alternativePayload.comparisonCadences?.length ?? 0;
+  if (alternativeCadenceCount !== currentCadenceCount) {
+    return alternativeCadenceCount > currentCadenceCount;
+  }
+
+  const currentModelRank = getPricingModelRank(currentPayload.pricingModel);
+  const alternativeModelRank = getPricingModelRank(
+    alternativePayload.pricingModel
+  );
+  if (alternativeModelRank !== currentModelRank) {
+    return alternativeModelRank > currentModelRank;
+  }
+
+  const currentRecurringPlans = getRecurringPlanCount(currentPayload);
+  const alternativeRecurringPlans = getRecurringPlanCount(alternativePayload);
+  if (alternativeRecurringPlans !== currentRecurringPlans) {
+    return alternativeRecurringPlans > currentRecurringPlans;
+  }
+
+  const currentRecurringPrices = getRecurringPriceCount(currentPayload);
+  const alternativeRecurringPrices = getRecurringPriceCount(alternativePayload);
+  if (alternativeRecurringPrices !== currentRecurringPrices) {
+    return alternativeRecurringPrices > currentRecurringPrices;
+  }
+
+  if (alternativePayload.planNames.length !== currentPayload.planNames.length) {
+    return alternativePayload.planNames.length > currentPayload.planNames.length;
+  }
+
+  if (alternativePayload.priceMentions.length !== currentPayload.priceMentions.length) {
+    return alternativePayload.priceMentions.length > currentPayload.priceMentions.length;
+  }
+
+  return alternativeConfidence > currentConfidence;
+};
+
 const shouldUsePlaywrightFallback = ({
   prices,
   planNames,
@@ -866,6 +1066,10 @@ export const fetchAndExtractPricing = async (
   const fullPageText = stripHtmlToText(fetched.html);
   const blockedSignals = extractSignalMentions(fullPageText, BLOCKED_TEXT_SIGNALS);
   const staticScope = chooseStaticScope(fetched.html);
+  const htmlPricing = {
+    structuredScripts: extractPricingFromStructuredScripts(fetched.html),
+    jsonLd: extractPricingFromJsonLd(fetched.html),
+  };
   const pricingText = staticScope.selected.text;
   const priceMentions = staticScope.selected.priceMentions;
   const pricingSignals = staticScope.selected.pricingSignals;
@@ -878,7 +1082,11 @@ export const fetchAndExtractPricing = async (
     (priceMentions.length === 0 &&
       pricingSignals.length === 0 &&
       customPricingHints.length === 0 &&
-      oneTimePricingHints.length === 0);
+      oneTimePricingHints.length === 0 &&
+      htmlPricing.structuredScripts.priceMentions.length === 0 &&
+      htmlPricing.structuredScripts.extractedPlans.length === 0 &&
+      htmlPricing.jsonLd.priceMentions.length === 0 &&
+      htmlPricing.jsonLd.extractedPlans.length === 0);
 
   if (staticFoundNothing) {
     // Static HTML is either a bot challenge page or a JS-rendered shell — try Playwright.
@@ -942,17 +1150,21 @@ export const fetchAndExtractPricing = async (
     oneTimePricingHints,
     extractionDebug: staticScope.debug,
   });
+  const enrichedStaticPayload = applyHtmlPricingEnrichments(
+    staticPayload,
+    htmlPricing
+  );
   const confidence = getConfidence(
-    staticPayload.priceMentions,
-    staticPayload.planNames,
+    enrichedStaticPayload.priceMentions,
+    enrichedStaticPayload.planNames,
     pricingSignals,
-    staticPayload.customPricingHints,
-    staticPayload.oneTimePricingHints ?? [],
+    enrichedStaticPayload.customPricingHints,
+    enrichedStaticPayload.oneTimePricingHints ?? [],
     hasInteractiveCadenceSignals(fullPageText),
-    staticPayload.pricingModel ?? "unknown"
+    enrichedStaticPayload.pricingModel ?? "unknown"
   );
 
-  let payload = staticPayload;
+  let payload = enrichedStaticPayload;
   let finalConfidence = confidence;
   let captureMethod: SnapshotCaptureMethod = "static";
   let contentHash = createContentHash(normalizedHashInput);
@@ -965,34 +1177,53 @@ export const fetchAndExtractPricing = async (
   if (
     options.allowPlaywrightFallback !== false &&
     shouldUsePlaywrightFallback({
-      prices: staticPayload.priceMentions,
-      planNames: staticPayload.planNames,
-      extractedPlans: staticPayload.extractedPlans ?? [],
+      prices: payload.priceMentions,
+      planNames: payload.planNames,
+      extractedPlans: payload.extractedPlans ?? [],
       pricingText: fullPageText,
-      confidence,
+      confidence: finalConfidence,
     })
   ) {
     try {
       const playwrightResult = await extractPricingWithPlaywright(sourceUrl);
+      if (!playwrightResult) {
+        throw new Error("Playwright returned no extraction result");
+      }
+      const enrichedPlaywrightPayload = applyHtmlPricingEnrichments(
+        playwrightResult.pricingPayload,
+        htmlPricing
+      );
+      const playwrightConfidence = Math.max(
+        playwrightResult.confidence,
+        getConfidence(
+          enrichedPlaywrightPayload.priceMentions,
+          enrichedPlaywrightPayload.planNames,
+          pricingSignals,
+          enrichedPlaywrightPayload.customPricingHints,
+          enrichedPlaywrightPayload.oneTimePricingHints ?? [],
+          hasInteractiveCadenceSignals(fullPageText),
+          enrichedPlaywrightPayload.pricingModel ?? "unknown"
+        )
+      );
 
       if (
         playwrightResult &&
-        ((playwrightResult.pricingPayload.extractedPlans?.length ?? 0) >= 2 ||
-          playwrightResult.pricingPayload.planNames.length >
-            staticPayload.planNames.length ||
-          (playwrightResult.pricingPayload.priceMentions.length >=
-            staticPayload.priceMentions.length &&
-            playwrightResult.confidence >= finalConfidence))
+        shouldPreferAlternativePayload({
+          currentPayload: payload,
+          currentConfidence: finalConfidence,
+          alternativePayload: enrichedPlaywrightPayload,
+          alternativeConfidence: playwrightConfidence,
+        })
       ) {
-        payload = playwrightResult.pricingPayload;
-        finalConfidence = playwrightResult.confidence;
+        payload = enrichedPlaywrightPayload;
+        finalConfidence = playwrightConfidence;
         captureMethod = "playwright";
         contentHash = playwrightResult.contentHash;
         enrichmentText = playwrightResult.enrichmentText;
         isVerified =
           playwrightResult.isVerified &&
-          playwrightResult.pricingPayload.priceMentions.length > 0 &&
-          playwrightResult.pricingPayload.planNames.length > 0;
+          enrichedPlaywrightPayload.priceMentions.length > 0 &&
+          enrichedPlaywrightPayload.planNames.length > 0;
       }
     } catch (playwrightError) {
       console.error(
@@ -1001,11 +1232,6 @@ export const fetchAndExtractPricing = async (
       );
     }
   }
-
-  payload = mergeSchemaPricingIntoPayload(
-    payload,
-    extractPricingFromJsonLd(fetched.html)
-  );
 
   if (
     options.allowLlmEnrichment !== false &&
