@@ -212,10 +212,9 @@ export default function CompetitorManagementSheet({
         </SheetHeader>
 
         <div className="relative min-h-0 flex-1">
-          <div className="pointer-events-none absolute inset-x-4 bottom-0 z-10 h-12 bg-gradient-to-t from-white via-white/95 to-transparent" />
-          <div className="min-h-0 h-full overflow-y-auto px-4 pb-2">
+          <div className="min-h-0 h-full overflow-y-auto px-4 pb-6">
           <div className="space-y-5">
-            <div className="sticky top-0 z-10 -mx-4 border-y border-[#e2e8f0] bg-white/95 px-4 py-2 backdrop-blur">
+            <div className="sticky top-0 z-10 -mx-4 border-y border-[#e2e8f0] bg-white/95 px-4 py-2 shadow-[0_1px_0_0_rgba(226,232,240,0.85)] backdrop-blur">
               <div className="flex items-center justify-between gap-3 text-xs text-[#64748b]">
                 <p>Scroll to review extracted context, discovery candidates, and manual source controls.</p>
                 <span className="inline-flex shrink-0 items-center gap-1 font-medium text-[#0f766e]">

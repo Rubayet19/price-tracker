@@ -13,11 +13,12 @@ const source = readFileSync(
 test("competitor management sheet keeps actions visible with a scrollable body", () => {
   assert.match(source, /SheetContent[\s\S]*overflow-hidden[\s\S]*p-0/);
   assert.match(source, /className="relative min-h-0 flex-1"/);
-  assert.match(source, /className="min-h-0 h-full overflow-y-auto/);
+  assert.match(source, /className="min-h-0 h-full overflow-y-auto px-4 pb-6"/);
   assert.match(
     source,
     /Scroll to review extracted context, discovery candidates, and manual source controls\./
   );
+  assert.doesNotMatch(source, /bg-gradient-to-t from-white via-white\/95 to-transparent/);
   assert.match(source, /SheetFooter[\s\S]*className="shrink-0 border-t/);
 });
 
