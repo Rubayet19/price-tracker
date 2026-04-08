@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import Link from "next/link";
-import { ExternalLink, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import {
+  ChevronsDown,
+  ExternalLink,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import {
   deleteCompetitor,
@@ -205,8 +211,20 @@ export default function CompetitorManagementSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2">
+        <div className="relative min-h-0 flex-1">
+          <div className="pointer-events-none absolute inset-x-4 bottom-0 z-10 h-12 bg-gradient-to-t from-white via-white/95 to-transparent" />
+          <div className="min-h-0 h-full overflow-y-auto px-4 pb-2">
           <div className="space-y-5">
+            <div className="sticky top-0 z-10 -mx-4 border-y border-[#e2e8f0] bg-white/95 px-4 py-2 backdrop-blur">
+              <div className="flex items-center justify-between gap-3 text-xs text-[#64748b]">
+                <p>Scroll to review extracted context, discovery candidates, and manual source controls.</p>
+                <span className="inline-flex shrink-0 items-center gap-1 font-medium text-[#0f766e]">
+                  <ChevronsDown className="size-3.5" />
+                  More below
+                </span>
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -225,6 +243,20 @@ export default function CompetitorManagementSheet({
                       Edit details
                     </Link>
                   </Button>
+                  {!showDeleteConfirm ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setShowDeleteConfirm(true);
+                      }}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete competitor
+                    </Button>
+                  ) : null}
                   <Badge
                     variant="outline"
                     className={
@@ -260,6 +292,44 @@ export default function CompetitorManagementSheet({
                 <p className="mt-3 rounded-xl border border-[#f59e0b]/30 bg-[#fffbeb] px-3 py-2 text-sm text-[#92400e]">
                   {competitor.trust.lastCrawlError}
                 </p>
+              ) : null}
+
+              {showDeleteConfirm ? (
+                <div className="mt-4 rounded-xl border border-[#fecaca] bg-[#fef2f2] p-3">
+                  <p className="text-sm font-semibold text-[#991b1b]">
+                    Delete competitor
+                  </p>
+                  <p className="mt-1 text-sm text-[#7f1d1d]">
+                    Delete {competitor.name} and all stored snapshots, diffs,
+                    and insights. This cannot be undone.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        void handleDelete();
+                      }}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="size-4" />
+                      {isDeleting ? "Deleting..." : "Confirm delete"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                      }}
+                      disabled={isDeleting}
+                      className="bg-white"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               ) : null}
             </div>
 
@@ -432,61 +502,8 @@ export default function CompetitorManagementSheet({
                 {error}
               </p>
             ) : null}
-
-            <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-4">
-              <p className="text-sm font-semibold text-[#991b1b]">
-                Remove competitor
-              </p>
-              <p className="mt-1 text-sm text-[#7f1d1d]">
-                This deletes the competitor and its stored snapshots, diffs, and
-                insights.
-              </p>
-              {showDeleteConfirm ? (
-                <div className="mt-4 space-y-3">
-                  <p className="text-sm font-medium text-[#7f1d1d]">
-                    Delete {competitor.name}? This cannot be undone.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => {
-                        void handleDelete();
-                      }}
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="size-4" />
-                      {isDeleting ? "Deleting..." : "Confirm delete"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setShowDeleteConfirm(false);
-                      }}
-                      disabled={isDeleting}
-                      className="bg-white"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => {
-                    setShowDeleteConfirm(true);
-                  }}
-                  disabled={isDeleting}
-                  className="mt-4"
-                >
-                  <Trash2 className="size-4" />
-                  Delete competitor
-                </Button>
-              )}
-            </div>
           </div>
+        </div>
         </div>
 
         <SheetFooter className="shrink-0 border-t border-[#e2e8f0] bg-white">
