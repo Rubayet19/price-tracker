@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="Explore Velo pricing plans — Free, Pro, and Ultra. Create AI-powered video messages with no watermarks, custom avatars, and priority support."
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pricing | Velo</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #fff;
+        color: #111827;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
+      }
+      .toggle-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 18px;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, 0.85);
+        color: #fff;
+        margin-bottom: 32px;
+      }
+      .toggle {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 44px;
+        height: 22px;
+        border: 0;
+        border-radius: 999px;
+        background: #ffffff;
+        cursor: pointer;
+      }
+      .toggle-knob {
+        position: absolute;
+        width: 24px;
+        height: 16px;
+        border-radius: 999px;
+        background: #0044ff;
+        left: 2px;
+        transition: transform 120ms ease;
+      }
+      .translate-x-0\.5 {
+        transform: translateX(0);
+      }
+      .translate-x-5 {
+        transform: translateX(16px);
+      }
+      .pricing {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid #cbd5e1;
+        border-radius: 20px;
+        padding: 24px;
+        background: #ffffff;
+      }
+      .plan-name {
+        display: block;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .price-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .price {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .period {
+        color: #475569;
+        font-size: 22px;
+      }
+      .cta {
+        display: inline-flex;
+        justify-content: center;
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 999px;
+        background: #2563eb;
+        color: #fff;
+        text-decoration: none;
+        margin-bottom: 18px;
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section id="pricing">
+        <h1>Pricing that Scales</h1>
+
+        <div class="toggle-wrap">
+          <span>Monthly</span>
+          <button
+            id="cadence-toggle"
+            class="toggle"
+            type="button"
+            aria-label="Toggle between Monthly and Yearly pricing"
+          >
+            <span id="cadence-toggle-knob" class="toggle-knob translate-x-0.5"></span>
+          </button>
+          <span>Yearly</span>
+        </div>
+
+        <div class="pricing">
+          <article class="card" data-plan="free">
+            <span class="plan-name">Free</span>
+            <p>Best for exploring Velo</p>
+            <div class="price-row">
+              <span class="price">$0</span>
+              <span class="period">/month</span>
+            </div>
+            <a class="cta" href="#free">Try Velo for free</a>
+          </article>
+
+          <article class="card" data-plan="pro">
+            <div class="plan-name">Pro</div>
+            <p>Best value for most users</p>
+            <div class="state state-monthly">
+              <div class="price-row">
+                <span class="price">$20</span>
+                <span class="period">/month</span>
+              </div>
+            </div>
+            <div class="state state-yearly hidden">
+              <div class="price-row">
+                <span class="price">$16.67</span>
+                <span class="period">/month</span>
+              </div>
+            </div>
+            <a class="cta" href="#pro">Get started</a>
+            <p>60 Velo minutes / month</p>
+            <p>Everything in free, and more control.</p>
+          </article>
+
+          <article class="card" data-plan="ultra">
+            <div class="plan-name">Ultra</div>
+            <p>Built for high-volume output</p>
+            <div class="state state-monthly">
+              <div class="price-row">
+                <span class="price">$200</span>
+                <span class="period">/month</span>
+              </div>
+            </div>
+            <div class="state state-yearly hidden">
+              <div class="price-row">
+                <span class="price">$166.67</span>
+                <span class="period">/month</span>
+              </div>
+            </div>
+            <a class="cta" href="#ultra">Get started</a>
+            <p>600 Velo minutes / month</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const toggle = document.getElementById("cadence-toggle");
+      const knob = document.getElementById("cadence-toggle-knob");
+      let mode = "monthly";
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        document.querySelectorAll(".state-monthly").forEach((node) => {
+          node.classList.toggle("hidden", mode !== "monthly");
+        });
+        document.querySelectorAll(".state-yearly").forEach((node) => {
+          node.classList.toggle("hidden", mode !== "yearly");
+        });
+        knob.classList.toggle("translate-x-0.5", mode === "monthly");
+        knob.classList.toggle("translate-x-5", mode === "yearly");
+      }
+
+      toggle.addEventListener("click", () => {
+        setMode(mode === "monthly" ? "yearly" : "monthly");
+      });
+
+      setMode("monthly");
+    </script>
+  </body>
+</html>

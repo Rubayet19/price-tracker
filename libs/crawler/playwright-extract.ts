@@ -196,33 +196,49 @@ const detectCadenceFromGenericToggle = async (
         return null;
       }
 
+      const ariaChecked = element.getAttribute("aria-checked");
+      if (ariaChecked === "true") {
+        return "year";
+      }
+      if (ariaChecked === "false") {
+        return "month";
+      }
+
       const hostRect = element.getBoundingClientRect();
-      const knob =
-        element.querySelector("span, div") instanceof HTMLElement
-          ? (element.querySelector("span, div") as HTMLElement)
-          : null;
+      const knob = Array.from(element.querySelectorAll("span, div")).find(
+        (entry) => entry instanceof HTMLElement
+      ) as HTMLElement | undefined;
       if (!knob) {
         return null;
       }
 
       const knobRect = knob.getBoundingClientRect();
       const knobClass = knob.className ?? "";
-      const knobTransform = window.getComputedStyle(knob).transform ?? "";
       const centeredLeft = knobRect.left - hostRect.left + knobRect.width / 2;
+      const width = hostRect.width || 0;
+
+      if (width > 0 && knobRect.width > 0) {
+        const normalizedPosition = centeredLeft / width;
+        if (normalizedPosition <= 0.45) {
+          return "month";
+        }
+        if (normalizedPosition >= 0.55) {
+          return "year";
+        }
+      }
+
+      if (/\btranslate-x-(?:0|0\.5|1)\b/i.test(knobClass)) {
+        return "month";
+      }
 
       if (
-        /\b(translate-x|translatex|right|checked|selected|active|on)\b/i.test(
-          knobClass
-        )
+        /\btranslate-x-(?:[2-9]|1\d|full)\b/i.test(knobClass) ||
+        /\bright-(?:0|1|2|3|4|5|6|full)\b/i.test(knobClass)
       ) {
         return "year";
       }
 
-      if (knobTransform && knobTransform !== "none") {
-        return "year";
-      }
-
-      return centeredLeft >= hostRect.width / 2 ? "year" : "month";
+      return null;
     })
     .catch((): PricePeriod | null => null);
 };
@@ -538,11 +554,35 @@ const computeConfidence = (
   return Math.max(0, Math.min(0.96, confidence));
 };
 
-const isAnnualPriceShownPerMonth = (cardText: string): boolean => {
+const getPrimaryPriceContext = (cardText: string): string => {
   const lowered = cardText.toLowerCase();
-  const hasBilledAnnually = hasAnnualBillingSignal(lowered);
-  const hasPerMonth = /\/month|\/mo|per month/.test(lowered);
-  return hasBilledAnnually && hasPerMonth;
+  const priceMatch = lowered.match(
+    /(?:\b(?:usd|eur|gbp|cad|aud|jpy)\b\s*|[€£$¥])\s*\d{1,4}(?:,\d{3})*(?:\.\d{1,2})?/
+  );
+
+  if (!priceMatch || priceMatch.index === undefined) {
+    return lowered;
+  }
+
+  return lowered.slice(priceMatch.index, priceMatch.index + 48);
+};
+
+const isAnnualPriceShownPerMonth = (
+  cardText: string,
+  activeCadence: PricePeriod | null
+): boolean => {
+  const lowered = cardText.toLowerCase();
+  const primaryPriceContext = getPrimaryPriceContext(cardText);
+  const hasPerMonth = /\/month|\/mo|per month/.test(primaryPriceContext);
+  if (!hasPerMonth) {
+    return false;
+  }
+
+  if (activeCadence === "year") {
+    return true;
+  }
+
+  return hasAnnualBillingSignal(lowered);
 };
 
 const buildExtractedPlans = (
@@ -597,7 +637,10 @@ const buildExtractedPlans = (
 
       if (state.cadence === "year" && existing.annualPrice === null) {
         existing.annualPrice = primaryPrice.amount;
-        existing.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(card.text);
+        existing.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(
+          card.text,
+          state.cadence
+        );
       }
 
       if (state.cadence === null) {
@@ -614,7 +657,8 @@ const buildExtractedPlans = (
         if (inferredPeriod === "year" && existing.annualPrice === null) {
           existing.annualPrice = primaryPrice.amount;
           existing.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(
-            card.text
+            card.text,
+            state.cadence ?? inferredPeriod
           );
         }
 
@@ -667,7 +711,10 @@ const buildExtractedPlans = (
           plan.monthlyPrice = amount;
         } else {
           plan.annualPrice = amount;
-          plan.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(cardText);
+          plan.annualPriceIsPerMonth = isAnnualPriceShownPerMonth(
+            cardText,
+            inferredPeriod
+          );
         }
       }
     }
@@ -712,6 +759,10 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     const candidate = match[1]
       .replace(/\\b(plan|tier|subscription)\\b/gi, "")
       .trim();
+
+    if (/^(started|started free|free|trial|demo|quote|support)$/i.test(candidate)) {
+      return null;
+    }
 
     return isLikelyPlanName(candidate) ? candidate : null;
   }

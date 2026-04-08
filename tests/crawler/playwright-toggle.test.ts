@@ -212,3 +212,46 @@ test("playwright extraction handles concatenated annual toggle labels and recove
     ]
   );
 });
+
+test("playwright extraction keeps monthly and annual billing in the correct slots when annual billing is displayed per month", async (t) => {
+  const server = await startFixtureServer(
+    loadFixture("playwright-usevelo-live.html")
+  );
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await extractPricingWithPlaywright(server.url);
+
+  assert.ok(result);
+  assert.deepEqual(result.pricingPayload.extractionDebug?.clickedCadences, [
+    "month",
+    "year",
+  ]);
+  assert.ok(
+    !result.pricingPayload.planNames.includes("started"),
+    "generic CTA copy should not become a synthetic plan name"
+  );
+  assert.deepEqual(
+    result.pricingPayload.extractedPlans?.map((plan) => ({
+      name: plan.name,
+      monthlyPrice: plan.monthlyPrice,
+      annualPrice: plan.annualPrice,
+      annualPriceIsPerMonth: plan.annualPriceIsPerMonth,
+    })),
+    [
+      {
+        name: "Pro",
+        monthlyPrice: 20,
+        annualPrice: 16.67,
+        annualPriceIsPerMonth: true,
+      },
+      {
+        name: "Ultra",
+        monthlyPrice: 200,
+        annualPrice: 166.67,
+        annualPriceIsPerMonth: true,
+      },
+    ]
+  );
+});
