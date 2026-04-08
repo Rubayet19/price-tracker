@@ -255,3 +255,32 @@ test("playwright extraction keeps monthly and annual billing in the correct slot
     ]
   );
 });
+
+test("playwright extraction treats a higher annual-state amount as a yearly total even if the UI says per month", async (t) => {
+  const server = await startFixtureServer(
+    loadFixture("playwright-annual-total-mislabelled-monthly.html")
+  );
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await extractPricingWithPlaywright(server.url);
+
+  assert.ok(result);
+  assert.deepEqual(
+    result.pricingPayload.extractedPlans?.map((plan) => ({
+      name: plan.name,
+      monthlyPrice: plan.monthlyPrice,
+      annualPrice: plan.annualPrice,
+      annualPriceIsPerMonth: plan.annualPriceIsPerMonth,
+    })),
+    [
+      {
+        name: "Pro",
+        monthlyPrice: 20,
+        annualPrice: 240,
+        annualPriceIsPerMonth: false,
+      },
+    ]
+  );
+});

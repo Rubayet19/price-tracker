@@ -74,6 +74,13 @@ const normalizeCadenceControlText = (value: string): string => {
   );
 };
 
+const containsBothCadenceKeywords = (value: string): boolean => {
+  return (
+    /\b(monthly|month)\b/i.test(value) &&
+    /\b(yearly|annual|annually|year)\b/i.test(value)
+  );
+};
+
 const uniqueStrings = (items: string[]): string[] => {
   return [
     ...new Set(items.map((item) => normalizeWhitespace(item).toLowerCase())),
@@ -292,13 +299,29 @@ const detectActiveCadence = async (
 
     const text = await candidate.innerText().catch((): string => "");
     const normalizedText = normalizeCadenceControlText(text);
+    const parentText = await candidate
+      .locator("xpath=..")
+      .innerText()
+      .catch((): string => "");
+    const normalizedParent = normalizeCadenceControlText(parentText);
+
+    if (
+      containsBothCadenceKeywords(normalizedText) ||
+      containsBothCadenceKeywords(normalizedParent)
+    ) {
+      const genericCadence = await detectCadenceFromGenericToggle(
+        candidate,
+        containsBothCadenceKeywords(normalizedText)
+          ? normalizedText
+          : normalizedParent
+      );
+      if (genericCadence) {
+        return genericCadence;
+      }
+    }
+
     const cadence = detectCadenceFromText(normalizedText);
     if (!cadence) {
-      const parentText = await candidate
-        .locator("xpath=..")
-        .innerText()
-        .catch((): string => "");
-      const normalizedParent = normalizeCadenceControlText(parentText);
       const genericCadence = await detectCadenceFromGenericToggle(
         candidate,
         normalizedParent
@@ -720,6 +743,17 @@ const buildExtractedPlans = (
     }
   }
 
+  for (const plan of planMap.values()) {
+    if (
+      typeof plan.monthlyPrice === "number" &&
+      Number.isFinite(plan.monthlyPrice) &&
+      typeof plan.annualPrice === "number" &&
+      Number.isFinite(plan.annualPrice)
+    ) {
+      plan.annualPriceIsPerMonth = plan.annualPrice < plan.monthlyPrice;
+    }
+  }
+
   return [...planMap.values()].filter(
     (plan) => plan.monthlyPrice !== null || plan.annualPrice !== null
   );
@@ -1107,9 +1141,8 @@ const clickCadenceIfPresent = async (
     }
 
     const genericToggleCadence =
-      !directText &&
-      /\b(monthly|month)\b/i.test(parentText) &&
-      /\b(yearly|annual|annually|year)\b/i.test(parentText)
+      (containsBothCadenceKeywords(directText) ||
+        containsBothCadenceKeywords(parentText))
         ? await detectCadenceFromGenericToggle(candidate, parentText)
         : null;
 

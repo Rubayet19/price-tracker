@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="Fixture where yearly pricing is incorrectly labeled as monthly in the UI."
+    />
+    <title>Annual Total Mislabelled Monthly</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 24px;
+      }
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 16px;
+        border: 1px solid #ddd;
+        border-radius: 9999px;
+        cursor: pointer;
+      }
+      .toggle-track {
+        position: relative;
+        width: 48px;
+        height: 28px;
+        border-radius: 9999px;
+        background: #111827;
+      }
+      .toggle-knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 9999px;
+        background: #fff;
+      }
+      .translate-x-0\.5 {
+        transform: translateX(0);
+      }
+      .translate-x-5 {
+        transform: translateX(20px);
+      }
+      .hidden {
+        display: none;
+      }
+      .card {
+        width: 280px;
+        margin-top: 24px;
+        padding: 24px;
+        border: 1px solid #ddd;
+        border-radius: 16px;
+      }
+      .price {
+        font-size: 48px;
+        font-weight: 700;
+      }
+      .period {
+        font-size: 18px;
+      }
+      .cta {
+        display: inline-block;
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <button id="cadence-toggle" class="toggle" type="button">
+        <span>Monthly</span>
+        <span class="toggle-track">
+          <span id="cadence-toggle-knob" class="toggle-knob translate-x-0.5"></span>
+        </span>
+        <span>Yearly</span>
+      </button>
+
+      <article class="card" data-plan="pro">
+        <h2>Pro</h2>
+        <div class="state state-monthly">
+          <span class="price">$20</span>
+          <span class="period">/month</span>
+        </div>
+        <div class="state state-yearly hidden">
+          <span class="price">$240</span>
+          <span class="period">/month</span>
+        </div>
+        <a class="cta" href="#pro">Choose Pro</a>
+      </article>
+    </main>
+
+    <script>
+      const toggle = document.getElementById("cadence-toggle");
+      const knob = document.getElementById("cadence-toggle-knob");
+      let mode = "monthly";
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        document.querySelectorAll(".state-monthly").forEach((node) => {
+          node.classList.toggle("hidden", mode !== "monthly");
+        });
+        document.querySelectorAll(".state-yearly").forEach((node) => {
+          node.classList.toggle("hidden", mode !== "yearly");
+        });
+        knob.classList.toggle("translate-x-0.5", mode === "monthly");
+        knob.classList.toggle("translate-x-5", mode === "yearly");
+      }
+
+      toggle.addEventListener("click", () => {
+        setMode(mode === "monthly" ? "yearly" : "monthly");
+      });
+
+      setMode("monthly");
+    </script>
+  </body>
+</html>
