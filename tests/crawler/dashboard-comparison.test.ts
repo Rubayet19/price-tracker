@@ -4,8 +4,10 @@ import test from "node:test";
 import {
   getCompetitorComparisonPrices,
   getCompetitorComparisonUnavailableReason,
+  summarizeCompetitorComparison,
 } from "@/libs/dashboard-comparison";
 import type { DashboardComparisonCompetitor } from "@/types/dashboard";
+import type { SelfPricingProfileData } from "@/types/self-pricing";
 
 const competitorWithoutPlans: DashboardComparisonCompetitor = {
   companyId: "cmp_1",
@@ -116,4 +118,28 @@ test("dashboard comparison no longer renders synthetic detected price range labe
 
   assert.match(unavailableReason ?? "", /tier names couldn't be extracted/i);
   assert.deepEqual(prices, []);
+});
+
+test("comparison summary compares competitor range against the self pricing baseline instead of restating the obvious range", () => {
+  const selfPrices = [
+    { name: "Starter", amount: 10, currency: "USD" },
+    { name: "Growth", amount: 50, currency: "USD" },
+    { name: "Scale", amount: 120, currency: "USD" },
+  ];
+  const competitorPrices = getCompetitorComparisonPrices(
+    competitorWithOrderedPlanTexts,
+    "month"
+  );
+
+  const summary = summarizeCompetitorComparison(
+    competitorWithOrderedPlanTexts,
+    competitorPrices,
+    selfPrices,
+    "month"
+  );
+
+  assert.equal(
+    summary,
+    "Competitor monthly pricing starts above your Starter tier and stretches beyond your highest tier, from $39.90 to $299."
+  );
 });

@@ -274,6 +274,45 @@ const summarizeSinglePrice = (
   return `${formatCurrencyAmount(currency, amount)} is closest to your ${nearest.name} tier (${formatCurrencyAmount(nearest.currency, nearest.amount)}).`;
 };
 
+const summarizeRangeAgainstSelfBaseline = (
+  lowestAmount: number,
+  highestAmount: number,
+  selfPrices: SelfComparisonPrice[],
+  currency: string,
+  cadence: ComparisonCadence
+): string => {
+  const sortedSelfPrices = [...selfPrices].sort(
+    (left, right) => left.amount - right.amount
+  );
+  const lowestSelfPrice = sortedSelfPrices[0];
+  const highestSelfPrice = sortedSelfPrices[sortedSelfPrices.length - 1];
+
+  const lowerAnchor =
+    lowestAmount < lowestSelfPrice.amount
+      ? `starts below your lowest tier (${lowestSelfPrice.name} at ${formatCurrencyAmount(lowestSelfPrice.currency, lowestSelfPrice.amount)})`
+      : lowestAmount === lowestSelfPrice.amount
+        ? `starts at your lowest tier (${lowestSelfPrice.name})`
+        : lowestAmount > highestSelfPrice.amount
+          ? `starts above your highest tier (${highestSelfPrice.name} at ${formatCurrencyAmount(highestSelfPrice.currency, highestSelfPrice.amount)})`
+          : `starts above your ${sortedSelfPrices.reduce((best, candidate) => {
+              if (candidate.amount > lowestAmount) {
+                return best;
+              }
+              return candidate;
+            }, lowestSelfPrice).name} tier`;
+
+  const upperAnchor =
+    highestAmount > highestSelfPrice.amount
+      ? "stretches beyond your highest tier"
+      : highestAmount === highestSelfPrice.amount
+        ? `tops out at your highest tier (${highestSelfPrice.name})`
+        : highestAmount < lowestSelfPrice.amount
+          ? `stays below your lowest tier (${lowestSelfPrice.name})`
+          : `tops out below your ${sortedSelfPrices.find((candidate) => candidate.amount >= highestAmount)?.name ?? highestSelfPrice.name} tier`;
+
+  return `Competitor ${cadence === "month" ? "monthly" : "annual"} pricing ${lowerAnchor} and ${upperAnchor}, from ${formatCurrencyAmount(currency, lowestAmount)} to ${formatCurrencyAmount(currency, highestAmount)}.`;
+};
+
 export const summarizeCompetitorComparison = (
   competitor: DashboardComparisonCompetitor,
   competitorPrices: CompetitorComparisonPrice[],
@@ -315,7 +354,16 @@ export const summarizeCompetitorComparison = (
   }
 
   const currency = lowestCompetitorPrice.currency;
-  const allNamedPlans = competitorPrices.every((price) => price.source === "plan");
 
-  return `Competitor ${cadence === "month" ? "monthly" : "annual"} pricing spans ${formatCurrencyAmount(currency, lowestCompetitorPrice.minAmount)} to ${formatCurrencyAmount(currency, highestCompetitorPrice.maxAmount)} across ${competitorPrices.length} detected ${allNamedPlans ? `plan${competitorPrices.length === 1 ? "" : "s"}` : `price point${competitorPrices.length === 1 ? "" : "s"}`}.`;
+  if (selfPrices.length > 0) {
+    return summarizeRangeAgainstSelfBaseline(
+      lowestCompetitorPrice.minAmount,
+      highestCompetitorPrice.maxAmount,
+      selfPrices,
+      currency,
+      cadence
+    );
+  }
+
+  return `Competitor ${cadence === "month" ? "monthly" : "annual"} pricing spans ${formatCurrencyAmount(currency, lowestCompetitorPrice.minAmount)} to ${formatCurrencyAmount(currency, highestCompetitorPrice.maxAmount)} across ${competitorPrices.length} detected price point${competitorPrices.length === 1 ? "" : "s"}.`;
 };

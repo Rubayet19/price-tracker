@@ -14,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import CompetitorManagementSheet from "@/components/dashboard/competitor-management-sheet";
 import DashboardEntitlementBanner from "@/components/dashboard/dashboard-entitlement-banner";
+import { summarizeCompetitorSnapshot } from "@/libs/dashboard-competitor-summary";
 import {
   loadDashboardComparison,
   loadDashboardOverview,
@@ -99,38 +100,6 @@ const getPriority = (competitor: DashboardComparisonCompetitor): number => {
   }
 
   return 5;
-};
-
-const summarizeSnapshot = (
-  competitor: DashboardComparisonCompetitor
-): string | null => {
-  const snapshot = competitor.latestSnapshot;
-  if (!snapshot) {
-    return null;
-  }
-
-  if (snapshot.pricingModel === "one_time") {
-    return "One-time pricing detected; recurring comparison is unavailable.";
-  }
-
-  if (snapshot.pricingModel === "custom_only") {
-    return "Custom pricing only; direct comparison is unavailable.";
-  }
-
-  if (snapshot.extractedPlans.length > 0) {
-    const cadenceCount = snapshot.comparisonCadences.length;
-    return `${snapshot.extractedPlans.length} named plan${snapshot.extractedPlans.length === 1 ? "" : "s"} extracted${cadenceCount > 0 ? ` across ${cadenceCount} billing cadence${cadenceCount === 1 ? "" : "s"}` : ""}.`;
-  }
-
-  if (snapshot.comparisonCadences.length > 0) {
-    return "Pricing detected, but plan names couldn't be extracted.";
-  }
-
-  if (snapshot.pricePoints.length > 0) {
-    return "Pricing detected, but billing cadence couldn't be determined.";
-  }
-
-  return null;
 };
 
 export default function DashboardCompetitorsContent() {
@@ -464,7 +433,7 @@ export default function DashboardCompetitorsContent() {
                           Latest snapshot
                         </p>
                         <p className="mt-2 text-sm text-[#0f172a]">
-                          {summarizeSnapshot(competitor) ??
+                          {summarizeCompetitorSnapshot(competitor) ??
                             "No extracted pricing snapshot yet."}
                         </p>
                       </div>
