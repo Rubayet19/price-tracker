@@ -84,6 +84,63 @@ const competitorWithOrderedPlanTexts: DashboardComparisonCompetitor = {
   },
 };
 
+const competitorWithAnnualPerMonthPlans: DashboardComparisonCompetitor = {
+  ...competitorWithoutPlans,
+  companyId: "cmp_3",
+  latestSnapshot: {
+    ...competitorWithoutPlans.latestSnapshot!,
+    pricingModel: "mixed_recurring",
+    comparisonCadences: ["month", "year"],
+    pricePoints: [
+      { amount: 39.9, currency: "USD", period: "month" },
+      { amount: 159, currency: "USD", period: "month" },
+      { amount: 299, currency: "USD", period: "month" },
+      { amount: 34, currency: "USD", period: "year" },
+      { amount: 135, currency: "USD", period: "year" },
+      { amount: 254, currency: "USD", period: "year" },
+    ],
+    pricePointBuckets: [
+      {
+        currency: "USD",
+        period: "month",
+        count: 3,
+        minAmount: 39.9,
+        maxAmount: 299,
+      },
+      {
+        currency: "USD",
+        period: "year",
+        count: 3,
+        minAmount: 34,
+        maxAmount: 254,
+      },
+    ],
+    extractedPlans: [
+      {
+        name: "Basic",
+        currency: "USD",
+        monthlyPrice: 39.9,
+        annualPrice: 34,
+        annualPriceIsPerMonth: true,
+      },
+      {
+        name: "Pro",
+        currency: "USD",
+        monthlyPrice: 159,
+        annualPrice: 135,
+        annualPriceIsPerMonth: true,
+      },
+      {
+        name: "Max",
+        currency: "USD",
+        monthlyPrice: 299,
+        annualPrice: 254,
+        annualPriceIsPerMonth: true,
+      },
+    ],
+  },
+};
+
 test("dashboard comparison reconstructs named plans from ordered debug labels when extracted plans are unavailable", () => {
   const unavailableReason = getCompetitorComparisonUnavailableReason(
     competitorWithOrderedPlanTexts,
@@ -141,5 +198,29 @@ test("comparison summary compares competitor range against the self pricing base
   assert.equal(
     summary,
     "Competitor monthly pricing starts above your Starter tier and stretches beyond your highest tier, from $39.90 to $299."
+  );
+});
+
+test("annual comparison summary normalizes competitor annual-per-month pricing to yearly totals before comparing against self pricing", () => {
+  const selfPrices = [
+    { name: "Starter", amount: 20, currency: "USD" },
+    { name: "Growth", amount: 200, currency: "USD" },
+    { name: "Scale", amount: 350, currency: "USD" },
+  ];
+  const competitorPrices = getCompetitorComparisonPrices(
+    competitorWithAnnualPerMonthPlans,
+    "year"
+  );
+
+  const summary = summarizeCompetitorComparison(
+    competitorWithAnnualPerMonthPlans,
+    competitorPrices,
+    selfPrices,
+    "year"
+  );
+
+  assert.equal(
+    summary,
+    "Competitor annual pricing starts above your highest tier (Scale at $350/yr) and stretches beyond your highest tier, from $408/yr (listed as $34/mo) to $3,048/yr (listed as $254/mo)."
   );
 });
