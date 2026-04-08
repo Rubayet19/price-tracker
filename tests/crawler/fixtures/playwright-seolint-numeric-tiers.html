@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="From $19/month. Scan any page from Claude, get AI fix instructions. MCP server, CLI, and dashboard included."
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pricing | SEOLint</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #ffffff;
+        color: #111827;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
+      }
+      .toggle-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 18px;
+        border-radius: 16px;
+        background: #4f46e5;
+        color: #ffffff;
+        margin-bottom: 32px;
+      }
+      .toggle {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 44px;
+        height: 22px;
+        border: 0;
+        border-radius: 999px;
+        background: #d4d4d8;
+        cursor: pointer;
+      }
+      .toggle-knob {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: #ffffff;
+        left: 1px;
+        transition: transform 120ms ease;
+      }
+      .translate-x-0 {
+        transform: translateX(0);
+      }
+      .translate-x-5 {
+        transform: translateX(20px);
+      }
+      .pricing {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+      }
+      .card {
+        border: 2px solid #d4d4d8;
+        border-radius: 24px;
+        padding: 28px;
+        background: #ffffff;
+      }
+      .featured {
+        border-color: #4f46e5;
+      }
+      .plan-name {
+        display: block;
+        font-size: 34px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .price-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 16px 0;
+      }
+      .price {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .period {
+        color: #6b7280;
+        font-size: 24px;
+      }
+      .subprice {
+        color: #9ca3af;
+        font-size: 18px;
+        margin-bottom: 16px;
+      }
+      .cta {
+        display: inline-flex;
+        justify-content: center;
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: #111827;
+        color: #ffffff;
+        text-decoration: none;
+        margin-top: 16px;
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section id="pricing">
+        <h1>Scan any page. Get AI fixes.</h1>
+        <div class="toggle-wrap">
+          <span>Monthly</span>
+          <button
+            id="cadence-toggle"
+            class="toggle"
+            type="button"
+            aria-label="Toggle between Monthly and Yearly pricing"
+          >
+            <span id="cadence-toggle-knob" class="toggle-knob translate-x-0"></span>
+          </button>
+          <span>Yearly</span>
+        </div>
+
+        <div class="pricing">
+          <article class="card">
+            <h2 class="plan-name">50 scans</h2>
+            <div class="state state-monthly">
+              <div class="price-row">
+                <span class="price">$19</span>
+                <span class="period">/month</span>
+              </div>
+            </div>
+            <div class="state state-yearly hidden">
+              <div class="price-row">
+                <span class="price">$189</span>
+                <span class="period">/year</span>
+              </div>
+              <div class="subprice">$15.75/mo billed annually</div>
+            </div>
+            <p>Scan your key pages and fix issues as you build.</p>
+            <ul>
+              <li>50 page scans per month</li>
+              <li>Works in Claude Desktop and terminal</li>
+            </ul>
+            <a class="cta" href="#starter">Get started</a>
+          </article>
+
+          <article class="card featured">
+            <h2 class="plan-name">250 scans</h2>
+            <div class="state state-monthly">
+              <div class="price-row">
+                <span class="price">$49</span>
+                <span class="period">/month</span>
+              </div>
+            </div>
+            <div class="state state-yearly hidden">
+              <div class="price-row">
+                <span class="price">$489</span>
+                <span class="period">/year</span>
+              </div>
+              <div class="subprice">$40.75/mo billed annually</div>
+            </div>
+            <p>For multiple sites or frequent scanning.</p>
+            <ul>
+              <li>250 page scans per month</li>
+              <li>Priority processing</li>
+            </ul>
+            <a class="cta" href="#pro">Get started</a>
+          </article>
+
+          <article class="card">
+            <h2 class="plan-name">Custom</h2>
+            <div class="price-row">
+              <span class="price">Custom</span>
+            </div>
+            <p>Need more scans or specific requirements?</p>
+            <ul>
+              <li>Custom scan volume</li>
+              <li>Dedicated support</li>
+            </ul>
+            <a class="cta" href="mailto:hello@example.com">Contact us</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const toggle = document.getElementById("cadence-toggle");
+      const knob = document.getElementById("cadence-toggle-knob");
+      let mode = "monthly";
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        document.querySelectorAll(".state-monthly").forEach((node) => {
+          node.classList.toggle("hidden", mode !== "monthly");
+        });
+        document.querySelectorAll(".state-yearly").forEach((node) => {
+          node.classList.toggle("hidden", mode !== "yearly");
+        });
+        knob.classList.toggle("translate-x-0", mode === "monthly");
+        knob.classList.toggle("translate-x-5", mode === "yearly");
+      }
+
+      toggle.addEventListener("click", () => {
+        setMode(mode === "monthly" ? "yearly" : "monthly");
+      });
+
+      setMode("monthly");
+    </script>
+  </body>
+</html>

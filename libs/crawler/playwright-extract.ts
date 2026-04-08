@@ -778,9 +778,12 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     if (!normalized) return false;
     if (normalized.length > 28) return false;
     if (normalized.split(/\\s+/).length > 4) return false;
-    if (/[,:!?]/.test(normalized) || /\\d/.test(normalized) || normalized.includes(".")) return false;
+    if (/[,:!?/]/.test(normalized) || normalized.includes(".")) return false;
+    const numericTierPattern = /^\\d{1,4}(?:,\\d{3})*(?:\\+)?(?:\\s+[a-z][a-z0-9+-]*){1,3}$/i;
+    if (/\\d/.test(normalized) && !numericTierPattern.test(normalized)) return false;
+    if (/^(?:\\/?(?:month|year|mo|yr)|monthly|yearly|annual|annually)$/i.test(normalized)) return false;
     if (/^(usd|eur|gbp|cad|aud|jpy|inr|brl|mxn|chf|sek|nok|dkk|nzd|sgd|hkd|krw|try|zar|pln)$/i.test(normalized)) return false;
-    return !/save up|months free|launch price|intro price|best value|limited time|most popular|per month|billed|trial|price tag|credit card|required|enterprise power|integrations|history|users|pages|cadence|coverage|compare|pricing|faq|features|trusted by|money-back|upgrade|manage subscription|contact us|what are credits/i.test(normalized);
+    return !/save up|months free|launch price|intro price|best value|limited time|most popular|per month|billed|trial|price tag|credit card|required|enterprise power|integrations|history|cadence|coverage|compare|pricing|faq|features|trusted by|money-back|upgrade|manage subscription|contact us|what are credits/i.test(normalized);
   }
 
   function inferPlanNameFromButtonText(value) {
@@ -820,6 +823,18 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
     if (transform === "capitalize") return text.replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
     if (transform === "uppercase") return text.toUpperCase();
     return text;
+  }
+
+  function countDistinctHeadingCandidates(element) {
+    return new Set(
+      Array.from(
+        element.querySelectorAll("h1, h2, h3, h4, h5, [data-plan-name], [data-plan-title], strong, b")
+      )
+        .filter(isTextVisible)
+        .map((entry) => normalizeText(entry.textContent || ""))
+        .filter((entry) => isLikelyPlanName(entry))
+        .map((entry) => entry.toLowerCase())
+    ).size;
   }
 
   const pricePattern = /(?:\\b(?:USD|EUR|GBP|CAD|AUD|JPY)\\b\\s*|[€£$¥])\\s*(\\d{1,4}(?:,\\d{3})*(?:\\.\\d{1,2})?)/gi;
@@ -1018,6 +1033,10 @@ const RENDERED_STATE_EVALUATE_SCRIPT = `(() => {
       let ancestor = heading.parentElement;
       let pairedPrice = null;
       while (ancestor && ancestor !== document.body) {
+        if (countDistinctHeadingCandidates(ancestor) > 1) {
+          ancestor = ancestor.parentElement;
+          continue;
+        }
         for (const priceEl of priceEls) {
           if (ancestor.contains(priceEl)) {
             const raw = normalizeText(priceEl.textContent || "");

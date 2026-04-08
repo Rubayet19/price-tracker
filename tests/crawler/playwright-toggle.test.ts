@@ -284,3 +284,49 @@ test("playwright extraction treats a higher annual-state amount as a yearly tota
     ]
   );
 });
+
+test("playwright extraction accepts numeric plan names and keeps custom contact tiers unpriced", async (t) => {
+  const server = await startFixtureServer(
+    loadFixture("playwright-seolint-numeric-tiers.html")
+  );
+  t.after(async () => {
+    await server.close();
+  });
+
+  const result = await extractPricingWithPlaywright(server.url);
+
+  assert.ok(result);
+  assert.deepEqual(result.pricingPayload.extractionDebug?.clickedCadences, [
+    "month",
+    "year",
+  ]);
+  const extractedPlans = [...(result.pricingPayload.extractedPlans ?? [])].sort(
+    (left, right) => left.name.localeCompare(right.name)
+  );
+  assert.deepEqual(
+    extractedPlans.map((plan) => ({
+      name: plan.name,
+      monthlyPrice: plan.monthlyPrice,
+      annualPrice: plan.annualPrice,
+      annualPriceIsPerMonth: plan.annualPriceIsPerMonth,
+    })),
+    [
+      {
+        name: "250 scans",
+        monthlyPrice: 49,
+        annualPrice: 489,
+        annualPriceIsPerMonth: false,
+      },
+      {
+        name: "50 scans",
+        monthlyPrice: 19,
+        annualPrice: 189,
+        annualPriceIsPerMonth: false,
+      },
+    ]
+  );
+  assert.ok(
+    !result.pricingPayload.planNames.includes("custom"),
+    "custom contact-only cards should not become paid recurring plans"
+  );
+});
