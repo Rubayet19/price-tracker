@@ -33,6 +33,12 @@ const getSiteUrl = () => {
 
 const siteUrl = getSiteUrl();
 const isNoIndexEnabled = process.env.NO_INDEX === "true";
+const defaultShareImage = {
+  url: `${siteUrl}/images/pricing-pulse-share.png`,
+  width: 1200,
+  height: 630,
+  alt: "Pricing Pulse landing page preview",
+};
 
 export const getSEOTags = ({
   title,
@@ -66,12 +72,14 @@ export const getSEOTags = ({
       siteName: config.appName,
       locale: "en_US",
       type: "website",
+      images: openGraph?.images || [defaultShareImage],
     },
 
     twitter: {
       title: resolvedOpenGraphTitle,
       description: resolvedOpenGraphDescription,
       card: "summary_large_image",
+      images: [defaultShareImage.url],
     },
 
     ...(canonicalUrlRelative && {
